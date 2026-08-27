@@ -53,9 +53,9 @@ export default function PerfilesPage() {
         NombrePerfil: formData.nombre_perfil,
         Descripcion: formData.descripcion,
         descripcion: formData.descripcion,
-        Estado: formData.estado,
-        estado: formData.estado,
-        // Compatibilidad con columnas numéricas (TINYINT/INT)
+        // Enviar 1 o 0 a todas las variantes de estado
+        Estado: estadoNumerico,
+        estado: estadoNumerico,
         EstadoRegistro: estadoNumerico,
         estado_registro: estadoNumerico,
         estadoRegistro: estadoNumerico
