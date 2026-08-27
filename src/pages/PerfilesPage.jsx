@@ -38,17 +38,35 @@ export default function PerfilesPage() {
     fetchPerfiles();
   }, []);
 
-  // Guardar nuevo perfil (POST)
+  // Guardar nuevo perfil (POST compatible con múltiples nombres de campo)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSaving(true);
+
+      const payload = {
+        Nombre: formData.nombre_perfil,
+        nombre: formData.nombre_perfil,
+        nombre_perfil: formData.nombre_perfil,
+        NombrePerfil: formData.nombre_perfil,
+        Descripcion: formData.descripcion,
+        descripcion: formData.descripcion,
+        Estado: formData.estado,
+        estado: formData.estado
+      };
+
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Error al guardar el perfil');
+
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.error || responseData.message || 'Error al guardar el perfil');
+      }
+
       setIsModalOpen(false);
       setFormData({ nombre_perfil: '', descripcion: '', estado: 'ACTIVO' });
       fetchPerfiles(); // Recargar la lista
@@ -60,8 +78,8 @@ export default function PerfilesPage() {
   };
 
   const filteredPerfiles = perfiles.filter(p => 
-    (p.nombre_perfil || p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (p.Nombre || p.nombre_perfil || p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.Descripcion || p.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -143,17 +161,17 @@ export default function PerfilesPage() {
                 </tr>
               ) : (
                 filteredPerfiles.map((p, idx) => (
-                  <tr key={p.id_perfil || p.id || idx} className="hover:bg-slate-50 transition">
-                    <td className="py-4 px-6 font-semibold text-slate-400">#{p.id_perfil || p.id || idx + 1}</td>
-                    <td className="py-4 px-6 font-bold text-slate-800">{p.nombre_perfil || p.nombre}</td>
-                    <td className="py-4 px-6 text-slate-500">{p.descripcion || 'Sin descripción'}</td>
+                  <tr key={p.id_perfil || p.id || p.Id || idx} className="hover:bg-slate-50 transition">
+                    <td className="py-4 px-6 font-semibold text-slate-400">#{p.id_perfil || p.id || p.Id || idx + 1}</td>
+                    <td className="py-4 px-6 font-bold text-slate-800">{p.Nombre || p.nombre_perfil || p.nombre}</td>
+                    <td className="py-4 px-6 text-slate-500">{p.Descripcion || p.descripcion || 'Sin descripción'}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        (p.estado || '').toUpperCase() === 'ACTIVO' 
+                        ((p.Estado || p.estado || '').toUpperCase() === 'ACTIVO')
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' 
                           : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {p.estado || 'ACTIVO'}
+                        {p.Estado || p.estado || 'ACTIVO'}
                       </span>
                     </td>
                   </tr>
