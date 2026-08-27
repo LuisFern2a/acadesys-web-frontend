@@ -12,6 +12,7 @@ export default function PerfilesPage() {
   // Estado para el modal de creación
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({
     nombre_perfil: '',
     descripcion: '',
@@ -38,7 +39,7 @@ export default function PerfilesPage() {
     fetchPerfiles();
   }, []);
 
-  // Guardar nuevo perfil (POST compatible con múltiples nombres de campo)
+  // Guardar nuevo perfil (POST)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -53,7 +54,6 @@ export default function PerfilesPage() {
         NombrePerfil: formData.nombre_perfil,
         Descripcion: formData.descripcion,
         descripcion: formData.descripcion,
-        // Enviar 1 o 0 a todas las variantes de estado
         Estado: estadoNumerico,
         estado: estadoNumerico,
         EstadoRegistro: estadoNumerico,
@@ -80,6 +80,34 @@ export default function PerfilesPage() {
       alert('Error al registrar perfil: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Eliminar perfil (DELETE)
+  const handleDelete = async (id, nombre) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el perfil "${nombre}"?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      const res = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo eliminar el perfil');
+      }
+
+      // Actualizar la lista en el estado local de inmediato
+      setPerfiles(prev => prev.filter(p => (p.id_perfil || p.id || p.Id) !== id));
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+      fetchPerfiles(); // Recargar en caso de discrepancia
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -156,32 +184,53 @@ export default function PerfilesPage() {
                 <th className="py-4 px-6">Nombre del Perfil</th>
                 <th className="py-4 px-6">Descripción</th>
                 <th className="py-4 px-6">Estado</th>
+                <th className="py-4 px-6 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
               {filteredPerfiles.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-8 text-center text-slate-400">
+                  <td colSpan="5" className="py-8 text-center text-slate-400">
                     No se encontraron perfiles registrados.
                   </td>
                 </tr>
               ) : (
-                filteredPerfiles.map((p, idx) => (
-                  <tr key={p.id_perfil || p.id || p.Id || idx} className="hover:bg-slate-50 transition">
-                    <td className="py-4 px-6 font-semibold text-slate-400">#{p.id_perfil || p.id || p.Id || idx + 1}</td>
-                    <td className="py-4 px-6 font-bold text-slate-800">{p.Nombre || p.nombre_perfil || p.nombre}</td>
-                    <td className="py-4 px-6 text-slate-500">{p.Descripcion || p.descripcion || 'Sin descripción'}</td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        ((p.Estado || p.estado || '').toUpperCase() === 'ACTIVO')
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' 
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {p.Estado || p.estado || 'ACTIVO'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                filteredPerfiles.map((p, idx) => {
+                  const id = p.id_perfil || p.id || p.Id || idx + 1;
+                  const nombre = p.Nombre || p.nombre_perfil || p.nombre || 'Perfil';
+                  const isDeleting = deletingId === id;
+
+                  return (
+                    <tr key={id} className="hover:bg-slate-50/80 transition group">
+                      <td className="py-4 px-6 font-semibold text-slate-400">#{id}</td>
+                      <td className="py-4 px-6 font-bold text-slate-800">{nombre}</td>
+                      <td className="py-4 px-6 text-slate-500">{p.Descripcion || p.descripcion || 'Sin descripción'}</td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                          (String(p.Estado || p.estado || p.EstadoRegistro) === '1' || (p.Estado || p.estado || '').toString().toUpperCase() === 'ACTIVO')
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' 
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {(String(p.Estado || p.estado || p.EstadoRegistro) === '1' || (p.Estado || p.estado || '').toString().toUpperCase() === 'ACTIVO') ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button
+                          onClick={() => handleDelete(id, nombre)}
+                          disabled={isDeleting}
+                          title="Eliminar perfil"
+                          className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition shadow-none active:scale-95 disabled:opacity-50"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
