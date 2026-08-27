@@ -84,7 +84,11 @@ export default function PerfilesPage() {
   };
 
   // Eliminar perfil (DELETE)
-  const handleDelete = async (id, nombre) => {
+  const handleDelete = async (p) => {
+    // Extrae el ID exacto que viene del objeto de la base de datos
+    const id = p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID;
+    const nombre = p.Nombre || p.nombre_perfil || p.nombre || 'este perfil';
+
     if (!window.confirm(`¿Estás seguro de que deseas eliminar el perfil "${nombre}"?`)) {
       return;
     }
@@ -101,11 +105,14 @@ export default function PerfilesPage() {
         throw new Error(data.error || 'No se pudo eliminar el perfil');
       }
 
-      // Actualizar la lista en el estado local de inmediato
-      setPerfiles(prev => prev.filter(p => (p.id_perfil || p.id || p.Id) !== id));
+      // Quita la fila de la vista inmediatamente
+      setPerfiles(prev => prev.filter(item => {
+        const itemId = item.id_perfil ?? item.IdPerfil ?? item.id ?? item.Id ?? item.ID;
+        return itemId !== id;
+      }));
+
     } catch (err) {
       alert('Error al eliminar: ' + err.message);
-      fetchPerfiles(); // Recargar en caso de discrepancia
     } finally {
       setDeletingId(null);
     }
@@ -216,12 +223,12 @@ export default function PerfilesPage() {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <button
-                          onClick={() => handleDelete(id, nombre)}
-                          disabled={isDeleting}
+                          onClick={() => handleDelete(p)}
+                          disabled={deletingId === (p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID)}
                           title="Eliminar perfil"
                           className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition shadow-none active:scale-95 disabled:opacity-50"
                         >
-                          {isDeleting ? (
+                          {deletingId === (p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID) ? (
                             <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
                           ) : (
                             <Trash2 className="w-4 h-4" />
