@@ -101,14 +101,11 @@ export default function PerfilesPage() {
         throw new Error(data.error || 'No se pudo eliminar el perfil');
       }
 
-      // 1. Quita la fila de la vista al instante (Optimistic / Local update)
-      setPerfiles(prev => prev.filter(p => (p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id) !== id));
-      
-      // 2. Vuelve a consultar la base de datos de fondo para asegurar sincronización
-      await fetchPerfiles();
-
+      // Actualizar la lista en el estado local de inmediato
+      setPerfiles(prev => prev.filter(p => (p.id_perfil || p.id || p.Id) !== id));
     } catch (err) {
       alert('Error al eliminar: ' + err.message);
+      fetchPerfiles(); // Recargar en caso de discrepancia
     } finally {
       setDeletingId(null);
     }
