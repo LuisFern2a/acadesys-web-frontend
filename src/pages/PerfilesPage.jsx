@@ -44,6 +44,8 @@ export default function PerfilesPage() {
     try {
       setSaving(true);
 
+      const estadoNumerico = formData.estado === 'ACTIVO' ? 1 : 0;
+
       const payload = {
         Nombre: formData.nombre_perfil,
         nombre: formData.nombre_perfil,
@@ -52,7 +54,11 @@ export default function PerfilesPage() {
         Descripcion: formData.descripcion,
         descripcion: formData.descripcion,
         Estado: formData.estado,
-        estado: formData.estado
+        estado: formData.estado,
+        // Compatibilidad con columnas numéricas (TINYINT/INT)
+        EstadoRegistro: estadoNumerico,
+        estado_registro: estadoNumerico,
+        estadoRegistro: estadoNumerico
       };
 
       const res = await fetch(API_URL, {
