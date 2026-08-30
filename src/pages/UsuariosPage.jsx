@@ -7,6 +7,8 @@ export default function UsuariosPage() {
   const [loadingPerfiles, setLoadingPerfiles] = useState(true);
   const [errorPerfiles, setErrorPerfiles] = useState('');
 
+  const [usuarios, setUsuarios] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -104,7 +106,9 @@ export default function UsuariosPage() {
       );
     */
 
-    alert('Formulario preparado. Revisa la consola para ver el JSON.');
+    setUsuarios((actuales) => [...actuales, usuario]);
+
+    alert('Usuario agregado correctamente a la lista.');
 
     setIsModalOpen(false);
 
@@ -176,21 +180,73 @@ export default function UsuariosPage() {
       </div>
 
       {/* CONTENIDO */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+      {usuarios.length === 0 ? (
+  <div className="p-10 text-center text-slate-400">
+    <Users className="w-12 h-12 mx-auto mb-4 text-slate-300" />
 
-        <div className="p-10 text-center text-slate-400">
-          <Users className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+    <h2 className="text-lg font-semibold text-slate-600 mb-1">
+      Gestión de usuarios
+    </h2>
 
-          <h2 className="text-lg font-semibold text-slate-600 mb-1">
-            Gestión de usuarios
-          </h2>
+    <p className="text-sm">
+      No hay usuarios registrados todavía.
+    </p>
+  </div>
+) : (
+  <div className="overflow-x-auto">
+    <table className="w-full text-left border-collapse">
 
-          <p className="text-sm">
-            Aquí se mostrarán los usuarios registrados.
-          </p>
-        </div>
+      <thead>
+        <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <th className="py-4 px-6">Usuario</th>
+          <th className="py-4 px-6">Nombre</th>
+          <th className="py-4 px-6">Correo</th>
+          <th className="py-4 px-6">Perfiles</th>
+          <th className="py-4 px-6">Estado</th>
+        </tr>
+      </thead>
 
-      </div>
+      <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
+
+        {usuarios.map((usuario, index) => (
+          <tr
+            key={index}
+            className="hover:bg-slate-50 transition-colors"
+          >
+
+            <td className="py-4 px-6 font-semibold text-slate-800">
+              {usuario.nombreUsuario}
+            </td>
+
+            <td className="py-4 px-6">
+              {usuario.nombre} {usuario.apellido}
+            </td>
+
+            <td className="py-4 px-6">
+              {usuario.correo}
+            </td>
+
+            <td className="py-4 px-6">
+              {usuario.perfiles.length > 0
+                ? usuario.perfiles.join(', ')
+                : 'Sin perfil'}
+            </td>
+
+            <td className="py-4 px-6">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                {usuario.estadoRegistro}
+              </span>
+            </td>
+
+          </tr>
+        ))}
+
+      </tbody>
+
+    </table>
+  </div>
+)}
+
 
       {/* MODAL NUEVO USUARIO */}
       {isModalOpen && (
