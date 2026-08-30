@@ -21,6 +21,14 @@ export default function UsuariosPage() {
     estadoRegistro: 'Activo',
   });
 
+  const [errores, setErrores] = useState({});
+
+  const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
+  const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu)$/;
+  const CONTRASENA_PERMITIDA = /^(?=(?:.*[A-Za-z]){8})(?=(?:.*\d){8})[A-Za-z\d]{16}$/;
+
+
+
   const [perfilesSeleccionados, setPerfilesSeleccionados] = useState([]);
 
   // --------------------------------------------------
@@ -35,13 +43,19 @@ export default function UsuariosPage() {
     setErrorPerfiles('');
 
     try {
-      const data = await obtenerPerfiles();
+      
+const data = await obtenerPerfiles();
 
-      const lista = Array.isArray(data)
-        ? data
-        : data.data || [];
+console.log("PERFILES QUE RECIBE USUARIOS:", data);
 
-      setPerfiles(lista);
+const lista = Array.isArray(data)
+  ? data
+  : data.data || [];
+
+console.log("LISTA DE PERFILES:", lista);
+
+setPerfiles(lista);
+
     } catch (error) {
       console.error('Error al cargar perfiles:', error);
       setErrorPerfiles('No se pudieron cargar los perfiles.');
@@ -79,64 +93,92 @@ export default function UsuariosPage() {
   // GUARDAR
   // --------------------------------------------------
   const handleSave = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const usuario = {
-      ...formData,
-      perfiles: perfilesSeleccionados,
-    };
+  const nuevosErrores = {};
 
-    console.log('DATOS DEL USUARIO:', usuario);
+  // Validar nombre de usuario
+  if (!SOLO_LETRAS.test(formData.nombreUsuario)) {
+  nuevosErrores.nombreUsuario =
+    'El nombre de usuario debe contener únicamente letras y espacios, sin números ni símbolos.';
+}
 
-    /*
-      AQUÍ conectaremos el POST cuando el Integrante 2
-      nos entregue el endpoint y el JSON exacto del backend.
+  // Validar nombre
+  if (!SOLO_LETRAS.test(formData.nombre)) {
+  nuevosErrores.nombre =
+    'El nombre debe contener únicamente letras y espacios, sin números ni símbolos.';
+}
 
-      Ejemplo futuro:
+  // Validar apellido
+  if (!SOLO_LETRAS.test(formData.apellido)) {
+  nuevosErrores.apellido =
+    'El apellido debe contener únicamente letras y espacios, sin números ni símbolos.';
+}
 
-      const response = await fetch(
-        'https://acadesys-api.onrender.com/api/usuarios',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(usuario),
-        }
-      );
-    */
+  // Validar correo
+  if (!CORREO_PERMITIDO.test(formData.correo)) {
+    nuevosErrores.correo =
+      'El correo debe terminar en @gmail.com o @acadesys.edu.';
+  }
 
-    setUsuarios((actuales) => [...actuales, usuario]);
+  // Validar contraseña
+  if (!CONTRASENA_PERMITIDA.test(formData.contrasena)) {
+    nuevosErrores.contrasena =
+      'La contraseña debe tener exactamente 16 caracteres: 8 letras y 8 números, sin símbolos.';
+  }
 
-    alert('Usuario agregado correctamente a la lista.');
+  // Validar que haya al menos un perfil
+  if (perfilesSeleccionados.length === 0) {
+    nuevosErrores.perfiles =
+      'Debes seleccionar al menos un perfil.';
+  }
 
-    setIsModalOpen(false);
+  // Si hay errores, no guardar
+  if (Object.keys(nuevosErrores).length > 0) {
+    setErrores(nuevosErrores);
+    return;
+  }
 
-    setFormData({
-      nombreUsuario: '',
-      nombre: '',
-      apellido: '',
-      correo: '',
-      contrasena: '',
-      estadoRegistro: 'Activo',
-    });
-
-    setPerfilesSeleccionados([]);
+  // Crear objeto del usuario
+  const usuario = {
+    ...formData,
+    perfiles: perfilesSeleccionados,
   };
+
+  console.log('DATOS DEL USUARIO:', usuario);
+
+  // Agregar temporalmente a la lista
+  setUsuarios((actuales) => [...actuales, usuario]);
+
+  alert('Usuario agregado correctamente.');
+
+  // Cerrar modal
+  setIsModalOpen(false);
+
+  // Limpiar formulario
+  setFormData({
+    nombreUsuario: '',
+    nombre: '',
+    apellido: '',
+    correo: '',
+    contrasena: '',
+    estadoRegistro: 'Activo',
+  });
+
+  setPerfilesSeleccionados([]);
+  setErrores({});
+};
 
   // --------------------------------------------------
   // FILTRAR PERFILES
   // --------------------------------------------------
   const perfilesFiltrados = perfiles.filter((perfil) => {
-    const nombre =
-      perfil.NombrePerfil ||
-      perfil.nombrePerfil ||
-      '';
+  const nombre = perfil.Nombre || '';
 
-    return nombre
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-  });
+  return nombre
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase());
+});
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
@@ -177,6 +219,32 @@ export default function UsuariosPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-transparent outline-none text-slate-700 text-sm"
         />
+        {errores.nombreUsuario && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.nombreUsuario}
+  </p>
+)}
+        {errores.nombre && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.nombre}
+  </p>
+)}
+        {errores.apellido && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.apellido}
+  </p>
+)}
+        {errores.correo && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.correo}
+  </p>
+)}
+        {errores.contrasena && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.contrasena}
+  </p>
+)}
+        
       </div>
 
       {/* CONTENIDO */}
@@ -284,7 +352,17 @@ export default function UsuariosPage() {
                   name="nombreUsuario"
                   required
                   value={formData.nombreUsuario}
-                  onChange={handleChange}
+                  onChange={(e) => {
+  const valor = e.target.value;
+
+  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
+    setFormData({
+      ...formData,
+      nombreUsuario: valor,
+    });
+  }
+}}
+
                   placeholder="Ej: jperez"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
                 />
@@ -303,7 +381,16 @@ export default function UsuariosPage() {
                     name="nombre"
                     required
                     value={formData.nombre}
-                    onChange={handleChange}
+                    onChange={(e) => {
+  const valor = e.target.value;
+
+  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
+    setFormData({
+      ...formData,
+      nombre: valor,
+    });
+  }
+}}
                     placeholder="Juan"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
                   />
@@ -319,7 +406,17 @@ export default function UsuariosPage() {
                     name="apellido"
                     required
                     value={formData.apellido}
-                    onChange={handleChange}
+                    onChange={(e) => {
+  const valor = e.target.value;
+
+  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
+    setFormData({
+      ...formData,
+      apellido: valor,
+    });
+  }
+}}
+
                     placeholder="Pérez"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
                   />
@@ -351,14 +448,15 @@ export default function UsuariosPage() {
                 </label>
 
                 <input
-                  type="password"
-                  name="contrasena"
-                  required
-                  value={formData.contrasena}
-                  onChange={handleChange}
-                  placeholder="********"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
-                />
+  type="password"
+  name="contrasena"
+  required
+  maxLength={16}
+  value={formData.contrasena}
+  onChange={handleChange}
+  placeholder="8 letras + 8 números"
+  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
+/>
               </div>
 
               {/* PERFILES */}
@@ -388,15 +486,9 @@ export default function UsuariosPage() {
 
                       {perfilesFiltrados.map((perfil) => {
 
-                        const idPerfil =
-                          perfil.IdPerfil ||
-                          perfil.idPerfil ||
-                          perfil.id;
+                        const idPerfil = perfil.IdPerfil;
 
-                        const nombrePerfil =
-                          perfil.NombrePerfil ||
-                          perfil.nombrePerfil ||
-                          'Sin nombre';
+                        const nombrePerfil = perfil.Nombre;
 
                         return (
                           <label
@@ -427,6 +519,11 @@ export default function UsuariosPage() {
                 <p className="text-xs text-slate-400 mt-2">
                   Puedes seleccionar uno o varios perfiles.
                 </p>
+                {errores.perfiles && (
+  <p className="text-xs text-rose-600 mt-1">
+    {errores.perfiles}
+  </p>
+)}
 
               </div>
 
