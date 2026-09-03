@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Users, Search, Loader2, X } from 'lucide-react';
-import { obtenerPerfiles } from '../services/api';
+import { Plus, Users, Search, Loader2, X, AlertCircle } from 'lucide-react';
+import { obtenerPerfiles, obtenerUsuarios, crearUsuario } from '../services/api';
 
 export default function UsuariosPage() {
   const [perfiles, setPerfiles] = useState([]);
@@ -8,12 +8,15 @@ export default function UsuariosPage() {
   const [errorPerfiles, setErrorPerfiles] = useState('');
 
   const [usuarios, setUsuarios] = useState([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
+  const [guardando, setGuardando] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     nombreUsuario: '',
+    dni: '',
     nombre: '',
     apellido: '',
     correo: '',
@@ -22,45 +25,49 @@ export default function UsuariosPage() {
   });
 
   const [errores, setErrores] = useState({});
+  const [perfilesSeleccionados, setPerfilesSeleccionados] = useState([]);
 
+  // Validaciones RegEx
   const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
+  const DNI_REGEX = /^\d{8}$/;
   const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu)$/;
   const CONTRASENA_PERMITIDA = /^(?=(?:.*[A-Za-z]){8})(?=(?:.*\d){8})[A-Za-z\d]{16}$/;
 
-
-
-  const [perfilesSeleccionados, setPerfilesSeleccionados] = useState([]);
-
   // --------------------------------------------------
-  // CARGAR PERFILES DESDE EL BACKEND
+  // CARGA INICIAL
   // --------------------------------------------------
   useEffect(() => {
     cargarPerfiles();
+    cargarUsuarios();
   }, []);
 
   const cargarPerfiles = async () => {
     setLoadingPerfiles(true);
     setErrorPerfiles('');
-
     try {
-      
-const data = await obtenerPerfiles();
-
-console.log("PERFILES QUE RECIBE USUARIOS:", data);
-
-const lista = Array.isArray(data)
-  ? data
-  : data.data || [];
-
-console.log("LISTA DE PERFILES:", lista);
-
-setPerfiles(lista);
-
+      const data = await obtenerPerfiles();
+      const lista = Array.isArray(data) ? data : data.data || [];
+      setPerfiles(lista);
     } catch (error) {
       console.error('Error al cargar perfiles:', error);
       setErrorPerfiles('No se pudieron cargar los perfiles.');
     } finally {
       setLoadingPerfiles(false);
+    }
+  };
+
+  const cargarUsuarios = async () => {
+    setLoadingUsuarios(true);
+    try {
+      if (typeof obtenerUsuarios === 'function') {
+        const data = await obtenerUsuarios();
+        const lista = Array.isArray(data) ? data : data.data || [];
+        setUsuarios(lista);
+      }
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
+    } finally {
+      setLoadingUsuarios(false);
     }
   };
 
@@ -72,7 +79,6 @@ setPerfiles(lista);
       if (actuales.includes(idPerfil)) {
         return actuales.filter((id) => id !== idPerfil);
       }
-
       return [...actuales, idPerfil];
     });
   };
@@ -82,7 +88,6 @@ setPerfiles(lista);
   // --------------------------------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((actual) => ({
       ...actual,
       [name]: value,
@@ -90,117 +95,117 @@ setPerfiles(lista);
   };
 
   // --------------------------------------------------
-  // GUARDAR
+  // GUARDAR USUARIO (INTEGRACIÓN REQ 2)
   // --------------------------------------------------
   const handleSave = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    const nuevosErrores = {};
 
-  const nuevosErrores = {};
+    // Validar nombre de usuario
+    if (!formData.nombreUsuario.trim()) {
+      nuevosErrores.nombreUsuario = 'El nombre de usuario es obligatorio.';
+    }
 
-  // Validar nombre de usuario
-  if (!SOLO_LETRAS.test(formData.nombreUsuario)) {
-  nuevosErrores.nombreUsuario =
-    'El nombre de usuario debe contener únicamente letras y espacios, sin números ni símbolos.';
-}
+    // Validar DNI (exactamente 8 dígitos numéricos)
+    if (!DNI_REGEX.test(formData.dni)) {
+      nuevosErrores.dni = 'El DNI debe tener exactamente 8 dígitos numéricos.';
+    }
 
-  // Validar nombre
-  if (!SOLO_LETRAS.test(formData.nombre)) {
-  nuevosErrores.nombre =
-    'El nombre debe contener únicamente letras y espacios, sin números ni símbolos.';
-}
+    // Validar nombre
+    if (!SOLO_LETRAS.test(formData.nombre)) {
+      nuevosErrores.nombre = 'El nombre debe contener únicamente letras y espacios.';
+    }
 
-  // Validar apellido
-  if (!SOLO_LETRAS.test(formData.apellido)) {
-  nuevosErrores.apellido =
-    'El apellido debe contener únicamente letras y espacios, sin números ni símbolos.';
-}
+    // Validar apellido
+    if (!SOLO_LETRAS.test(formData.apellido)) {
+      nuevosErrores.apellido = 'El apellido debe contener únicamente letras y espacios.';
+    }
 
-  // Validar correo
-  if (!CORREO_PERMITIDO.test(formData.correo)) {
-    nuevosErrores.correo =
-      'El correo debe terminar en @gmail.com o @acadesys.edu.';
-  }
+    // Validar correo
+    if (!CORREO_PERMITIDO.test(formData.correo)) {
+      nuevosErrores.correo = 'El correo debe terminar en @gmail.com o @acadesys.edu.';
+    }
 
-  // Validar contraseña
-  if (!CONTRASENA_PERMITIDA.test(formData.contrasena)) {
-    nuevosErrores.contrasena =
-      'La contraseña debe tener exactamente 16 caracteres: 8 letras y 8 números, sin símbolos.';
-  }
+    // Validar contraseña
+    if (!CONTRASENA_PERMITIDA.test(formData.contrasena)) {
+      nuevosErrores.contrasena = 'La contraseña debe tener exactamente 16 caracteres (8 letras y 8 números).';
+    }
 
-  // Validar que haya al menos un perfil
-  if (perfilesSeleccionados.length === 0) {
-    nuevosErrores.perfiles =
-      'Debes seleccionar al menos un perfil.';
-  }
+    // Validar selección de perfiles
+    if (perfilesSeleccionados.length === 0) {
+      nuevosErrores.perfiles = 'Debes seleccionar al menos un perfil.';
+    }
 
-  // Si hay errores, no guardar
-  if (Object.keys(nuevosErrores).length > 0) {
-    setErrores(nuevosErrores);
-    return;
-  }
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      return;
+    }
 
-  // Crear objeto del usuario
-  const usuario = {
-    ...formData,
-    perfiles: perfilesSeleccionados,
+    // Construcción del payload para el Backend
+    const payloadUsuario = {
+      ...formData,
+      perfiles: perfilesSeleccionados, // Array con los IDs de perfiles seleccionados
+    };
+
+    setGuardando(true);
+    try {
+      // POST al backend
+      await crearUsuario(payloadUsuario);
+
+      alert('¡Usuario registrado con éxito!');
+
+      // Recargar lista y cerrar modal
+      await cargarUsuarios();
+      setIsModalOpen(false);
+
+      // Limpiar formulario
+      setFormData({
+        nombreUsuario: '',
+        dni: '',
+        nombre: '',
+        apellido: '',
+        correo: '',
+        contrasena: '',
+        estadoRegistro: 'Activo',
+      });
+      setPerfilesSeleccionados([]);
+      setErrores({});
+    } catch (error) {
+      console.error('Error al registrar usuario:', error);
+      alert(error.message || 'Hubo un problema al registrar el usuario.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
-  console.log('DATOS DEL USUARIO:', usuario);
-
-  // Agregar temporalmente a la lista
-  setUsuarios((actuales) => [...actuales, usuario]);
-
-  alert('Usuario agregado correctamente.');
-
-  // Cerrar modal
-  setIsModalOpen(false);
-
-  // Limpiar formulario
-  setFormData({
-    nombreUsuario: '',
-    nombre: '',
-    apellido: '',
-    correo: '',
-    contrasena: '',
-    estadoRegistro: 'Activo',
+  // Filtrado de usuarios por término de búsqueda
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const matchUser = (u.nombreUsuario || u.NombreUsuario || '').toLowerCase();
+    const matchNombre = `${u.nombre || u.Nombre || ''} ${u.apellido || u.Apellido || ''}`.toLowerCase();
+    const matchDni = (u.dni || u.Dni || '').toString();
+    const query = searchTerm.toLowerCase();
+    return matchUser.includes(query) || matchNombre.includes(query) || matchDni.includes(query);
   });
-
-  setPerfilesSeleccionados([]);
-  setErrores({});
-};
-
-  // --------------------------------------------------
-  // FILTRAR PERFILES
-  // --------------------------------------------------
-  const perfilesFiltrados = perfiles.filter((perfil) => {
-  const nombre = perfil.Nombre || '';
-
-  return nombre
-    .toLowerCase()
-    .includes(searchTerm.toLowerCase());
-});
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
-
       {/* ENCABEZADO */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
             <Users className="w-8 h-8 text-indigo-600" />
-
-            <h1 className="text-2xl font-bold text-slate-800">
-              Gestión de Usuarios
-            </h1>
+            <h1 className="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
           </div>
-
           <p className="text-slate-500 text-sm mt-1">
             Administración de usuarios y asignación de perfiles
           </p>
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setErrores({});
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all"
         >
           <Plus className="w-5 h-5" />
@@ -211,124 +216,70 @@ setPerfiles(lista);
       {/* BUSCADOR */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex items-center gap-3">
         <Search className="w-5 h-5 text-slate-400" />
-
         <input
           type="text"
-          placeholder="Buscar usuario..."
+          placeholder="Buscar por usuario, nombre o DNI..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-transparent outline-none text-slate-700 text-sm"
         />
-        {errores.nombreUsuario && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.nombreUsuario}
-  </p>
-)}
-        {errores.nombre && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.nombre}
-  </p>
-)}
-        {errores.apellido && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.apellido}
-  </p>
-)}
-        {errores.correo && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.correo}
-  </p>
-)}
-        {errores.contrasena && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.contrasena}
-  </p>
-)}
-        
       </div>
 
-      {/* CONTENIDO */}
-      {usuarios.length === 0 ? (
-  <div className="p-10 text-center text-slate-400">
-    <Users className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-
-    <h2 className="text-lg font-semibold text-slate-600 mb-1">
-      Gestión de usuarios
-    </h2>
-
-    <p className="text-sm">
-      No hay usuarios registrados todavía.
-    </p>
-  </div>
-) : (
-  <div className="overflow-x-auto">
-    <table className="w-full text-left border-collapse">
-
-      <thead>
-        <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          <th className="py-4 px-6">Usuario</th>
-          <th className="py-4 px-6">Nombre</th>
-          <th className="py-4 px-6">Correo</th>
-          <th className="py-4 px-6">Perfiles</th>
-          <th className="py-4 px-6">Estado</th>
-        </tr>
-      </thead>
-
-      <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-
-        {usuarios.map((usuario, index) => (
-          <tr
-            key={index}
-            className="hover:bg-slate-50 transition-colors"
-          >
-
-            <td className="py-4 px-6 font-semibold text-slate-800">
-              {usuario.nombreUsuario}
-            </td>
-
-            <td className="py-4 px-6">
-              {usuario.nombre} {usuario.apellido}
-            </td>
-
-            <td className="py-4 px-6">
-              {usuario.correo}
-            </td>
-
-            <td className="py-4 px-6">
-              {usuario.perfiles.length > 0
-                ? usuario.perfiles.join(', ')
-                : 'Sin perfil'}
-            </td>
-
-            <td className="py-4 px-6">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-                {usuario.estadoRegistro}
-              </span>
-            </td>
-
-          </tr>
-        ))}
-
-      </tbody>
-
-    </table>
-  </div>
-)}
-
+      {/* LISTA / TABLA */}
+      {loadingUsuarios ? (
+        <div className="p-12 text-center text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-600" />
+          <p className="text-sm">Cargando lista de usuarios...</p>
+        </div>
+      ) : usuariosFiltrados.length === 0 ? (
+        <div className="p-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200/80">
+          <Users className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <h2 className="text-lg font-semibold text-slate-600 mb-1">Sin registros</h2>
+          <p className="text-sm">No se encontraron usuarios registrados.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-200/80">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/75 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="py-4 px-6">DNI</th>
+                <th className="py-4 px-6">Usuario</th>
+                <th className="py-4 px-6">Nombre Completo</th>
+                <th className="py-4 px-6">Correo</th>
+                <th className="py-4 px-6">Perfiles</th>
+                <th className="py-4 px-6">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
+              {usuariosFiltrados.map((u, idx) => (
+                <tr key={u.idUsuario || u.IdUsuario || idx} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-4 px-6 font-mono text-xs">{u.dni || u.Dni || '-'}</td>
+                  <td className="py-4 px-6 font-semibold text-slate-800">{u.nombreUsuario || u.NombreUsuario}</td>
+                  <td className="py-4 px-6">{u.nombre || u.Nombre} {u.apellido || u.Apellido}</td>
+                  <td className="py-4 px-6">{u.correo || u.Correo}</td>
+                  <td className="py-4 px-6">
+                    {Array.isArray(u.perfiles) && u.perfiles.length > 0
+                      ? u.perfiles.join(', ')
+                      : 'Sin perfil'}
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                      {u.estadoRegistro || u.EstadoRegistro || 'Activo'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* MODAL NUEVO USUARIO */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-
-            {/* CABECERA MODAL */}
             <div className="flex items-center justify-between mb-6">
-
-              <h2 className="text-xl font-bold text-slate-800">
-                Crear Nuevo Usuario
-              </h2>
-
+              <h2 className="text-xl font-bold text-slate-800">Crear Nuevo Usuario</h2>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
@@ -336,92 +287,112 @@ setPerfiles(lista);
               >
                 <X className="w-5 h-5" />
               </button>
-
             </div>
 
-            <form onSubmit={handleSave} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* NOMBRE DE USUARIO */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                    Nombre de Usuario
+                  </label>
+                  <input
+                    type="text"
+                    name="nombreUsuario"
+                    value={formData.nombreUsuario}
+                    onChange={handleChange}
+                    placeholder="Ej: jperalta"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                      errores.nombreUsuario ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                    }`}
+                  />
+                  {errores.nombreUsuario && (
+                    <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {errores.nombreUsuario}
+                    </p>
+                  )}
+                </div>
 
-              {/* USUARIO */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-                  Nombre de usuario
-                </label>
-
-                <input
-                  type="text"
-                  name="nombreUsuario"
-                  required
-                  value={formData.nombreUsuario}
-                  onChange={(e) => {
-  const valor = e.target.value;
-
-  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
-    setFormData({
-      ...formData,
-      nombreUsuario: valor,
-    });
-  }
-}}
-
-                  placeholder="Ej: jperez"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
-                />
+                {/* DNI (8 DÍGITOS) */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                    DNI (8 dígitos)
+                  </label>
+                  <input
+                    type="text"
+                    name="dni"
+                    maxLength={8}
+                    value={formData.dni}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, ''); // Solo números
+                      setFormData((prev) => ({ ...prev, dni: val }));
+                    }}
+                    placeholder="74839201"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                      errores.dni ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                    }`}
+                  />
+                  {errores.dni && (
+                    <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {errores.dni}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* NOMBRE Y APELLIDO */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                     Nombre
                   </label>
-
                   <input
                     type="text"
                     name="nombre"
-                    required
                     value={formData.nombre}
                     onChange={(e) => {
-  const valor = e.target.value;
-
-  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
-    setFormData({
-      ...formData,
-      nombre: valor,
-    });
-  }
-}}
+                      const val = e.target.value;
+                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(val)) {
+                        setFormData((prev) => ({ ...prev, nombre: val }));
+                      }
+                    }}
                     placeholder="Juan"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                      errores.nombre ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                    }`}
                   />
+                  {errores.nombre && (
+                    <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {errores.nombre}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                     Apellido
                   </label>
-
                   <input
                     type="text"
                     name="apellido"
-                    required
                     value={formData.apellido}
                     onChange={(e) => {
-  const valor = e.target.value;
-
-  if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(valor)) {
-    setFormData({
-      ...formData,
-      apellido: valor,
-    });
-  }
-}}
-
+                      const val = e.target.value;
+                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(val)) {
+                        setFormData((prev) => ({ ...prev, apellido: val }));
+                      }
+                    }}
                     placeholder="Pérez"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                      errores.apellido ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                    }`}
                   />
+                  {errores.apellido && (
+                    <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {errores.apellido}
+                    </p>
+                  )}
                 </div>
-
               </div>
 
               {/* CORREO */}
@@ -429,130 +400,110 @@ setPerfiles(lista);
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                   Correo electrónico
                 </label>
-
                 <input
                   type="email"
                   name="correo"
-                  required
                   value={formData.correo}
                   onChange={handleChange}
-                  placeholder="usuario@acadesys.edu"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
+                  placeholder="usuario@acadesys.edu o @gmail.com"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                    errores.correo ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                  }`}
                 />
+                {errores.correo && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {errores.correo}
+                  </p>
+                )}
               </div>
 
               {/* CONTRASEÑA */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-                  Contraseña
+                  Contraseña (16 caracteres: 8 letras y 8 números)
                 </label>
-
                 <input
-  type="password"
-  name="contrasena"
-  required
-  maxLength={16}
-  value={formData.contrasena}
-  onChange={handleChange}
-  placeholder="8 letras + 8 números"
-  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-indigo-600 text-sm"
-/>
+                  type="password"
+                  name="contrasena"
+                  maxLength={16}
+                  value={formData.contrasena}
+                  onChange={handleChange}
+                  placeholder="Ej: ClaveSec12345678"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
+                    errores.contrasena ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
+                  }`}
+                />
+                {errores.contrasena && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {errores.contrasena}
+                  </p>
+                )}
               </div>
 
-              {/* PERFILES */}
+              {/* CHECKBOXES DE PERFILES */}
               <div>
-
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
-                  Perfiles
+                  Perfiles asignados
                 </label>
-
-                <div className="border border-slate-200 rounded-xl p-4">
-
+                <div className={`border rounded-xl p-4 ${errores.perfiles ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200'}`}>
                   {loadingPerfiles ? (
                     <div className="flex items-center gap-2 text-slate-400 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                       Cargando perfiles...
                     </div>
                   ) : errorPerfiles ? (
-                    <div className="text-sm text-rose-600">
-                      {errorPerfiles}
-                    </div>
-                  ) : perfilesFiltrados.length === 0 ? (
-                    <div className="text-sm text-slate-400">
-                      No hay perfiles disponibles.
-                    </div>
+                    <div className="text-sm text-rose-600">{errorPerfiles}</div>
+                  ) : perfiles.length === 0 ? (
+                    <div className="text-sm text-slate-400">No hay perfiles disponibles.</div>
                   ) : (
-                    <div className="space-y-3">
-
-                      {perfilesFiltrados.map((perfil) => {
-
-                        const idPerfil = perfil.IdPerfil;
-
-                        const nombrePerfil = perfil.Nombre;
-
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {perfiles.map((perfil) => {
+                        const id = perfil.IdPerfil || perfil.idPerfil || perfil.id;
+                        const nombre = perfil.Nombre || perfil.nombre;
                         return (
-                          <label
-                            key={idPerfil}
-                            className="flex items-center gap-3 cursor-pointer"
-                          >
-
+                          <label key={id} className="flex items-center gap-2.5 cursor-pointer select-none">
                             <input
                               type="checkbox"
-                              checked={perfilesSeleccionados.includes(idPerfil)}
-                              onChange={() => cambiarPerfil(idPerfil)}
+                              checked={perfilesSeleccionados.includes(id)}
+                              onChange={() => cambiarPerfil(id)}
                               className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                             />
-
-                            <span className="text-sm text-slate-700">
-                              {nombrePerfil}
-                            </span>
-
+                            <span className="text-sm text-slate-700">{nombre}</span>
                           </label>
                         );
                       })}
-
                     </div>
                   )}
-
                 </div>
-
-                <p className="text-xs text-slate-400 mt-2">
-                  Puedes seleccionar uno o varios perfiles.
-                </p>
                 {errores.perfiles && (
-  <p className="text-xs text-rose-600 mt-1">
-    {errores.perfiles}
-  </p>
-)}
-
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {errores.perfiles}
+                  </p>
+                )}
               </div>
 
               {/* BOTONES */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   Cancelar
                 </button>
-
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                  disabled={guardando}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all disabled:opacity-50"
                 >
-                  Guardar Usuario
+                  {guardando && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {guardando ? 'Guardando...' : 'Guardar Usuario'}
                 </button>
-
               </div>
-
             </form>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }
