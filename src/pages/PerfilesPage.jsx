@@ -1,127 +1,123 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Plus, Search, Loader2, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Users, Plus, Search, Loader2, AlertCircle, RefreshCw, Trash2, Mail, CreditCard, Shield } from 'lucide-react';
+import { obtenerUsuarios, obtenerPerfiles, crearUsuario } from '../services/api';
 
-const API_URL = 'https://acadesys-api.onrender.com/api/perfiles';
-
-export default function PerfilesPage() {
+export default function UsuariosPage() {
+  const [usuarios, setUsuarios] = useState([]);
   const [perfiles, setPerfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Estado para el modal de creación
+
+  // Estado del modal de registro
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({
-    nombre_perfil: '',
-    descripcion: '',
-    estado: 'ACTIVO'
+    nombreUsuario: '',
+    dni: '',
+    nombre: '',
+    apellido: '',
+    correo: '',
+    contrasena: '',
+    idPerfil: 2
   });
 
-  // Función para listar perfiles desde el backend
-  const fetchPerfiles = async () => {
+  // Cargar usuarios y perfiles
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Error al obtener los datos de la API');
-      const data = await res.json();
-      setPerfiles(Array.isArray(data) ? data : data.data || []);
+      const [dataUsuarios, dataPerfiles] = await Promise.all([
+        obtenerUsuarios(),
+        obtenerPerfiles().catch(() => [])
+      ]);
+
+      const listaUsuarios = Array.isArray(dataUsuarios) ? dataUsuarios : dataUsuarios.data || [];
+      const listaPerfiles = Array.isArray(dataPerfiles) ? dataPerfiles : dataPerfiles.data || [];
+
+      setUsuarios(listaUsuarios);
+      setPerfiles(listaPerfiles);
     } catch (err) {
-      setError('El servidor está iniciando o hubo un problema de conexión. Intenta de nuevo en unos segundos.');
+      setError('Error al cargar la lista de usuarios desde el servidor.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPerfiles();
+    fetchData();
   }, []);
 
-  // Guardar nuevo perfil (POST)
+  // Helper para resolver propiedades con mayúsculas/minúsculas de la BD
+  const resolverDNI = (u) => u.DNI || u.dni || u.Dni || u.documento || '-';
+  const resolverUsuario = (u) => u.NombreUsuario || u.nombreUsuario || u.usuario || u.Usuario || '-';
+  const resolverNombre = (u) => {
+    const nombres = u.Nombres || u.nombres || u.Nombre || u.nombre || '';
+    const apellidos = u.Apellidos || u.apellidos || u.Apellido || u.apellido || '';
+    const completo = `${nombres} ${apellidos}`.trim();
+    return completo || resolverUsuario(u);
+  };
+  const resolverCorreo = (u) => u.Correo || u.correo || u.CorreoElectronico || u.email || '-';
+  const resolverPerfil = (u) => {
+    if (u.NombrePerfil || u.nombrePerfil || u.perfil || u.Perfil) {
+      return u.NombrePerfil || u.nombrePerfil || u.perfil || u.Perfil;
+    }
+    const idPerfil = u.IdPerfil ?? u.idPerfil ?? u.id_perfil;
+    const encontrado = perfiles.find(p => (p.id_perfil ?? p.IdPerfil ?? p.id) === Number(idPerfil));
+    return encontrado ? (encontrado.Nombre || encontrado.nombre_perfil || encontrado.nombre) : 'Docente';
+  };
+  const resolverEstado = (u) => {
+    const estado = u.EstadoRegistro ?? u.estadoRegistro ?? u.Estado ?? u.estado ?? 1;
+    return String(estado) === '1' || String(estado).toUpperCase() === 'ACTIVO';
+  };
+
+  // Enviar nuevo usuario
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.dni.length !== 8) {
+      alert('El DNI debe contener exactamente 8 dígitos numéricos.');
+      return;
+    }
+
     try {
       setSaving(true);
-
-      const estadoNumerico = formData.estado === 'ACTIVO' ? 1 : 0;
-
-      const payload = {
-        Nombre: formData.nombre_perfil,
-        nombre: formData.nombre_perfil,
-        nombre_perfil: formData.nombre_perfil,
-        NombrePerfil: formData.nombre_perfil,
-        Descripcion: formData.descripcion,
-        descripcion: formData.descripcion,
-        Estado: estadoNumerico,
-        estado: estadoNumerico,
-        EstadoRegistro: estadoNumerico,
-        estado_registro: estadoNumerico,
-        estadoRegistro: estadoNumerico
-      };
-
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      await crearUsuario({
+        nombreUsuario: formData.nombreUsuario.trim(),
+        dni: formData.dni.trim(),
+        nombre: formData.nombre.trim(),
+        apellido: formData.apellido.trim(),
+        correo: formData.correo.trim(),
+        contrasena: formData.contrasena,
+        perfiles: [Number(formData.idPerfil)]
       });
 
-      const responseData = await res.json();
-
-      if (!res.ok) {
-        throw new Error(responseData.error || responseData.message || 'Error al guardar el perfil');
-      }
-
       setIsModalOpen(false);
-      setFormData({ nombre_perfil: '', descripcion: '', estado: 'ACTIVO' });
-      fetchPerfiles(); // Recargar la lista
+      setFormData({
+        nombreUsuario: '',
+        dni: '',
+        nombre: '',
+        apellido: '',
+        correo: '',
+        contrasena: '',
+        idPerfil: 2
+      });
+      fetchData();
     } catch (err) {
-      alert('Error al registrar perfil: ' + err.message);
+      alert('Error al registrar usuario: ' + (err.message || 'Ocurrió un error'));
     } finally {
       setSaving(false);
     }
   };
 
-  // Eliminar perfil (DELETE)
-  const handleDelete = async (p) => {
-    // Extrae el ID exacto que viene del objeto de la base de datos
-    const id = p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID;
-    const nombre = p.Nombre || p.nombre_perfil || p.nombre || 'este perfil';
-
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar el perfil "${nombre}"?`)) {
-      return;
-    }
-
-    try {
-      setDeletingId(id);
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'No se pudo eliminar el perfil');
-      }
-
-      // Quita la fila de la vista inmediatamente
-      setPerfiles(prev => prev.filter(item => {
-        const itemId = item.id_perfil ?? item.IdPerfil ?? item.id ?? item.Id ?? item.ID;
-        return itemId !== id;
-      }));
-
-    } catch (err) {
-      alert('Error al eliminar: ' + err.message);
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const filteredPerfiles = perfiles.filter(p => 
-    (p.Nombre || p.nombre_perfil || p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.Descripcion || p.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsuarios = usuarios.filter((u) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      resolverUsuario(u).toLowerCase().includes(term) ||
+      resolverNombre(u).toLowerCase().includes(term) ||
+      resolverDNI(u).toLowerCase().includes(term) ||
+      resolverCorreo(u).toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
@@ -129,15 +125,15 @@ export default function PerfilesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-8 h-8 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-slate-800">Mantenimiento de Perfiles</h1>
+            <Users className="w-8 h-8 text-indigo-600" />
+            <h1 className="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
           </div>
-          <p className="text-slate-500 text-sm mt-1">Gestión de roles y niveles de acceso a la plataforma</p>
+          <p className="text-slate-500 text-sm mt-1">Administración de usuarios y asignación de perfiles</p>
         </div>
 
         <div className="flex gap-2">
           <button 
-            onClick={fetchPerfiles}
+            onClick={fetchData}
             className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition shadow-sm"
             title="Recargar datos"
           >
@@ -147,7 +143,7 @@ export default function PerfilesPage() {
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition"
           >
-            <Plus className="w-5 h-5" /> Nuevo Perfil
+            <Plus className="w-5 h-5" /> Nuevo Usuario
           </button>
         </div>
       </div>
@@ -157,27 +153,26 @@ export default function PerfilesPage() {
         <Search className="w-5 h-5 text-slate-400" />
         <input
           type="text"
-          placeholder="Buscar perfil por nombre o descripción..."
+          placeholder="Buscar por usuario, nombre o DNI..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-transparent outline-none text-slate-700 text-sm"
         />
       </div>
 
-      {/* Tabla con estados de Carga / Error */}
+      {/* Tabla */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-            <p className="text-slate-700 font-medium text-sm">Cargando perfiles desde el servidor...</p>
-            <p className="text-slate-400 text-xs mt-1 max-w-sm">Si es la primera petición, el servidor de Render puede tardar ~50 segundos en despertar.</p>
+            <p className="text-slate-700 font-medium text-sm">Cargando usuarios desde el servidor...</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center flex flex-col items-center justify-center">
             <AlertCircle className="w-8 h-8 text-rose-500 mb-2" />
             <p className="text-slate-700 font-medium text-sm">{error}</p>
             <button 
-              onClick={fetchPerfiles}
+              onClick={fetchData}
               className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition"
             >
               Reintentar conexión
@@ -187,53 +182,54 @@ export default function PerfilesPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase">
-                <th className="py-4 px-6">ID</th>
-                <th className="py-4 px-6">Nombre del Perfil</th>
-                <th className="py-4 px-6">Descripción</th>
-                <th className="py-4 px-6">Estado</th>
-                <th className="py-4 px-6 text-right">Acciones</th>
+                <th className="py-4 px-6">DNI</th>
+                <th className="py-4 px-6">Usuario</th>
+                <th className="py-4 px-6">Nombre Completo</th>
+                <th className="py-4 px-6">Correo</th>
+                <th className="py-4 px-6">Perfiles</th>
+                <th className="py-4 px-6 text-center">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-              {filteredPerfiles.length === 0 ? (
+              {filteredUsuarios.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-400">
-                    No se encontraron perfiles registrados.
+                  <td colSpan="6" className="py-8 text-center text-slate-400">
+                    No se encontraron usuarios registrados.
                   </td>
                 </tr>
               ) : (
-                filteredPerfiles.map((p, idx) => {
-                  const id = p.id_perfil || p.id || p.Id || idx + 1;
-                  const nombre = p.Nombre || p.nombre_perfil || p.nombre || 'Perfil';
-                  const isDeleting = deletingId === id;
+                filteredUsuarios.map((u, idx) => {
+                  const idUnico = u.IdUsuario || u.id_usuario || u.id || idx;
+                  const activo = resolverEstado(u);
 
                   return (
-                    <tr key={id} className="hover:bg-slate-50/80 transition group">
-                      <td className="py-4 px-6 font-semibold text-slate-400">#{id}</td>
-                      <td className="py-4 px-6 font-bold text-slate-800">{nombre}</td>
-                      <td className="py-4 px-6 text-slate-500">{p.Descripcion || p.descripcion || 'Sin descripción'}</td>
+                    <tr key={idUnico} className="hover:bg-slate-50/80 transition">
+                      <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-500">
+                        {resolverDNI(u)}
+                      </td>
+                      <td className="py-4 px-6 font-bold text-slate-800">
+                        {resolverUsuario(u)}
+                      </td>
+                      <td className="py-4 px-6 text-slate-700 font-medium">
+                        {resolverNombre(u)}
+                      </td>
+                      <td className="py-4 px-6 text-slate-500">
+                        {resolverCorreo(u)}
+                      </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                          (String(p.Estado || p.estado || p.EstadoRegistro) === '1' || (p.Estado || p.estado || '').toString().toUpperCase() === 'ACTIVO')
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' 
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {(String(p.Estado || p.estado || p.EstadoRegistro) === '1' || (p.Estado || p.estado || '').toString().toUpperCase() === 'ACTIVO') ? 'ACTIVO' : 'INACTIVO'}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                          <Shield className="w-3 h-3 text-indigo-500" />
+                          {resolverPerfil(u)}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => handleDelete(p)}
-                          disabled={deletingId === (p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID)}
-                          title="Eliminar perfil"
-                          className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition shadow-none active:scale-95 disabled:opacity-50"
-                        >
-                          {deletingId === (p.id_perfil ?? p.IdPerfil ?? p.id ?? p.Id ?? p.ID) ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                          activo
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {activo ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -244,48 +240,116 @@ export default function PerfilesPage() {
         )}
       </div>
 
-      {/* Modal para Crear Perfil */}
+      {/* Modal para Crear Usuario */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">Registrar Nuevo Perfil</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Registrar Nuevo Usuario</h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Usuario</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="usuario123"
+                    value={formData.nombreUsuario}
+                    onChange={(e) => setFormData({ ...formData, nombreUsuario: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">DNI (8 dígitos)</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={8}
+                    placeholder="12345678"
+                    value={formData.dni}
+                    onChange={(e) => setFormData({ ...formData, dni: e.target.value.replace(/\D/g, '') })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nombres</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombres"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Apellidos</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Apellidos"
+                    value={formData.apellido}
+                    onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Nombre del Perfil</label>
+                <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Correo Electrónico</label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="Ej. Coordinador Académico"
-                  value={formData.nombre_perfil}
-                  onChange={(e) => setFormData({ ...formData, nombre_perfil: e.target.value })}
+                  placeholder="correo@ejemplo.com"
+                  value={formData.correo}
+                  onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Descripción</label>
-                <textarea
-                  placeholder="Describe los permisos o alcance del rol..."
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  rows="3"
+                <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Contraseña</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={formData.contrasena}
+                  onChange={(e) => setFormData({ ...formData, contrasena: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Estado</label>
+                <label className="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Perfil Asignado</label>
                 <select
-                  value={formData.estado}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600"
+                  value={formData.idPerfil}
+                  onChange={(e) => setFormData({ ...formData, idPerfil: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-600 bg-white"
                 >
-                  <option value="ACTIVO">ACTIVO</option>
-                  <option value="INACTIVO">INACTIVO</option>
+                  {perfiles.length > 0 ? (
+                    perfiles.map((p) => {
+                      const id = p.id_perfil ?? p.IdPerfil ?? p.id;
+                      const nombre = p.Nombre || p.nombre_perfil || p.nombre || `Perfil #${id}`;
+                      return (
+                        <option key={id} value={id}>
+                          {nombre}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <>
+                      <option value="1">Administrador</option>
+                      <option value="2">Docente</option>
+                      <option value="3">Padre</option>
+                      <option value="4">Alumno</option>
+                    </>
+                  )}
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -299,7 +363,7 @@ export default function PerfilesPage() {
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition flex items-center gap-2"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {saving ? 'Guardando...' : 'Guardar Perfil'}
+                  {saving ? 'Guardando...' : 'Guardar Usuario'}
                 </button>
               </div>
             </form>

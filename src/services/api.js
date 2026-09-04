@@ -47,10 +47,13 @@ export async function crearUsuario(datosUsuario) {
       ? Number(datosUsuario.perfiles[0])
       : 1;
 
+    // Se asegura de que el DNI sea exactamente de 8 caracteres y nunca "undefined"
+    const dniLimpio = String(datosUsuario.dni || datosUsuario.DNI || '00000000').trim().slice(0, 8);
+
     const payload = {
       ...datosUsuario,
-      DNI: String(datosUsuario.dni || datosUsuario.DNI),
-      dni: String(datosUsuario.dni || datosUsuario.DNI),
+      DNI: dniLimpio,
+      dni: dniLimpio,
       Nombres: datosUsuario.nombre || datosUsuario.Nombres || datosUsuario.nombreUsuario,
       Nombre: datosUsuario.nombre || datosUsuario.Nombre,
       nombres: datosUsuario.nombre,

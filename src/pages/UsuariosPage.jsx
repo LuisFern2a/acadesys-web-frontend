@@ -30,7 +30,7 @@ export default function UsuariosPage() {
   // Validaciones RegEx
   const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
   const DNI_REGEX = /^\d{8}$/;
-  const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu)$/;
+  const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu|acadesys\.edu\.pe)$/;
   const CONTRASENA_PERMITIDA = /^(?=(?:.*[A-Za-z]){8})(?=(?:.*\d){8})[A-Za-z\d]{16}$/;
 
   // --------------------------------------------------
@@ -72,6 +72,71 @@ export default function UsuariosPage() {
   };
 
   // --------------------------------------------------
+  // RESOLVEDORES ROBUSTOS PARA CAMPOS DE LA BD
+  // --------------------------------------------------
+  const resolverUsuario = (u) => {
+    const user = (
+      u.NombreUsuario ||
+      u.nombreUsuario ||
+      u.usuario ||
+      u.Usuario ||
+      u.username ||
+      u.UserName ||
+      u.login ||
+      u.cuenta
+    );
+    if (user && String(user).trim() !== '') return String(user).trim();
+    
+    // Si la BD no guardó o no retornó la columna de alias, usa el prefijo del correo
+    const email = u.correo || u.Correo || u.email || '';
+    if (email.includes('@')) return email.split('@')[0];
+    
+    return u.nombres || u.Nombres || '-';
+  };
+
+  const resolverDni = (u) => {
+    return u.dni || u.DNI || u.Dni || '-';
+  };
+
+  const resolverNombreCompleto = (u) => {
+    const nombres = u.nombres || u.Nombres || u.nombre || u.Nombre || '';
+    const apellidos = u.apellidos || u.Apellidos || u.apellido || u.Apellido || '';
+    const completo = `${nombres} ${apellidos}`.trim();
+    return completo || resolverUsuario(u);
+  };
+
+  const resolverCorreo = (u) => {
+    return u.correo || u.Correo || u.CorreoElectronico || u.email || '-';
+  };
+
+  const resolverPerfilNombre = (u) => {
+    if (Array.isArray(u.perfiles) && u.perfiles.length > 0) {
+      return u.perfiles.map(p => {
+        if (typeof p === 'object' && p !== null) return p.Nombre || p.nombre || p.nombre_perfil;
+        const encontrado = perfiles.find(item => (item.id_perfil ?? item.IdPerfil ?? item.id) === Number(p));
+        return encontrado ? (encontrado.Nombre || encontrado.nombre) : p;
+      }).join(', ');
+    }
+
+    if (u.NombrePerfil || u.nombrePerfil || u.perfil || u.Perfil) {
+      return u.NombrePerfil || u.nombrePerfil || u.perfil || u.Perfil;
+    }
+
+    const idPerfil = u.idPerfil ?? u.IdPerfil ?? u.id_perfil ?? u.Id_Perfil;
+    if (idPerfil) {
+      const encontrado = perfiles.find(p => (p.id_perfil ?? p.IdPerfil ?? p.id) === Number(idPerfil));
+      if (encontrado) return encontrado.Nombre || encontrado.nombre_perfil || encontrado.nombre;
+    }
+
+    return 'Docente';
+  };
+
+  const resolverEstado = (u) => {
+    const est = u.estadoRegistro ?? u.EstadoRegistro ?? u.estado ?? u.Estado ?? 1;
+    return String(est) === '1' || String(est).toUpperCase() === 'ACTIVO' ? 'Activo' : 'Inactivo';
+  };
+
+  // --------------------------------------------------
   // SELECCIONAR / DESELECCIONAR PERFIL
   // --------------------------------------------------
   const cambiarPerfil = (idPerfil) => {
@@ -95,43 +160,36 @@ export default function UsuariosPage() {
   };
 
   // --------------------------------------------------
-  // GUARDAR USUARIO (INTEGRACIÓN REQ 2)
+  // GUARDAR USUARIO
   // --------------------------------------------------
   const handleSave = async (e) => {
     e.preventDefault();
     const nuevosErrores = {};
 
-    // Validar nombre de usuario
     if (!formData.nombreUsuario.trim()) {
       nuevosErrores.nombreUsuario = 'El nombre de usuario es obligatorio.';
     }
 
-    // Validar DNI (exactamente 8 dígitos numéricos)
     if (!DNI_REGEX.test(formData.dni)) {
       nuevosErrores.dni = 'El DNI debe tener exactamente 8 dígitos numéricos.';
     }
 
-    // Validar nombre
     if (!SOLO_LETRAS.test(formData.nombre)) {
       nuevosErrores.nombre = 'El nombre debe contener únicamente letras y espacios.';
     }
 
-    // Validar apellido
     if (!SOLO_LETRAS.test(formData.apellido)) {
       nuevosErrores.apellido = 'El apellido debe contener únicamente letras y espacios.';
     }
 
-    // Validar correo
     if (!CORREO_PERMITIDO.test(formData.correo)) {
-      nuevosErrores.correo = 'El correo debe terminar en @gmail.com o @acadesys.edu.';
+      nuevosErrores.correo = 'El correo debe ser válido (@gmail.com, @acadesys.edu o @acadesys.edu.pe).';
     }
 
-    // Validar contraseña
     if (!CONTRASENA_PERMITIDA.test(formData.contrasena)) {
       nuevosErrores.contrasena = 'La contraseña debe tener exactamente 16 caracteres (8 letras y 8 números).';
     }
 
-    // Validar selección de perfiles
     if (perfilesSeleccionados.length === 0) {
       nuevosErrores.perfiles = 'Debes seleccionar al menos un perfil.';
     }
@@ -141,24 +199,19 @@ export default function UsuariosPage() {
       return;
     }
 
-    // Construcción del payload para el Backend
     const payloadUsuario = {
       ...formData,
-      perfiles: perfilesSeleccionados, // Array con los IDs de perfiles seleccionados
+      perfiles: perfilesSeleccionados,
     };
 
     setGuardando(true);
     try {
-      // POST al backend
       await crearUsuario(payloadUsuario);
-
       alert('¡Usuario registrado con éxito!');
 
-      // Recargar lista y cerrar modal
       await cargarUsuarios();
       setIsModalOpen(false);
 
-      // Limpiar formulario
       setFormData({
         nombreUsuario: '',
         dni: '',
@@ -180,11 +233,18 @@ export default function UsuariosPage() {
 
   // Filtrado de usuarios por término de búsqueda
   const usuariosFiltrados = usuarios.filter((u) => {
-    const matchUser = (u.nombreUsuario || u.NombreUsuario || '').toLowerCase();
-    const matchNombre = `${u.nombre || u.Nombre || ''} ${u.apellido || u.Apellido || ''}`.toLowerCase();
-    const matchDni = (u.dni || u.Dni || '').toString();
+    const matchUser = resolverUsuario(u).toLowerCase();
+    const matchNombre = resolverNombreCompleto(u).toLowerCase();
+    const matchDni = resolverDni(u).toString();
+    const matchCorreo = resolverCorreo(u).toLowerCase();
     const query = searchTerm.toLowerCase();
-    return matchUser.includes(query) || matchNombre.includes(query) || matchDni.includes(query);
+
+    return (
+      matchUser.includes(query) ||
+      matchNombre.includes(query) ||
+      matchDni.includes(query) ||
+      matchCorreo.includes(query)
+    );
   });
 
   return (
@@ -251,24 +311,41 @@ export default function UsuariosPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-              {usuariosFiltrados.map((u, idx) => (
-                <tr key={u.idUsuario || u.IdUsuario || idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-4 px-6 font-mono text-xs">{u.dni || u.Dni || '-'}</td>
-                  <td className="py-4 px-6 font-semibold text-slate-800">{u.nombreUsuario || u.NombreUsuario}</td>
-                  <td className="py-4 px-6">{u.nombre || u.Nombre} {u.apellido || u.Apellido}</td>
-                  <td className="py-4 px-6">{u.correo || u.Correo}</td>
-                  <td className="py-4 px-6">
-                    {Array.isArray(u.perfiles) && u.perfiles.length > 0
-                      ? u.perfiles.join(', ')
-                      : 'Sin perfil'}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-                      {u.estadoRegistro || u.EstadoRegistro || 'Activo'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {usuariosFiltrados.map((u, idx) => {
+                const idFila = u.idUsuario || u.IdUsuario || u.id_usuario || idx;
+                const estadoTxt = resolverEstado(u);
+
+                return (
+                  <tr key={idFila} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-500">
+                      {resolverDni(u)}
+                    </td>
+                    <td className="py-4 px-6 font-semibold text-slate-800">
+                      {resolverUsuario(u)}
+                    </td>
+                    <td className="py-4 px-6">
+                      {resolverNombreCompleto(u)}
+                    </td>
+                    <td className="py-4 px-6">
+                      {resolverCorreo(u)}
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {resolverPerfilNombre(u)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        estadoTxt === 'Activo'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {estadoTxt}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -324,7 +401,7 @@ export default function UsuariosPage() {
                     maxLength={8}
                     value={formData.dni}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, ''); // Solo números
+                      const val = e.target.value.replace(/\D/g, '');
                       setFormData((prev) => ({ ...prev, dni: val }));
                     }}
                     placeholder="74839201"
