@@ -18,15 +18,24 @@ export default function OpcionesMenuPage() {
     idPerfil: ''
   });
 
+  const extraerArreglo = (res) => {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    if (res && Array.isArray(res.perfiles)) return res.perfiles;
+    if (res && Array.isArray(res.menus)) return res.menus;
+    return [];
+  };
+
   const cargarDatos = async () => {
     try {
       setCargando(true);
-      const [dataMenus, dataPerfiles] = await Promise.all([
+      const [resMenus, resPerfiles] = await Promise.all([
         obtenerOpcionesMenu().catch(() => []),
         obtenerPerfiles().catch(() => [])
       ]);
-      setMenus(Array.isArray(dataMenus) ? dataMenus : []);
-      setPerfiles(Array.isArray(dataPerfiles) ? dataPerfiles : []);
+
+      setMenus(extraerArreglo(resMenus));
+      setPerfiles(extraerArreglo(resPerfiles));
     } catch (error) {
       console.error("Error cargando datos:", error);
     } finally {
@@ -43,7 +52,7 @@ export default function OpcionesMenuPage() {
     try {
       // 1. Guardar la opción de menú en la API
       const respuestaMenu = await crearOpcionMenu(formData);
-      const idMenuCreado = respuestaMenu?.id || respuestaMenu?.IdOpcionMenu;
+      const idMenuCreado = respuestaMenu?.id || respuestaMenu?.IdOpcionMenu || respuestaMenu?.data?.id || respuestaMenu?.data?.IdOpcionMenu;
 
       // 2. Si se seleccionó un perfil, vincular en OpcionesMenu_Perfiles
       if (formData.idPerfil && idMenuCreado) {
@@ -209,9 +218,9 @@ export default function OpcionesMenuPage() {
                   className="w-full px-3.5 py-2 border rounded-xl outline-none focus:border-indigo-600 text-sm bg-white"
                 >
                   <option value="">Seleccionar Perfil...</option>
-                  {perfiles.map(p => {
-                    const pId = p.IdPerfil || p.idPerfil || p.id;
-                    const pNom = p.NombrePerfil || p.nombre || p.descripcion;
+                  {perfiles.map((p, idx) => {
+                    const pId = p.IdPerfil ?? p.idPerfil ?? p.Id ?? p.id ?? idx + 1;
+                    const pNom = p.NombrePerfil ?? p.nombrePerfil ?? p.Nombre ?? p.nombre ?? p.Descripcion ?? p.descripcion ?? `Perfil #${pId}`;
                     return (
                       <option key={pId} value={pId}>
                         {pNom}
