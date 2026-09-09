@@ -62,7 +62,17 @@ export default function UsuariosPage() {
       if (typeof obtenerUsuarios === 'function') {
         const data = await obtenerUsuarios();
         const lista = Array.isArray(data) ? data : data.data || [];
-        setUsuarios(lista);
+
+        // Filtrar duplicados por DNI o ID único
+        const sinDuplicados = lista.filter((u, index, self) => {
+          const key = u.dni || u.DNI || u.Dni || u.idUsuario || u.IdUsuario || u.id_usuario;
+          if (!key) return true;
+          return index === self.findIndex((item) => (
+            (item.dni || item.DNI || item.Dni || item.idUsuario || item.IdUsuario || item.id_usuario) === key
+          ));
+        });
+
+        setUsuarios(sinDuplicados);
       }
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
@@ -88,10 +98,11 @@ export default function UsuariosPage() {
     if (user && String(user).trim() !== '') return String(user).trim();
     
     // Si la BD no guardó o no retornó la columna de alias, usa el prefijo del correo
-    const email = u.correo || u.Correo || u.email || '';
+    const email = u.correo || u.Correo || u.CorreoElectronico || u.email || '';
     if (email.includes('@')) return email.split('@')[0];
     
-    return u.nombres || u.Nombres || '-';
+    const nombres = u.nombre || u.Nombre || u.nombres || u.Nombres || '';
+    return nombres ? String(nombres).trim() : '-';
   };
 
   const resolverDni = (u) => {
@@ -312,7 +323,7 @@ export default function UsuariosPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
               {usuariosFiltrados.map((u, idx) => {
-                const idFila = u.idUsuario || u.IdUsuario || u.id_usuario || idx;
+                const idFila = u.idUsuario || u.IdUsuario || u.id_usuario || u.dni || idx;
                 const estadoTxt = resolverEstado(u);
 
                 return (
