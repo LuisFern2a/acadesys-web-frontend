@@ -108,7 +108,7 @@ export default function LandingPage({ onLoginSuccess }) {
         apellido: registerData.apellido.trim() || 'General',
         correo: registerData.correo.trim() || `${registerData.usuario.trim().toLowerCase()}@acadesys.edu.pe`,
         contrasena: registerData.password,
-        perfiles: [2] // Perfil asignado por defecto
+        perfiles: [2] // Perfil asignado por defecto (Docente)
       };
 
       await crearUsuario(nuevoUsuarioPayload);
@@ -133,10 +133,11 @@ export default function LandingPage({ onLoginSuccess }) {
     setLoading(true);
     setError(null);
 
-    const inputUser = loginData.usuario.trim();
+    const inputUser = loginData.usuario.trim().toLowerCase();
     const inputPass = loginData.password.trim();
 
     try {
+      // 1. Intento primario al endpoint de autenticación del backend
       const res = await fetch('https://acadesys-api.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,13 +156,54 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // Bypass de contingencia para desarrollo
-      if (inputUser.toLowerCase() === 'admin' && inputPass === 'admin123') {
+      // 2. Bypass de contingencia para desarrollo
+      if (inputUser === 'admin' && inputPass === 'admin123') {
         const sessionUser = {
           nombre: 'admin',
           rol: 'Administrador General',
           token: 'dev-token-admin'
         };
+        localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
+        onLoginSuccess(sessionUser);
+        return;
+      }
+
+      // 3. Validación contra los usuarios registrados en MySQL
+      const usuariosRes = await fetch('https://acadesys-api.onrender.com/api/usuarios')
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []);
+
+      const lista = Array.isArray(usuariosRes) ? usuariosRes : usuariosRes.data || [];
+
+      // Buscar coincidencia por usuario, correo o DNI
+      const encontrado = lista.find((u) => {
+        const alias = (u.NombreUsuario || u.nombreUsuario || u.usuario || u.Usuario || u.username || '').toLowerCase();
+        const correo = (u.Correo || u.correo || u.CorreoElectronico || u.email || '').toLowerCase();
+        const dni = (u.DNI || u.dni || u.Dni || '').toString();
+
+        return (
+          alias === inputUser ||
+          correo === inputUser ||
+          (correo.includes('@') && correo.split('@')[0] === inputUser) ||
+          dni === inputUser
+        );
+      });
+
+      if (encontrado) {
+        const aliasFinal = (
+          encontrado.NombreUsuario ||
+          encontrado.nombreUsuario ||
+          encontrado.usuario ||
+          encontrado.username ||
+          (encontrado.Correo ? encontrado.Correo.split('@')[0] : inputUser)
+        );
+
+        const sessionUser = {
+          nombre: aliasFinal,
+          rol: encontrado.NombrePerfil || encontrado.nombrePerfil || 'Docente',
+          token: `token-${Date.now()}`
+        };
+
         localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
         onLoginSuccess(sessionUser);
         return;
@@ -330,7 +372,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     <input
                       type="text"
                       required
-                      placeholder="Ej. admin"
+                      placeholder="Ej. admin o tu usuario"
                       value={loginData.usuario}
                       onChange={(e) => setLoginData({ ...loginData, usuario: e.target.value })}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
@@ -427,7 +469,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     </label>
                     <input
                       type="text"
-                      placeholder="Yan"
+                      placeholder="Nombre"
                       value={registerData.nombre}
                       onChange={(e) => setRegisterData({ ...registerData, nombre: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
@@ -439,7 +481,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     </label>
                     <input
                       type="text"
-                      placeholder="Picon"
+                      placeholder="Apellido"
                       value={registerData.apellido}
                       onChange={(e) => setRegisterData({ ...registerData, apellido: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
@@ -453,7 +495,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   </label>
                   <input
                     type="email"
-                    placeholder="yan.picon@acadesys.edu.pe"
+                    placeholder="usuario@acadesys.edu.pe"
                     value={registerData.correo}
                     onChange={(e) => setRegisterData({ ...registerData, correo: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
