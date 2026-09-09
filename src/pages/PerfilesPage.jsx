@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Search, Loader2, AlertCircle, RefreshCw, X, CheckCircle2 } from 'lucide-react';
-import { obtenerPerfiles, crearPerfil } from '../services/api';
+import { obtenerPerfiles } from '../services/api';
 
 export default function PerfilesPage() {
   const [perfiles, setPerfiles] = useState([]);
