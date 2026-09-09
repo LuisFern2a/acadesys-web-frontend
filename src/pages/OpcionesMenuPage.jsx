@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Menu as MenuIcon, Plus, Search, Link as LinkIcon, Layers } from 'lucide-react';
+import { Menu as MenuIcon, Plus, Search, Link as LinkIcon, Layers, Loader2 } from 'lucide-react';
 import { obtenerOpcionesMenu, crearOpcionMenu, obtenerPerfiles, asignarMenuAPerfil } from '../services/api';
 
 export default function OpcionesMenuPage() {
   const [menus, setMenus] = useState([]);
   const [perfiles, setPerfiles] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -49,28 +50,54 @@ export default function OpcionesMenuPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setGuardando(true);
     try {
+      // Formatear payload tolerante con MySQL (null en idPadre si no aplica)
+      const payloadMenu = {
+        nombre: formData.nombre.trim(),
+        Nombre: formData.nombre.trim(),
+        ruta: formData.ruta.trim(),
+        UrlMenu: formData.ruta.trim(),
+        descripcion: formData.descripcion.trim(),
+        Descripcion: formData.descripcion.trim(),
+        orden: Number(formData.orden) || 1,
+        Orden: Number(formData.orden) || 1,
+        idPadre: formData.idPadre ? Number(formData.idPadre) : null,
+        IdPadre: formData.idPadre ? Number(formData.idPadre) : null,
+      };
+
       // 1. Guardar la opción de menú en la API
-      const respuestaMenu = await crearOpcionMenu(formData);
-      const idMenuCreado = respuestaMenu?.id || respuestaMenu?.IdOpcionMenu || respuestaMenu?.data?.id || respuestaMenu?.data?.IdOpcionMenu;
+      const respuestaMenu = await crearOpcionMenu(payloadMenu);
+      
+      const idMenuCreado = 
+        respuestaMenu?.IdOpcionMenu ||
+        respuestaMenu?.id ||
+        respuestaMenu?.insertId ||
+        respuestaMenu?.data?.IdOpcionMenu ||
+        respuestaMenu?.data?.id ||
+        respuestaMenu?.data?.insertId;
 
       // 2. Si se seleccionó un perfil, vincular en OpcionesMenu_Perfiles
-      if (formData.idPerfil && idMenuCreado) {
-        await asignarMenuAPerfil(idMenuCreado, formData.idPerfil, formData.orden);
+      if (formData.idPerfil && idMenuCreado && typeof asignarMenuAPerfil === 'function') {
+        await asignarMenuAPerfil(Number(idMenuCreado), Number(formData.idPerfil), Number(formData.orden) || 1);
       }
 
-      alert("¡Opción de menú guardada y asignada con éxito!");
+      alert("¡Opción de menú guardada con éxito!");
       setIsModalOpen(false);
       setFormData({ nombre: '', ruta: '', descripcion: '', orden: 1, idPadre: '', idPerfil: '' });
-      cargarDatos();
+      await cargarDatos();
     } catch (error) {
       alert(`Error al guardar menú: ${error.message}`);
+    } finally {
+      setGuardando(false);
     }
   };
 
   const menusFiltrados = menus.filter(m => {
     const nom = m.Nombre || m.nombre || '';
-    return nom.toLowerCase().includes(searchTerm.toLowerCase());
+    const rut = m.UrlMenu || m.url_menu || m.ruta || '';
+    const term = searchTerm.toLowerCase();
+    return nom.toLowerCase().includes(term) || rut.toLowerCase().includes(term);
   });
 
   return (
@@ -96,7 +123,7 @@ export default function OpcionesMenuPage() {
         <Search className="w-5 h-5 text-slate-400" />
         <input
           type="text"
-          placeholder="Buscar opción por nombre..."
+          placeholder="Buscar opción por nombre o ruta..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-transparent outline-none text-slate-700 text-sm"
@@ -118,26 +145,33 @@ export default function OpcionesMenuPage() {
           <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
             {cargando ? (
               <tr>
-                <td colSpan="6" className="py-6 text-center text-slate-400">Cargando opciones de menú desde la API...</td>
+                <td colSpan="6" className="py-12 text-center text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+                  Cargando opciones de menú...
+                </td>
               </tr>
             ) : menusFiltrados.length === 0 ? (
               <tr>
-                <td colSpan="6" className="py-6 text-center text-slate-400">No hay opciones registradas. ¡Crea una con el botón Nueva Opción!</td>
+                <td colSpan="6" className="py-8 text-center text-slate-400">
+                  No hay opciones registradas. ¡Crea una con el botón Nueva Opción!
+                </td>
               </tr>
             ) : (
-              menusFiltrados.map((item) => {
-                const id = item.IdOpcionMenu || item.id;
-                const nombre = item.Nombre || item.nombre;
-                const ruta = item.UrlMenu || item.ruta || '-';
+              menusFiltrados.map((item, idx) => {
+                const id = item.IdOpcionMenu || item.id || item.id_opcion_menu || idx + 1;
+                const nombre = item.Nombre || item.nombre || '-';
+                const ruta = item.UrlMenu || item.url_menu || item.ruta || item.Url || '-';
                 const descripcion = item.Descripcion || item.descripcion || '-';
-                const idPadre = item.IdPadre;
+                const idPadre = item.IdPadre ?? item.idPadre ?? item.id_padre;
 
                 return (
                   <tr key={id} className="hover:bg-slate-50 transition">
                     <td className="py-4 px-6 font-semibold text-slate-400">#{id}</td>
                     <td className="py-4 px-6 font-semibold text-slate-800">{nombre}</td>
-                    <td className="py-4 px-6 text-indigo-600 flex items-center gap-1.5 font-mono text-xs">
-                      <LinkIcon className="w-3.5 h-3.5" /> {ruta}
+                    <td className="py-4 px-6 text-indigo-600 font-mono text-xs">
+                      <span className="inline-flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                        <LinkIcon className="w-3.5 h-3.5" /> {ruta}
+                      </span>
                     </td>
                     <td className="py-4 px-6 text-slate-600">{descripcion}</td>
                     <td className="py-4 px-6 text-xs text-slate-500">
@@ -197,8 +231,8 @@ export default function OpcionesMenuPage() {
                   className="w-full px-3.5 py-2 border rounded-xl outline-none focus:border-indigo-600 text-sm bg-white"
                 >
                   <option value="">Ninguno (Es Menú Principal / Raíz)</option>
-                  {menus.map(m => {
-                    const mId = m.IdOpcionMenu || m.id;
+                  {menus.map((m, idx) => {
+                    const mId = m.IdOpcionMenu || m.id || m.id_opcion_menu || idx + 1;
                     const mNombre = m.Nombre || m.nombre;
                     return (
                       <option key={mId} value={mId}>
@@ -232,7 +266,10 @@ export default function OpcionesMenuPage() {
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">Guardar</button>
+                <button type="submit" disabled={guardando} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm disabled:opacity-50">
+                  {guardando && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {guardando ? 'Guardando...' : 'Guardar'}
+                </button>
               </div>
             </form>
           </div>
