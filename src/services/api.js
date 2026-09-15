@@ -15,11 +15,12 @@ let mockOpcionesMenu = [
   { IdOpcionMenu: 1, Nombre: 'Dashboard', Icono: 'LayoutDashboard', Ruta: '/dashboard', IdPadre: null },
   { IdOpcionMenu: 2, Nombre: 'Asistencia', Icono: 'CalendarCheck', Ruta: '/asistencia', IdPadre: null },
   { IdOpcionMenu: 3, Nombre: 'Registrar Notas', Icono: 'ClipboardCheck', Ruta: '/registro-notas', IdPadre: null },
-  { IdOpcionMenu: 4, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
-  { IdOpcionMenu: 5, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
-  { IdOpcionMenu: 6, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
-  { IdOpcionMenu: 7, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
-  { IdOpcionMenu: 8, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
+  { IdOpcionMenu: 4, Nombre: 'Comunicados', Icono: 'Megaphone', Ruta: '/comunicados', IdPadre: null },
+  { IdOpcionMenu: 5, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
+  { IdOpcionMenu: 6, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
+  { IdOpcionMenu: 7, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
+  { IdOpcionMenu: 8, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
+  { IdOpcionMenu: 9, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
 ];
 
 let mockUsuarios = [
@@ -68,6 +69,61 @@ let mockNotasDocente = {
     { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
   ]
 };
+
+let mockComunicados = [
+  {
+    id: 1,
+    titulo: 'Simulacro Tipo Examen de Admisión UNI - Fase II',
+    categoria: 'Academico',
+    prioridad: 'alta',
+    dirigidoA: '5to de Secundaria - Aula 101 UNI',
+    fecha: '14/09/2026',
+    hora: '08:30 AM',
+    autor: 'Dirección Académica',
+    contenido: 'Se convoca a los estudiantes de 5to año al simulacro general presencial con control estricto de tiempo. El ingreso será a las 07:30 AM con carné de estudiante.',
+    leido: false,
+    confirmado: false
+  },
+  {
+    id: 2,
+    titulo: 'Primera Reunión General de Padres y Entrega de Boletas Bimestrales',
+    categoria: 'Reunion',
+    prioridad: 'media',
+    dirigidoA: 'Todos los Niveles',
+    fecha: '18/09/2026',
+    hora: '06:30 PM',
+    autor: 'Comité Directivo',
+    contenido: 'Estimados apoderados, se llevará a cabo la entrega oficial de boletas y balance pedagógico del II Bimestre en el auditorio principal.',
+    leido: true,
+    confirmado: true
+  },
+  {
+    id: 3,
+    titulo: 'Alerta Preventiva de Salud y Protocolo Estacional',
+    categoria: 'Salud',
+    prioridad: 'alta',
+    dirigidoA: 'Toda la Comunidad',
+    fecha: '10/09/2026',
+    hora: '10:00 AM',
+    autor: 'Tópico y Bienestar Estudiantil',
+    contenido: 'Recordamos a las familias remitir al tópico el informe médico correspondiente ante cuadros gripales severos para justificar inasistencias en la plataforma.',
+    leido: true,
+    confirmado: false
+  },
+  {
+    id: 4,
+    titulo: 'Feriado Institucional y Suspensión de Labores Académicas',
+    categoria: 'Feriado',
+    prioridad: 'baja',
+    dirigidoA: 'Todos los Niveles',
+    fecha: '08/09/2026',
+    hora: '07:00 AM',
+    autor: 'Administración Central',
+    contenido: 'Las actividades presenciales y virtuales se reanudarán al día hábil siguiente en su horario habitual.',
+    leido: true,
+    confirmado: true
+  }
+];
 
 // --------------------------------------------------
 // OBTENER PERFILES
@@ -523,4 +579,48 @@ export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) 
   const clave = `${idAula}-${idCurso}-${periodo}`;
   mockNotasDocente[clave] = JSON.parse(JSON.stringify(listaNotas));
   return { ok: true, mensaje: 'Calificaciones registradas correctamente' };
+}
+
+// ==================================================
+// MÓDULO DE COMUNICADOS Y NOTIFICACIONES
+// ==================================================
+
+export async function obtenerComunicados() {
+  try {
+    const response = await fetch(`${API_URL}/api/comunicados`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch {
+    return JSON.parse(JSON.stringify(mockComunicados));
+  }
+}
+
+export async function crearComunicado(nuevo) {
+  try {
+    const response = await fetch(`${API_URL}/api/comunicados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nuevo)
+    });
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch {
+    const creado = {
+      id: Date.now(),
+      fecha: new Date().toLocaleDateString('es-PE'),
+      hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      leido: false,
+      confirmado: false,
+      ...nuevo
+    };
+    mockComunicados = [creado, ...mockComunicados];
+    return creado;
+  }
+}
+
+export async function confirmarLecturaComunicado(id) {
+  mockComunicados = mockComunicados.map(c => 
+    c.id === id ? { ...c, leido: true, confirmado: true } : c
+  );
+  return { ok: true };
 }

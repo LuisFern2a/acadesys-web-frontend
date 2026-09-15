@@ -10,6 +10,7 @@ import AcademicoPage from './pages/AcademicoPage';
 import DashboardOverviewPage from './pages/DashboardOverviewPage';
 import AsistenciaPage from './pages/AsistenciaPage';
 import RegistroNotasPage from './pages/RegistroNotasPage';
+import ComunicadosPage from './pages/ComunicadosPage';
 
 const MOCK_HIJOS = [
   {
@@ -118,6 +119,9 @@ export default function App() {
     >
       {activeTab === 'dashboard' && (
         <DashboardOverviewPage setActiveTab={setActiveTab} />
+      )}
+      {activeTab === 'comunicados' && (
+        <ComunicadosPage user={session} />
       )}
       {activeTab === 'asistencia' && esDocenteOAdmin && (
         <AsistenciaPage />

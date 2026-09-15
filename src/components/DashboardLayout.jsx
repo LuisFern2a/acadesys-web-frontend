@@ -14,7 +14,8 @@ import {
   Layers, 
   UserCheck,
   CalendarCheck,
-  ClipboardCheck
+  ClipboardCheck,
+  Megaphone
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 
@@ -40,6 +41,12 @@ export default function DashboardLayout({
       label: 'Dashboard', 
       icon: LayoutDashboard, 
       rolesPermitidos: ['administrador', 'admin', 'docente', 'padre de familia', 'apoderado'] 
+    },
+    { 
+      id: 'comunicados', 
+      label: 'Comunicados', 
+      icon: Megaphone, 
+      rolesPermitidos: ['administrador', 'admin', 'docente', 'alumno', 'estudiante', 'padre de familia', 'apoderado'] 
     },
     { 
       id: 'asistencia', 
@@ -192,7 +199,12 @@ export default function DashboardLayout({
               </div>
             )}
 
-            <button type="button" className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition">
+            <button 
+              type="button" 
+              onClick={() => setActiveTab('comunicados')}
+              title="Ver Avisos y Notificaciones"
+              className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full"></span>
             </button>
