@@ -8,6 +8,7 @@ import TutorIAPage from './pages/TutorIAPage';
 import CalificacionesPage from './pages/CalificacionesPage';
 import AcademicoPage from './pages/AcademicoPage';
 import DashboardOverviewPage from './pages/DashboardOverviewPage';
+import AsistenciaPage from './pages/AsistenciaPage';
 
 const MOCK_HIJOS = [
   {
@@ -57,13 +58,29 @@ export default function App() {
     const saved = localStorage.getItem('acadesys_session');
     if (saved) {
       try {
-        setSession(JSON.parse(saved));
+        const userParsed = JSON.parse(saved);
+        setSession(userParsed);
+
+        const rol = (userParsed?.rol || userParsed?.Perfil || '').toLowerCase();
+        if (rol.includes('alumno') || rol.includes('estudiante')) {
+          setActiveTab('calificaciones');
+        }
       } catch {
         localStorage.removeItem('acadesys_session');
       }
     }
     setLoadingSession(false);
   }, []);
+
+  const handleLogin = (user) => {
+    setSession(user);
+    const rol = (user?.rol || user?.Perfil || '').toLowerCase();
+    if (rol.includes('alumno') || rol.includes('estudiante')) {
+      setActiveTab('calificaciones');
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('acadesys_session');
@@ -72,13 +89,14 @@ export default function App() {
   };
 
   const hijoActivo = MOCK_HIJOS.find(h => h.id === idHijoSeleccionado) || MOCK_HIJOS[0];
+  const rolActual = (session?.rol || session?.Perfil || 'Administrador').toLowerCase();
+  const esAdmin = rolActual.includes('admin');
+  const esDocenteOAdmin = esAdmin || rolActual.includes('docente');
 
-  if (loadingSession) {
-    return null;
-  }
+  if (loadingSession) return null;
 
   if (!session) {
-    return <LandingPage onLoginSuccess={(user) => setSession(user)} />;
+    return <LandingPage onLoginSuccess={handleLogin} />;
   }
 
   return (
@@ -94,10 +112,9 @@ export default function App() {
       {activeTab === 'dashboard' && (
         <DashboardOverviewPage setActiveTab={setActiveTab} />
       )}
-      {activeTab === 'perfiles' && <PerfilesPage />}
-      {activeTab === 'menu-options' && <OpcionesMenuPage />}
-      {activeTab === 'usuarios' && <UsuariosPage />}
-      {activeTab === 'academico' && <AcademicoPage />}
+      {activeTab === 'asistencia' && esDocenteOAdmin && (
+        <AsistenciaPage />
+      )}
       {activeTab === 'calificaciones' && (
         <CalificacionesPage 
           estudianteActivo={hijoActivo} 
@@ -105,6 +122,12 @@ export default function App() {
         />
       )}
       {activeTab === 'tutor-ia' && <TutorIAPage estudianteActivo={hijoActivo} />}
+
+      {/* Rutas con restricción de permisos */}
+      {activeTab === 'academico' && esDocenteOAdmin && <AcademicoPage />}
+      {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}
+      {activeTab === 'perfiles' && esAdmin && <PerfilesPage />}
+      {activeTab === 'menu-options' && esAdmin && <OpcionesMenuPage />}
     </DashboardLayout>
   );
 }

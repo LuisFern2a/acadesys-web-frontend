@@ -13,15 +13,16 @@ let mockPerfiles = [
 
 let mockOpcionesMenu = [
   { IdOpcionMenu: 1, Nombre: 'Dashboard', Icono: 'LayoutDashboard', Ruta: '/dashboard', IdPadre: null },
-  { IdOpcionMenu: 2, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
-  { IdOpcionMenu: 3, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
-  { IdOpcionMenu: 4, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
-  { IdOpcionMenu: 5, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
-  { IdOpcionMenu: 6, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
+  { IdOpcionMenu: 2, Nombre: 'Asistencia', Icono: 'CalendarCheck', Ruta: '/asistencia', IdPadre: null },
+  { IdOpcionMenu: 3, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
+  { IdOpcionMenu: 4, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
+  { IdOpcionMenu: 5, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
+  { IdOpcionMenu: 6, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
+  { IdOpcionMenu: 7, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
 ];
 
 let mockUsuarios = [
-  { IdUsuario: 1, NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
+  { IdUsuario: 1, NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Administrador', EstadoRegistro: 1 },
   { IdUsuario: 2, NombreCompleto: 'Carlos Mendoza', Correo: 'cmendoza@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
   { IdUsuario: 3, NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
 ];
@@ -46,6 +47,16 @@ let mockAsignaciones = [
   { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Ciencias', horas: 4 },
   { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Letras', horas: 5 }
 ];
+
+let mockAsistencias = {
+  '1-2026-09-14': [
+    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:45 AM' },
+    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'tardanza', horaLlegada: '08:15 AM' },
+    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:50 AM' },
+    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'falta', horaLlegada: '--' },
+    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
+  ]
+};
 
 // --------------------------------------------------
 // OBTENER PERFILES
@@ -308,7 +319,6 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
 // MÓDULO ACADÉMICO (AULAS, CURSOS, CARGA DOCENTE)
 // ==================================================
 
-// OBTENER AULAS
 export async function obtenerAulas() {
   try {
     const response = await fetch(`${API_URL}/api/aulas`);
@@ -319,7 +329,6 @@ export async function obtenerAulas() {
   }
 }
 
-// CREAR AULA
 export async function crearAula(nuevaAula) {
   try {
     const response = await fetch(`${API_URL}/api/aulas`, {
@@ -336,7 +345,6 @@ export async function crearAula(nuevaAula) {
   }
 }
 
-// ACTUALIZAR AULA
 export async function actualizarAula(idAula, aulaActualizada) {
   try {
     const response = await fetch(`${API_URL}/api/aulas/${idAula}`, {
@@ -352,7 +360,6 @@ export async function actualizarAula(idAula, aulaActualizada) {
   }
 }
 
-// ELIMINAR AULA
 export async function eliminarAula(idAula) {
   try {
     const response = await fetch(`${API_URL}/api/aulas/${idAula}`, { method: 'DELETE' });
@@ -364,7 +371,6 @@ export async function eliminarAula(idAula) {
   }
 }
 
-// OBTENER CURSOS
 export async function obtenerCursos() {
   try {
     const response = await fetch(`${API_URL}/api/cursos`);
@@ -375,7 +381,6 @@ export async function obtenerCursos() {
   }
 }
 
-// CREAR CURSO
 export async function crearCurso(nuevoCurso) {
   try {
     const response = await fetch(`${API_URL}/api/cursos`, {
@@ -392,7 +397,6 @@ export async function crearCurso(nuevoCurso) {
   }
 }
 
-// ACTUALIZAR CURSO
 export async function actualizarCurso(idCurso, cursoActualizado) {
   try {
     const response = await fetch(`${API_URL}/api/cursos/${idCurso}`, {
@@ -408,7 +412,6 @@ export async function actualizarCurso(idCurso, cursoActualizado) {
   }
 }
 
-// ELIMINAR CURSO
 export async function eliminarCurso(idCurso) {
   try {
     const response = await fetch(`${API_URL}/api/cursos/${idCurso}`, { method: 'DELETE' });
@@ -420,7 +423,6 @@ export async function eliminarCurso(idCurso) {
   }
 }
 
-// OBTENER ASIGNACIONES DOCENTES
 export async function obtenerAsignacionesDocente() {
   try {
     const response = await fetch(`${API_URL}/api/asignaciones`);
@@ -431,7 +433,6 @@ export async function obtenerAsignacionesDocente() {
   }
 }
 
-// CREAR ASIGNACIÓN DOCENTE
 export async function crearAsignacionDocente(nuevaAsig) {
   try {
     const response = await fetch(`${API_URL}/api/asignaciones`, {
@@ -448,7 +449,6 @@ export async function crearAsignacionDocente(nuevaAsig) {
   }
 }
 
-// ELIMINAR ASIGNACIÓN DOCENTE
 export async function eliminarAsignacionDocente(idAsignacion) {
   try {
     const response = await fetch(`${API_URL}/api/asignaciones/${idAsignacion}`, { method: 'DELETE' });
@@ -458,4 +458,31 @@ export async function eliminarAsignacionDocente(idAsignacion) {
     mockAsignaciones = mockAsignaciones.filter(a => a.idAsignacion !== idAsignacion);
     return true;
   }
+}
+
+// ==================================================
+// MÓDULO DE ASISTENCIA
+// ==================================================
+
+export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
+  const clave = `${idAula}-${fecha}`;
+  if (mockAsistencias[clave]) {
+    return [...mockAsistencias[clave]];
+  }
+
+  const listaDefault = [
+    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:50 AM' },
+    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'presente', horaLlegada: '07:52 AM' },
+    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:48 AM' },
+    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'presente', horaLlegada: '07:55 AM' },
+    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'presente', horaLlegada: '07:40 AM' }
+  ];
+  mockAsistencias[clave] = listaDefault;
+  return [...listaDefault];
+}
+
+export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
+  const clave = `${idAula}-${fecha}`;
+  mockAsistencias[clave] = [...listaAlumnos];
+  return { ok: true, mensaje: 'Asistencia registrada con éxito' };
 }

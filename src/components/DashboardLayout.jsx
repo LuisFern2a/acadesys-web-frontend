@@ -12,7 +12,8 @@ import {
   BrainCircuit, 
   Award, 
   Layers, 
-  UserCheck 
+  UserCheck,
+  CalendarCheck
 } from 'lucide-react';
 
 export default function DashboardLayout({ 
@@ -27,15 +28,64 @@ export default function DashboardLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'academico', label: 'Académico', icon: Layers },
-    { id: 'calificaciones', label: 'Calificaciones', icon: Award },
-    { id: 'tutor-ia', label: 'Tutor IA', icon: BrainCircuit },
-    { id: 'perfiles', label: 'Perfiles', icon: ShieldCheck },
-    { id: 'usuarios', label: 'Usuarios', icon: Users },
-    { id: 'menu-options', label: 'Opciones Menú', icon: MenuIcon },
+  const rolUsuario = (user?.rol || user?.Perfil || 'Administrador').toLowerCase();
+
+  const todosLosMenuItems = [
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: LayoutDashboard, 
+      rolesPermitidos: ['administrador', 'admin', 'docente', 'padre de familia', 'apoderado'] 
+    },
+    { 
+      id: 'asistencia', 
+      label: 'Asistencia', 
+      icon: CalendarCheck, 
+      rolesPermitidos: ['administrador', 'admin', 'docente'] 
+    },
+    { 
+      id: 'academico', 
+      label: 'Académico', 
+      icon: Layers, 
+      rolesPermitidos: ['administrador', 'admin', 'docente'] 
+    },
+    { 
+      id: 'calificaciones', 
+      label: 'Calificaciones', 
+      icon: Award, 
+      rolesPermitidos: ['administrador', 'admin', 'docente', 'alumno', 'estudiante', 'padre de familia', 'apoderado'] 
+    },
+    { 
+      id: 'tutor-ia', 
+      label: 'Tutor IA', 
+      icon: BrainCircuit, 
+      rolesPermitidos: ['administrador', 'admin', 'docente', 'alumno', 'estudiante', 'padre de familia', 'apoderado'] 
+    },
+    { 
+      id: 'usuarios', 
+      label: 'Usuarios', 
+      icon: Users, 
+      rolesPermitidos: ['administrador', 'admin'] 
+    },
+    { 
+      id: 'perfiles', 
+      label: 'Perfiles', 
+      icon: ShieldCheck, 
+      rolesPermitidos: ['administrador', 'admin'] 
+    },
+    { 
+      id: 'menu-options', 
+      label: 'Opciones Menú', 
+      icon: MenuIcon, 
+      rolesPermitidos: ['administrador', 'admin'] 
+    },
   ];
+
+  const menuItems = todosLosMenuItems.filter(item => 
+    item.rolesPermitidos.some(r => rolUsuario.includes(r))
+  );
+
+  const esPadre = rolUsuario.includes('padre') || rolUsuario.includes('apoderado');
 
   const handleLogoutClick = () => {
     if (window.confirm('¿Estás seguro de que deseas cerrar sesión?')) {
@@ -45,8 +95,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-100 font-sans">
-      {/* Sidebar Lateral */}
-      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white transition-all duration-300 flex flex-col justify-between border-r border-slate-800 shrink-0`}>
+      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white transition-all duration-300 flex flex-col justify-between border-r border-slate-800 shrink-0 print:hidden`}>
         <div>
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
             <div className="flex items-center gap-3 overflow-hidden">
@@ -104,17 +153,14 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Contenedor Principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header con Selector de Subcuenta */}
-        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between print:hidden">
           <div className="text-sm text-slate-500 font-medium">
             Intranet Escolar <span className="mx-2 text-slate-300">/</span> <span className="text-slate-800 capitalize font-semibold">{activeTab}</span>
           </div>
           
           <div className="flex items-center gap-4">
-            {/* SELECTOR DE SUBCUENTAS (HIJOS) */}
-            {hijos && hijos.length > 0 && (
+            {esPadre && hijos && hijos.length > 0 && (
               <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-1.5">
                 <UserCheck className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span className="text-xs font-semibold text-indigo-900 hidden md:inline">Hijo:</span>
@@ -138,22 +184,22 @@ export default function DashboardLayout({
             </button>
 
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                {user?.nombre ? user.nombre.slice(0, 2).toUpperCase() : 'AD'}
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase">
+                {user?.nombre ? user.nombre.slice(0, 2) : 'US'}
               </div>
               <div className="hidden sm:block text-left leading-tight">
                 <span className="block text-xs font-semibold text-slate-800">
-                  {user?.nombre || 'Apoderado Titular'}
+                  {user?.nombre || user?.NombreCompleto || 'Usuario'}
                 </span>
-                <span className="block text-[11px] text-slate-400">
-                  {user?.rol || 'Padre de Familia'}
+                <span className="block text-[11px] text-slate-400 capitalize">
+                  {user?.rol || user?.Perfil || 'Estudiante'}
                 </span>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto print:overflow-visible">
           {children}
         </main>
       </div>
