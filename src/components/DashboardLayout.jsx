@@ -7,17 +7,29 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Bell, 
-  GraduationCap,
-  LogOut,
-  BrainCircuit,
-  Award
+  GraduationCap, 
+  LogOut, 
+  BrainCircuit, 
+  Award, 
+  Layers, 
+  UserCheck 
 } from 'lucide-react';
 
-export default function DashboardLayout({ children, activeTab, setActiveTab, user, onLogout }) {
+export default function DashboardLayout({ 
+  children, 
+  activeTab, 
+  setActiveTab, 
+  user, 
+  onLogout, 
+  hijos = [], 
+  hijoSeleccionado, 
+  onSeleccionarHijo 
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'academico', label: 'Académico', icon: Layers },
     { id: 'calificaciones', label: 'Calificaciones', icon: Award },
     { id: 'tutor-ia', label: 'Tutor IA', icon: BrainCircuit },
     { id: 'perfiles', label: 'Perfiles', icon: ShieldCheck },
@@ -27,9 +39,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
 
   const handleLogoutClick = () => {
     if (window.confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-      if (onLogout) {
-        onLogout();
-      }
+      if (onLogout) onLogout();
     }
   };
 
@@ -38,7 +48,6 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
       {/* Sidebar Lateral */}
       <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white transition-all duration-300 flex flex-col justify-between border-r border-slate-800 shrink-0`}>
         <div>
-          {/* Logo y Titulo */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="bg-indigo-600 p-2 rounded-xl text-white shrink-0">
@@ -52,6 +61,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
               )}
             </div>
             <button 
+              type="button"
               onClick={() => setCollapsed(!collapsed)}
               className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
             >
@@ -59,13 +69,13 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
             </button>
           </div>
 
-          {/* Botones de Navegación */}
           <nav className="p-3 space-y-1.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
                 <button
+                  type="button"
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
@@ -82,9 +92,9 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
           </nav>
         </div>
 
-        {/* Botón Cerrar Sesión */}
         <div className="p-3 border-t border-slate-800">
           <button 
+            type="button"
             onClick={handleLogoutClick}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
           >
@@ -94,36 +104,55 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
         </div>
       </aside>
 
-      {/* Contenedor Derecho */}
+      {/* Contenedor Principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+        {/* Header con Selector de Subcuenta */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
           <div className="text-sm text-slate-500 font-medium">
             Intranet Escolar <span className="mx-2 text-slate-300">/</span> <span className="text-slate-800 capitalize font-semibold">{activeTab}</span>
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition">
+            {/* SELECTOR DE SUBCUENTAS (HIJOS) */}
+            {hijos && hijos.length > 0 && (
+              <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-1.5">
+                <UserCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="text-xs font-semibold text-indigo-900 hidden md:inline">Hijo:</span>
+                <select
+                  value={hijoSeleccionado?.id || ''}
+                  onChange={(e) => onSeleccionarHijo(Number(e.target.value))}
+                  className="bg-transparent text-xs font-bold text-indigo-700 outline-none cursor-pointer"
+                >
+                  {hijos.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.nombre} ({h.gradoCorto})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button type="button" className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full"></span>
             </button>
+
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
               <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
                 {user?.nombre ? user.nombre.slice(0, 2).toUpperCase() : 'AD'}
               </div>
               <div className="hidden sm:block text-left leading-tight">
                 <span className="block text-xs font-semibold text-slate-800">
-                  {user?.nombre || 'Admin General'}
+                  {user?.nombre || 'Apoderado Titular'}
                 </span>
                 <span className="block text-[11px] text-slate-400">
-                  {user?.rol || 'admin@acadesys.edu'}
+                  {user?.rol || 'Padre de Familia'}
                 </span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Vista activa */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
