@@ -9,6 +9,7 @@ import CalificacionesPage from './pages/CalificacionesPage';
 import AcademicoPage from './pages/AcademicoPage';
 import DashboardOverviewPage from './pages/DashboardOverviewPage';
 import AsistenciaPage from './pages/AsistenciaPage';
+import RegistroNotasPage from './pages/RegistroNotasPage';
 
 const MOCK_HIJOS = [
   {
@@ -88,6 +89,11 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  const handleUpdateUser = (nuevoUsuario) => {
+    setSession(nuevoUsuario);
+    localStorage.setItem('acadesys_session', JSON.stringify(nuevoUsuario));
+  };
+
   const hijoActivo = MOCK_HIJOS.find(h => h.id === idHijoSeleccionado) || MOCK_HIJOS[0];
   const rolActual = (session?.rol || session?.Perfil || 'Administrador').toLowerCase();
   const esAdmin = rolActual.includes('admin');
@@ -108,12 +114,16 @@ export default function App() {
       hijos={MOCK_HIJOS}
       hijoSeleccionado={hijoActivo}
       onSeleccionarHijo={(id) => setIdHijoSeleccionado(id)}
+      onUpdateUser={handleUpdateUser}
     >
       {activeTab === 'dashboard' && (
         <DashboardOverviewPage setActiveTab={setActiveTab} />
       )}
       {activeTab === 'asistencia' && esDocenteOAdmin && (
         <AsistenciaPage />
+      )}
+      {activeTab === 'registro-notas' && esDocenteOAdmin && (
+        <RegistroNotasPage />
       )}
       {activeTab === 'calificaciones' && (
         <CalificacionesPage 

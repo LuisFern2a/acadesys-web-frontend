@@ -14,11 +14,12 @@ let mockPerfiles = [
 let mockOpcionesMenu = [
   { IdOpcionMenu: 1, Nombre: 'Dashboard', Icono: 'LayoutDashboard', Ruta: '/dashboard', IdPadre: null },
   { IdOpcionMenu: 2, Nombre: 'Asistencia', Icono: 'CalendarCheck', Ruta: '/asistencia', IdPadre: null },
-  { IdOpcionMenu: 3, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
-  { IdOpcionMenu: 4, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
-  { IdOpcionMenu: 5, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
-  { IdOpcionMenu: 6, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
-  { IdOpcionMenu: 7, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
+  { IdOpcionMenu: 3, Nombre: 'Registrar Notas', Icono: 'ClipboardCheck', Ruta: '/registro-notas', IdPadre: null },
+  { IdOpcionMenu: 4, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
+  { IdOpcionMenu: 5, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
+  { IdOpcionMenu: 6, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
+  { IdOpcionMenu: 7, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
+  { IdOpcionMenu: 8, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
 ];
 
 let mockUsuarios = [
@@ -55,6 +56,16 @@ let mockAsistencias = {
     { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:50 AM' },
     { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'falta', horaLlegada: '--' },
     { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
+  ]
+};
+
+let mockNotasDocente = {
+  '1-1-bimestre-2': [
+    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
+    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
+    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
+    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
+    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
   ]
 };
 
@@ -485,4 +496,31 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
   const clave = `${idAula}-${fecha}`;
   mockAsistencias[clave] = [...listaAlumnos];
   return { ok: true, mensaje: 'Asistencia registrada con éxito' };
+}
+
+// ==================================================
+// MÓDULO DE REGISTRO DE CALIFICACIONES (DOCENTE)
+// ==================================================
+
+export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bimestre-2') {
+  const clave = `${idAula}-${idCurso}-${periodo}`;
+  if (mockNotasDocente[clave]) {
+    return JSON.parse(JSON.stringify(mockNotasDocente[clave]));
+  }
+
+  const nominaBase = [
+    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 15, tareas: 16, final: 14 },
+    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 13, tareas: 14, final: 12 },
+    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 17, tareas: 18, final: 17 },
+    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 10, tareas: 12, final: 11 },
+    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 14, tareas: 15, final: 13 }
+  ];
+  mockNotasDocente[clave] = nominaBase;
+  return JSON.parse(JSON.stringify(nominaBase));
+}
+
+export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) {
+  const clave = `${idAula}-${idCurso}-${periodo}`;
+  mockNotasDocente[clave] = JSON.parse(JSON.stringify(listaNotas));
+  return { ok: true, mensaje: 'Calificaciones registradas correctamente' };
 }

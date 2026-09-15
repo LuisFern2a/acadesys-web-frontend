@@ -13,8 +13,10 @@ import {
   Award, 
   Layers, 
   UserCheck,
-  CalendarCheck
+  CalendarCheck,
+  ClipboardCheck
 } from 'lucide-react';
+import ModalMiPerfil from './ModalMiPerfil';
 
 export default function DashboardLayout({ 
   children, 
@@ -24,9 +26,11 @@ export default function DashboardLayout({
   onLogout, 
   hijos = [], 
   hijoSeleccionado, 
-  onSeleccionarHijo 
+  onSeleccionarHijo,
+  onUpdateUser
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
 
   const rolUsuario = (user?.rol || user?.Perfil || 'Administrador').toLowerCase();
 
@@ -41,6 +45,12 @@ export default function DashboardLayout({
       id: 'asistencia', 
       label: 'Asistencia', 
       icon: CalendarCheck, 
+      rolesPermitidos: ['administrador', 'admin', 'docente'] 
+    },
+    { 
+      id: 'registro-notas', 
+      label: 'Registrar Notas', 
+      icon: ClipboardCheck, 
       rolesPermitidos: ['administrador', 'admin', 'docente'] 
     },
     { 
@@ -86,6 +96,8 @@ export default function DashboardLayout({
   );
 
   const esPadre = rolUsuario.includes('padre') || rolUsuario.includes('apoderado');
+  const nombreDisplay = user?.nombre || user?.NombreCompleto || user?.Nombre || 'Usuario';
+  const iniciales = nombreDisplay ? nombreDisplay.trim().slice(0, 2).toUpperCase() : 'US';
 
   const handleLogoutClick = () => {
     if (window.confirm('¿Estás seguro de que deseas cerrar sesión?')) {
@@ -95,6 +107,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-100 font-sans">
+      {/* Sidebar Lateral */}
       <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white transition-all duration-300 flex flex-col justify-between border-r border-slate-800 shrink-0 print:hidden`}>
         <div>
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
@@ -153,6 +166,7 @@ export default function DashboardLayout({
         </div>
       </aside>
 
+      {/* Contenedor Principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between print:hidden">
           <div className="text-sm text-slate-500 font-medium">
@@ -183,19 +197,29 @@ export default function DashboardLayout({
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full"></span>
             </button>
 
-            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+            {/* BOTÓN DE PERFIL INTERACTIVO */}
+            <button
+              type="button"
+              title="Haz clic para editar tu perfil"
+              onClick={() => setModalPerfilAbierto(true)}
+              className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:bg-slate-50 p-1.5 rounded-xl transition text-left cursor-pointer"
+            >
               <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase">
-                {user?.nombre ? user.nombre.slice(0, 2) : 'US'}
+                {user?.foto ? (
+                  <img src={user.foto} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  iniciales
+                )}
               </div>
-              <div className="hidden sm:block text-left leading-tight">
+              <div className="hidden sm:block leading-tight">
                 <span className="block text-xs font-semibold text-slate-800">
-                  {user?.nombre || user?.NombreCompleto || 'Usuario'}
+                  {nombreDisplay}
                 </span>
                 <span className="block text-[11px] text-slate-400 capitalize">
-                  {user?.rol || user?.Perfil || 'Estudiante'}
+                  {user?.rol || user?.Perfil || 'Docente'}
                 </span>
               </div>
-            </div>
+            </button>
           </div>
         </header>
 
@@ -203,6 +227,16 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* MODAL DE PERFIL */}
+      <ModalMiPerfil
+        isOpen={modalPerfilAbierto}
+        onClose={() => setModalPerfilAbierto(false)}
+        user={user}
+        onGuardarUsuario={(usuarioActualizado) => {
+          if (onUpdateUser) onUpdateUser(usuarioActualizado);
+        }}
+      />
     </div>
   );
 }
