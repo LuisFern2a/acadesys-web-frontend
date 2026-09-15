@@ -47,7 +47,6 @@ export async function crearUsuario(datosUsuario) {
       ? Number(datosUsuario.perfiles[0])
       : 1;
 
-    // Se asegura de que el DNI sea exactamente de 8 caracteres y nunca "undefined"
     const dniLimpio = String(datosUsuario.dni || datosUsuario.DNI || '00000000').trim().slice(0, 8);
 
     const payload = {
@@ -101,6 +100,84 @@ export async function crearUsuario(datosUsuario) {
     return data;
   } catch (error) {
     console.error("Error al crear usuario:", error);
+    throw error;
+  }
+}
+
+// --------------------------------------------------
+// ACTUALIZAR USUARIO (PUT /api/usuarios/:id)
+// --------------------------------------------------
+export async function actualizarUsuario(idUsuario, datosUsuario) {
+  try {
+    const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
+      ? Number(datosUsuario.perfiles[0])
+      : 1;
+
+    const payload = {
+      ...datosUsuario,
+      DNI: datosUsuario.dni,
+      dni: datosUsuario.dni,
+      Nombres: datosUsuario.nombre,
+      Nombre: datosUsuario.nombre,
+      Apellidos: datosUsuario.apellido,
+      Apellido: datosUsuario.apellido,
+      NombreUsuario: datosUsuario.nombreUsuario,
+      nombreUsuario: datosUsuario.nombreUsuario,
+      Correo: datosUsuario.correo,
+      correo: datosUsuario.correo,
+      EstadoRegistro: datosUsuario.estadoRegistro === 'Activo' || datosUsuario.estadoRegistro === 1 ? 1 : 0,
+      IdPerfil: idPerfilPrincipal,
+      idPerfil: idPerfilPrincipal,
+      Perfiles: datosUsuario.perfiles
+    };
+
+    // Si viene contraseña la mandamos, si está vacía no la pisamos
+    if (datosUsuario.contrasena && datosUsuario.contrasena.trim() !== '') {
+      payload.Contrasena = datosUsuario.contrasena;
+      payload.Password = datosUsuario.contrasena;
+      payload.clave = datosUsuario.contrasena;
+    }
+
+    const response = await fetch(`${API_URL}/api/usuarios/${idUsuario}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    return await response.json().catch(() => ({ mensaje: "Actualizado con éxito" }));
+  } catch (error) {
+    console.error("Error al actualizar usuario:", error);
+    throw error;
+  }
+}
+
+// --------------------------------------------------
+// ELIMINAR USUARIO (DELETE /api/usuarios/:id)
+// --------------------------------------------------
+export async function eliminarUsuario(idUsuario) {
+  try {
+    const response = await fetch(`${API_URL}/api/usuarios/${idUsuario}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    return await response.json().catch(() => ({ mensaje: "Eliminado con éxito" }));
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
     throw error;
   }
 }
