@@ -7,8 +7,8 @@ import UsuariosPage from './pages/UsuariosPage';
 import TutorIAPage from './pages/TutorIAPage';
 import CalificacionesPage from './pages/CalificacionesPage';
 import AcademicoPage from './pages/AcademicoPage';
+import DashboardOverviewPage from './pages/DashboardOverviewPage';
 
-// Lista de subcuentas vinculadas al apoderado
 const MOCK_HIJOS = [
   {
     id: 1,
@@ -48,7 +48,7 @@ const MOCK_HIJOS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('calificaciones');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [idHijoSeleccionado, setIdHijoSeleccionado] = useState(1);
@@ -68,7 +68,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('acadesys_session');
     setSession(null);
-    setActiveTab('perfiles');
+    setActiveTab('dashboard');
   };
 
   const hijoActivo = MOCK_HIJOS.find(h => h.id === idHijoSeleccionado) || MOCK_HIJOS[0];
@@ -91,6 +91,9 @@ export default function App() {
       hijoSeleccionado={hijoActivo}
       onSeleccionarHijo={(id) => setIdHijoSeleccionado(id)}
     >
+      {activeTab === 'dashboard' && (
+        <DashboardOverviewPage setActiveTab={setActiveTab} />
+      )}
       {activeTab === 'perfiles' && <PerfilesPage />}
       {activeTab === 'menu-options' && <OpcionesMenuPage />}
       {activeTab === 'usuarios' && <UsuariosPage />}
@@ -102,11 +105,6 @@ export default function App() {
         />
       )}
       {activeTab === 'tutor-ia' && <TutorIAPage estudianteActivo={hijoActivo} />}
-      {activeTab === 'dashboard' && (
-        <div className="p-8 text-slate-500">
-          Panel Principal de Estadísticas AcadeSys.
-        </div>
-      )}
     </DashboardLayout>
   );
 }
