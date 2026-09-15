@@ -4,6 +4,8 @@ import DashboardLayout from './components/DashboardLayout';
 import PerfilesPage from './pages/PerfilesPage';
 import OpcionesMenuPage from './pages/OpcionesMenuPage';
 import UsuariosPage from './pages/UsuariosPage';
+import TutorIAPage from './pages/TutorIAPage';
+import CalificacionesPage from './pages/CalificacionesPage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('perfiles');
@@ -49,6 +51,10 @@ export default function App() {
       {activeTab === 'perfiles' && <PerfilesPage />}
       {activeTab === 'menu-options' && <OpcionesMenuPage />}
       {activeTab === 'usuarios' && <UsuariosPage />}
+      {activeTab === 'calificaciones' && (
+        <CalificacionesPage onIrATutorIA={() => setActiveTab('tutor-ia')} />
+      )}
+      {activeTab === 'tutor-ia' && <TutorIAPage />}
       {activeTab === 'dashboard' && (
         <div className="p-8 text-slate-500">
           Panel Principal de Estadísticas AcadeSys.

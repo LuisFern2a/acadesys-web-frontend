@@ -8,7 +8,9 @@ import {
   ChevronRight, 
   Bell, 
   GraduationCap,
-  LogOut
+  LogOut,
+  BrainCircuit,
+  Award
 } from 'lucide-react';
 
 export default function DashboardLayout({ children, activeTab, setActiveTab, user, onLogout }) {
@@ -16,6 +18,8 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'calificaciones', label: 'Calificaciones', icon: Award },
+    { id: 'tutor-ia', label: 'Tutor IA', icon: BrainCircuit },
     { id: 'perfiles', label: 'Perfiles', icon: ShieldCheck },
     { id: 'usuarios', label: 'Usuarios', icon: Users },
     { id: 'menu-options', label: 'Opciones Menú', icon: MenuIcon },
@@ -55,7 +59,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
             </button>
           </div>
 
-          {/* Botones de Navegacion */}
+          {/* Botones de Navegación */}
           <nav className="p-3 space-y-1.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -78,7 +82,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab, use
           </nav>
         </div>
 
-        {/* Boton Cerrar Sesion con confirmación */}
+        {/* Botón Cerrar Sesión */}
         <div className="p-3 border-t border-slate-800">
           <button 
             onClick={handleLogoutClick}
