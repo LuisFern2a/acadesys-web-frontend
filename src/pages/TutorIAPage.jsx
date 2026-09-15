@@ -7,7 +7,6 @@ import {
   CheckCircle2, 
   CalendarCheck, 
   Loader2, 
-  BookOpen, 
   GraduationCap 
 } from 'lucide-react';
 import { generarDiagnosticoAcademico } from '../services/geminiService';
@@ -16,7 +15,6 @@ export default function TutorIAPage() {
   const [generando, setGenerando] = useState(false);
   const [diagnostico, setDiagnostico] = useState(null);
 
-  // Datos simulados del estudiante y sus últimos simulacros
   const datosAlumno = {
     nombre: 'Luis Fernando Tóccas',
     codigo: 'ACAD-2026-755',
@@ -27,7 +25,7 @@ export default function TutorIAPage() {
   const historialSimulacros = [
     { curso: 'Álgebra', s1: 14, s2: 15, s3: 16, promedio: 15 },
     { curso: 'Geometría', s1: 12, s2: 14, s3: 13, promedio: 13 },
-    { curso: 'Física', s1: 09, s2: 11, s3: 10, promedio: 10 },
+    { curso: 'Física', s1: 9, s2: 11, s3: 10, promedio: 10 },
     { curso: 'Química', s1: 11, s2: 12, s3: 12, promedio: 11.6 },
     { curso: 'Raz. Matemático', s1: 16, s2: 18, s3: 17, promedio: 17 }
   ];
@@ -84,9 +82,8 @@ export default function TutorIAPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* COLUMNA IZQUIERDA: TARJETA DEL ESTUDIANTE Y NOTAS DE SIMULACROS */}
+        {/* TARJETA DEL ESTUDIANTE Y SIMULACROS */}
         <div className="space-y-6">
-          {/* PERFIL */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
@@ -103,7 +100,6 @@ export default function TutorIAPage() {
             </div>
           </div>
 
-          {/* HISTORIAL DE SIMULACROS */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 mb-4">
               <TrendingUp className="w-4 h-4 text-indigo-600" />
@@ -123,7 +119,6 @@ export default function TutorIAPage() {
                         {item.promedio.toFixed(1)} / 20
                       </span>
                     </div>
-                    {/* Barra de progreso */}
                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
@@ -139,7 +134,7 @@ export default function TutorIAPage() {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: RESULTADOS DEL DIAGNÓSTICO DEL TUTOR IA */}
+        {/* RESULTADOS IA */}
         <div className="lg:col-span-2 space-y-6">
           {!diagnostico && !generando && (
             <div className="bg-white p-12 rounded-2xl border border-dashed border-slate-300 text-center flex flex-col items-center justify-center">
@@ -171,8 +166,7 @@ export default function TutorIAPage() {
           )}
 
           {diagnostico && !generando && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* RESUMEN EJECUTIVO */}
+            <div className="space-y-6">
               <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-2xl text-white shadow-sm">
                 <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-2">
                   <Sparkles className="w-4 h-4" /> Diagnóstico Sintético
@@ -182,7 +176,6 @@ export default function TutorIAPage() {
                 </p>
               </div>
 
-              {/* CURSOS CRÍTICOS Y PLAN DE ACCIÓN */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -203,9 +196,7 @@ export default function TutorIAPage() {
                 </div>
               </div>
 
-              {/* PUNTOS FUERTES Y PLAN SEMANAL */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* FORTALEZAS */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                   <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -221,7 +212,6 @@ export default function TutorIAPage() {
                   </ul>
                 </div>
 
-                {/* PLAN DE ESTUDIO */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                   <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                     <CalendarCheck className="w-4 h-4 text-indigo-600" />
