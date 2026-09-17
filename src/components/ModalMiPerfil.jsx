@@ -15,7 +15,7 @@ import {
   Smartphone,
   CalendarCheck
 } from 'lucide-react';
-import { actualizarUsuario } from '../services/api';
+import { actualizarUsuario, obtenerUsuarios } from '../services/api';
 
 export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario }) {
   if (!isOpen) return null;
@@ -62,6 +62,43 @@ export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario 
       return;
     }
 
+    const idUsuario = user?.IdUsuario || user?.id;
+    let registroActual = null;
+
+    if (idUsuario) {
+      try {
+        const lista = await obtenerUsuarios();
+        registroActual = (Array.isArray(lista) ? lista : lista.data || [])
+          .find((u) => (u.IdUsuario || u.id) === idUsuario) || null;
+      } catch {
+        registroActual = null;
+      }
+    }
+
+    // Validación estricta de contraseña actual
+    if (nuevoPassword) {
+      if (!passwordActual) {
+        alert('Debes ingresar tu contraseña actual para poder cambiarla.');
+        return;
+      }
+
+      const claveGuardada = (
+        registroActual?.Clave ?? registroActual?.clave ?? registroActual?.Password ??
+        registroActual?.password ?? registroActual?.Contrasena ?? registroActual?.contrasena ??
+        user?.contrasena ?? user?.password ?? user?.Clave ?? ''
+      ).toString();
+
+      if (!claveGuardada || claveGuardada !== passwordActual) {
+        alert('La contraseña actual ingresada es incorrecta.');
+        return;
+      }
+
+      if (nuevoPassword.length < 6) {
+        alert('La nueva contraseña debe tener al menos 6 caracteres.');
+        return;
+      }
+    }
+
     setGuardando(true);
 
     const usuarioActualizado = {
@@ -74,18 +111,20 @@ export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario 
       email: correo,
       dni,
       DNI: dni,
+      apellido: registroActual?.ApellidoPaterno || user?.apellido || '',
+      apellidoMaterno: registroActual?.ApellidoMaterno || user?.apellidoMaterno || '',
+      celular: registroActual?.Celular || telefono,
       telefono,
       foto: fotoPerfil,
-      ...(nuevoPassword ? { contrasena: nuevoPassword, Password: nuevoPassword } : {})
+      ...(nuevoPassword ? { contrasena: nuevoPassword } : {})
     };
 
     try {
-      const idUsuario = user?.IdUsuario || user?.id;
       if (idUsuario) {
         await actualizarUsuario(idUsuario, usuarioActualizado);
       }
     } catch {
-      // Guardado local persistente
+      // Manejo de contingencia local
     }
 
     onGuardarUsuario(usuarioActualizado);

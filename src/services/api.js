@@ -157,47 +157,24 @@ export async function obtenerUsuarios() {
 // REGISTRAR USUARIO CON PERFILES (POST)
 // --------------------------------------------------
 export async function crearUsuario(datosUsuario) {
+  const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
+    ? Number(datosUsuario.perfiles[0])
+    : Number(datosUsuario.idPerfil || datosUsuario.IdPerfil || 1);
+
+  const payload = {
+    DNI: String(datosUsuario.dni || '').trim().slice(0, 8),
+    Nombres: datosUsuario.nombre || '',
+    ApellidoPaterno: datosUsuario.apellido || '',
+    ApellidoMaterno: datosUsuario.apellidoMaterno || '',
+    Celular: datosUsuario.celular || '',
+    CorreoElectronico: datosUsuario.correo || '',
+    Clave: datosUsuario.contrasena || '',
+    UsuarioCreacion: datosUsuario.usuarioCreacion || 'sistema',
+    EstadoRegistro: 1,
+    IdPerfil: idPerfilPrincipal,
+  };
+
   try {
-    const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
-      ? Number(datosUsuario.perfiles[0])
-      : 1;
-
-    const dniLimpio = String(datosUsuario.dni || datosUsuario.DNI || '00000000').trim().slice(0, 8);
-
-    const payload = {
-      ...datosUsuario,
-      DNI: dniLimpio,
-      dni: dniLimpio,
-      Nombres: datosUsuario.nombre || datosUsuario.Nombres || datosUsuario.nombreUsuario,
-      Nombre: datosUsuario.nombre || datosUsuario.Nombre,
-      nombres: datosUsuario.nombre,
-      Apellidos: datosUsuario.apellido || datosUsuario.Apellidos,
-      Apellido: datosUsuario.apellido || datosUsuario.Apellido,
-      apellidos: datosUsuario.apellido,
-      NombreUsuario: datosUsuario.nombreUsuario || datosUsuario.NombreUsuario,
-      nombreUsuario: datosUsuario.nombreUsuario,
-      Correo: datosUsuario.correo || datosUsuario.Correo,
-      CorreoElectronico: datosUsuario.correo || datosUsuario.Correo,
-      email: datosUsuario.correo,
-      correo: datosUsuario.correo,
-      Contrasena: datosUsuario.contrasena || datosUsuario.Contrasena,
-      Password: datosUsuario.contrasena || datosUsuario.Contrasena,
-      clave: datosUsuario.contrasena,
-      Clave: datosUsuario.contrasena,
-      EstadoRegistro: 1,
-      estadoRegistro: 1,
-      Estado: 1,
-      estado: 1,
-      IdPerfil: idPerfilPrincipal,
-      idPerfil: idPerfilPrincipal,
-      Id_Perfil: idPerfilPrincipal,
-      id_perfil: idPerfilPrincipal,
-      Perfiles: datosUsuario.perfiles,
-      IdPerfiles: datosUsuario.perfiles,
-      idPerfiles: datosUsuario.perfiles,
-      perfiles: datosUsuario.perfiles
-    };
-
     const response = await fetch(`${API_URL}/api/usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -214,9 +191,10 @@ export async function crearUsuario(datosUsuario) {
     console.warn("Fallo al crear usuario, simulando mock:", error);
     const nuevo = {
       IdUsuario: Date.now(),
-      NombreCompleto: `${datosUsuario.nombre || ''} ${datosUsuario.apellido || ''}`.trim() || datosUsuario.nombreUsuario,
-      Correo: datosUsuario.correo,
-      Perfil: 'Alumno',
+      Nombres: payload.Nombres,
+      ApellidoPaterno: payload.ApellidoPaterno,
+      CorreoElectronico: payload.CorreoElectronico,
+      DNI: payload.DNI,
       EstadoRegistro: 1
     };
     mockUsuarios = [nuevo, ...mockUsuarios];
@@ -228,35 +206,24 @@ export async function crearUsuario(datosUsuario) {
 // ACTUALIZAR USUARIO (PUT /api/usuarios/:id)
 // --------------------------------------------------
 export async function actualizarUsuario(idUsuario, datosUsuario) {
+  const payload = {
+    DNI: String(datosUsuario.dni || '').trim().slice(0, 8),
+    Nombres: datosUsuario.nombre || '',
+    ApellidoPaterno: datosUsuario.apellido || '',
+    ApellidoMaterno: datosUsuario.apellidoMaterno || '',
+    Celular: datosUsuario.celular || '',
+    CorreoElectronico: datosUsuario.correo || '',
+  };
+
+  if (datosUsuario.contrasena && datosUsuario.contrasena.trim() !== '') {
+    console.warn(
+      "actualizarUsuario: el backend (PUT /api/usuarios/:id) todavía no admite cambiar la " +
+      "contraseña por esta vía. Esta nueva contraseña NO se guardará hasta que el backend " +
+      "agregue soporte para el campo Clave en ese endpoint."
+    );
+  }
+
   try {
-    const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
-      ? Number(datosUsuario.perfiles[0])
-      : 1;
-
-    const payload = {
-      ...datosUsuario,
-      DNI: datosUsuario.dni,
-      dni: datosUsuario.dni,
-      Nombres: datosUsuario.nombre,
-      Nombre: datosUsuario.nombre,
-      Apellidos: datosUsuario.apellido,
-      Apellido: datosUsuario.apellido,
-      NombreUsuario: datosUsuario.nombreUsuario,
-      nombreUsuario: datosUsuario.nombreUsuario,
-      Correo: datosUsuario.correo,
-      correo: datosUsuario.correo,
-      EstadoRegistro: datosUsuario.estadoRegistro === 'Activo' || datosUsuario.estadoRegistro === 1 ? 1 : 0,
-      IdPerfil: idPerfilPrincipal,
-      idPerfil: idPerfilPrincipal,
-      Perfiles: datosUsuario.perfiles
-    };
-
-    if (datosUsuario.contrasena && datosUsuario.contrasena.trim() !== '') {
-      payload.Contrasena = datosUsuario.contrasena;
-      payload.Password = datosUsuario.contrasena;
-      payload.clave = datosUsuario.contrasena;
-    }
-
     const response = await fetch(`${API_URL}/api/usuarios/${idUsuario}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -271,7 +238,7 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
     return await response.json().catch(() => ({ mensaje: "Actualizado con éxito" }));
   } catch (error) {
     console.warn("Fallo al actualizar usuario, actualizando mock:", error);
-    mockUsuarios = mockUsuarios.map(u => u.IdUsuario === idUsuario ? { ...u, ...datosUsuario } : u);
+    mockUsuarios = mockUsuarios.map(u => u.IdUsuario === idUsuario ? { ...u, ...payload } : u);
     return { mensaje: "Actualizado localmente" };
   }
 }
@@ -528,10 +495,20 @@ export async function eliminarAsignacionDocente(idAsignacion) {
 }
 
 // ==================================================
-// MÓDULO DE ASISTENCIA
+// MÓDULO DE ASISTENCIA (Con persistencia en LocalStorage)
 // ==================================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
+  const claveStorage = `acadesys_asist_${idAula}_${fecha}`;
+  const guardado = localStorage.getItem(claveStorage);
+  if (guardado) {
+    try {
+      return JSON.parse(guardado);
+    } catch (e) {
+      console.warn("Error parseando asistencia local:", e);
+    }
+  }
+
   const clave = `${idAula}-${fecha}`;
   if (mockAsistencias[clave]) {
     return [...mockAsistencias[clave]];
@@ -542,23 +519,34 @@ export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
     { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'presente', horaLlegada: '07:52 AM' },
     { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:48 AM' },
     { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'presente', horaLlegada: '07:55 AM' },
-    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'presente', horaLlegada: '07:40 AM' }
+    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
   ];
-  mockAsistencias[clave] = listaDefault;
+  localStorage.setItem(claveStorage, JSON.stringify(listaDefault));
   return [...listaDefault];
 }
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
-  const clave = `${idAula}-${fecha}`;
-  mockAsistencias[clave] = [...listaAlumnos];
+  const claveStorage = `acadesys_asist_${idAula}_${fecha}`;
+  localStorage.setItem(claveStorage, JSON.stringify(listaAlumnos));
+  mockAsistencias[`${idAula}-${fecha}`] = [...listaAlumnos];
   return { ok: true, mensaje: 'Asistencia registrada con éxito' };
 }
 
 // ==================================================
-// MÓDULO DE REGISTRO DE CALIFICACIONES (DOCENTE)
+// MÓDULO DE REGISTRO DE CALIFICACIONES (Con persistencia en LocalStorage)
 // ==================================================
 
 export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bimestre-2') {
+  const claveStorage = `acadesys_notas_${idAula}_${idCurso}_${periodo}`;
+  const guardado = localStorage.getItem(claveStorage);
+  if (guardado) {
+    try {
+      return JSON.parse(guardado);
+    } catch (e) {
+      console.warn("Error parseando notas locales:", e);
+    }
+  }
+
   const clave = `${idAula}-${idCurso}-${periodo}`;
   if (mockNotasDocente[clave]) {
     return JSON.parse(JSON.stringify(mockNotasDocente[clave]));
@@ -571,56 +559,102 @@ export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bime
     { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 10, tareas: 12, final: 11 },
     { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 14, tareas: 15, final: 13 }
   ];
-  mockNotasDocente[clave] = nominaBase;
+  localStorage.setItem(claveStorage, JSON.stringify(nominaBase));
   return JSON.parse(JSON.stringify(nominaBase));
 }
 
 export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) {
-  const clave = `${idAula}-${idCurso}-${periodo}`;
-  mockNotasDocente[clave] = JSON.parse(JSON.stringify(listaNotas));
+  const claveStorage = `acadesys_notas_${idAula}_${idCurso}_${periodo}`;
+  localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
+  mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
   return { ok: true, mensaje: 'Calificaciones registradas correctamente' };
 }
 
 // ==================================================
-// MÓDULO DE COMUNICADOS Y NOTIFICACIONES
+// MÓDULO DE COMUNICADOS (Con persistencia en LocalStorage)
 // ==================================================
 
 export async function obtenerComunicados() {
-  try {
-    const response = await fetch(`${API_URL}/api/comunicados`);
-    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
-    return await response.json();
-  } catch {
-    return JSON.parse(JSON.stringify(mockComunicados));
+  const guardado = localStorage.getItem('acadesys_comunicados');
+  if (guardado) {
+    try {
+      return JSON.parse(guardado);
+    } catch (e) {
+      console.warn("Error parseando comunicados locales:", e);
+    }
   }
+  localStorage.setItem('acadesys_comunicados', JSON.stringify(mockComunicados));
+  return JSON.parse(JSON.stringify(mockComunicados));
 }
 
 export async function crearComunicado(nuevo) {
-  try {
-    const response = await fetch(`${API_URL}/api/comunicados`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nuevo)
-    });
-    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
-    return await response.json();
-  } catch {
-    const creado = {
-      id: Date.now(),
-      fecha: new Date().toLocaleDateString('es-PE'),
-      hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      leido: false,
-      confirmado: false,
-      ...nuevo
-    };
-    mockComunicados = [creado, ...mockComunicados];
-    return creado;
-  }
+  const actuales = await obtenerComunicados();
+  const creado = {
+    id: Date.now(),
+    fecha: new Date().toLocaleDateString('es-PE'),
+    hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    leido: false,
+    confirmado: false,
+    ...nuevo
+  };
+  const actualizados = [creado, ...actuales];
+  localStorage.setItem('acadesys_comunicados', JSON.stringify(actualizados));
+  mockComunicados = actualizados;
+  return creado;
 }
 
 export async function confirmarLecturaComunicado(id) {
-  mockComunicados = mockComunicados.map(c => 
+  const actuales = await obtenerComunicados();
+  const actualizados = actuales.map(c => 
     c.id === id ? { ...c, leido: true, confirmado: true } : c
   );
+  localStorage.setItem('acadesys_comunicados', JSON.stringify(actualizados));
+  mockComunicados = actualizados;
   return { ok: true };
+}
+
+// ==================================================
+// ESTUDIANTES / HIJOS ASOCIADOS (MOCK CENTRALIZADO)
+// ==================================================
+
+const MOCK_HIJOS = [
+  {
+    id: 1,
+    nombre: 'Luis Fernando Tóccas',
+    gradoCorto: '5to Sec',
+    codigo: 'ACAD-2026-755',
+    aula: '5to de Secundaria - Aula 101 UNI',
+    puestoRanking: 3,
+    totalAlumnos: 36,
+    promedioGeneral: 15.8,
+    cursosCriticos: 1,
+    cursos: [
+      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.3, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
+      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
+      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
+      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
+      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
+    ]
+  },
+  {
+    id: 2,
+    nombre: 'Andrea Sofía Tóccas',
+    gradoCorto: '2do Sec',
+    codigo: 'ACAD-2026-912',
+    aula: '2do de Secundaria - Aula 204 B',
+    puestoRanking: 1,
+    totalAlumnos: 32,
+    promedioGeneral: 18.2,
+    cursosCriticos: 0,
+    cursos: [
+      { id: 10, nombre: 'Aritmética Básica', docente: 'Prof. Pedro Ramos', parcial: 18, tareas: 19, final: 19, promedio: 18.7, materialPdf: 'Guia_Fracciones_Decimales.pdf', pesoMb: '1.1 MB' },
+      { id: 11, nombre: 'Comunicación Integral', docente: 'Prof. Carmen Vega', parcial: 17, tareas: 18, final: 18, promedio: 17.7, materialPdf: 'Comprension_Lectora_Bim2.pdf', pesoMb: '2.0 MB' },
+      { id: 12, nombre: 'Biología y Ecosistemas', docente: 'Prof. Laura Méndez', parcial: 18, tareas: 18, final: 18, promedio: 18.0, materialPdf: 'Guia_Laboratorio_Celular.pdf', pesoMb: '1.5 MB' },
+      { id: 13, nombre: 'Historia del Perú', docente: 'Prof. Manuel Salazar', parcial: 18, tareas: 19, final: 18, promedio: 18.4, materialPdf: 'Resumen_Tahuantinsuyo.pdf', pesoMb: '3.2 MB' }
+    ]
+  }
+];
+
+export async function obtenerHijosMock() {
+  return MOCK_HIJOS;
 }

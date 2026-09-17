@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, Lock, User, Eye, EyeOff, Loader2, 
-  ArrowRight, Users, Sparkles, X, CheckCircle2, UserPlus, Check, CreditCard 
+  ArrowRight, Users, Sparkles, X, CheckCircle2, UserPlus, Check, CreditCard, Shield 
 } from 'lucide-react';
 import { crearUsuario } from '../services/api';
+
+const MAPA_ROLES = {
+  '1': 'Administrador',
+  '2': 'Docente',
+  '3': 'Alumno',
+  '4': 'Padre de Familia'
+};
 
 export default function LandingPage({ onLoginSuccess }) {
   // Modales: 'login' | 'register' | null
@@ -24,7 +31,7 @@ export default function LandingPage({ onLoginSuccess }) {
     password: ''
   });
 
-  // Datos para Registro (incluye DNI)
+  // Datos para Registro (incluye DNI y perfil)
   const [registerData, setRegisterData] = useState({
     usuario: '',
     dni: '',
@@ -32,7 +39,8 @@ export default function LandingPage({ onLoginSuccess }) {
     apellido: '',
     correo: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    idPerfil: '1' // Por defecto Administrador
   });
 
   // Resetear estados al alternar modales
@@ -49,7 +57,8 @@ export default function LandingPage({ onLoginSuccess }) {
       apellido: '',
       correo: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      idPerfil: '1'
     });
   };
 
@@ -100,6 +109,9 @@ export default function LandingPage({ onLoginSuccess }) {
 
     setLoading(true);
 
+    const perfilIdNumerico = Number(registerData.idPerfil);
+    const nombreRol = MAPA_ROLES[registerData.idPerfil] || 'Administrador';
+
     try {
       const nuevoUsuarioPayload = {
         nombreUsuario: registerData.usuario.trim(),
@@ -108,17 +120,26 @@ export default function LandingPage({ onLoginSuccess }) {
         apellido: registerData.apellido.trim() || 'General',
         correo: registerData.correo.trim() || `${registerData.usuario.trim().toLowerCase()}@acadesys.edu.pe`,
         contrasena: registerData.password,
-        perfiles: [2] // Perfil asignado por defecto (Docente)
+        perfiles: [perfilIdNumerico],
+        IdPerfil: perfilIdNumerico,
+        rol: nombreRol,
+        Perfil: nombreRol
       };
 
       await crearUsuario(nuevoUsuarioPayload);
 
-      setSuccessMsg('¡Cuenta registrada exitosamente en la base de datos! Redirigiendo al inicio de sesión...');
-      resetFormStates();
+      // Iniciar sesión directamente con el rol elegido
+      const sessionUser = {
+        nombre: registerData.nombre.trim() || registerData.usuario.trim(),
+        rol: nombreRol,
+        token: `token-reg-${Date.now()}`
+      };
 
+      setSuccessMsg(`¡Cuenta registrada como ${nombreRol}! Entrando a la plataforma...`);
       setTimeout(() => {
-        setAuthModal('login');
-      }, 1500);
+        localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
+        onLoginSuccess(sessionUser);
+      }, 1200);
 
     } catch (err) {
       setError(err.message || 'Error al conectar con el servidor para registrar el usuario.');
@@ -137,7 +158,7 @@ export default function LandingPage({ onLoginSuccess }) {
     const inputPass = loginData.password.trim();
 
     try {
-      // 1. Intento primario al endpoint de autenticación del backend
+      // 1. Intento al endpoint de autenticación del backend
       const res = await fetch('https://acadesys-api.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,11 +177,11 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 2. Bypass de contingencia administrativa
+      // 2. Bypass administrativo
       if (inputUser === 'admin' && (inputPass === 'admin123' || inputPass === 'admin')) {
         const sessionUser = {
           nombre: 'admin',
-          rol: 'Administrador General',
+          rol: 'Administrador',
           token: 'dev-token-admin'
         };
         localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
@@ -168,14 +189,13 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 3. Validación contra los usuarios registrados en MySQL
+      // 3. Validación contra usuarios de la API / Base de Datos
       const usuariosRes = await fetch('https://acadesys-api.onrender.com/api/usuarios')
         .then(r => r.ok ? r.json() : [])
         .catch(() => []);
 
       const lista = Array.isArray(usuariosRes) ? usuariosRes : usuariosRes.data || [];
 
-      // Buscar coincidencia flexible: usuario, prefijo, DNI, nombres o apellidos
       const encontrado = lista.find((u) => {
         const alias = (u.NombreUsuario || u.nombreUsuario || u.usuario || u.Usuario || u.username || '').toLowerCase();
         const correo = (u.Correo || u.correo || u.CorreoElectronico || u.email || '').toLowerCase();
@@ -187,11 +207,8 @@ export default function LandingPage({ onLoginSuccess }) {
           alias.startsWith(inputUser) ||
           correo === inputUser ||
           (correo.includes('@') && correo.split('@')[0] === inputUser) ||
-          (correo.includes('@') && correo.split('@')[0].startsWith(inputUser)) ||
           dni === inputUser ||
-          nombreCompleto.includes(inputUser) ||
-          (inputUser.includes('luis') && nombreCompleto.includes('luis')) ||
-          (inputUser.includes('yan') && (alias.includes('yan') || nombreCompleto.includes('yan')))
+          nombreCompleto.includes(inputUser)
         );
       });
 
@@ -200,13 +217,13 @@ export default function LandingPage({ onLoginSuccess }) {
           encontrado.NombreUsuario ||
           encontrado.nombreUsuario ||
           encontrado.usuario ||
-          encontrado.username ||
-          (encontrado.Correo ? encontrado.Correo.split('@')[0] : inputUser)
+          encontrado.NombreCompleto ||
+          inputUser
         );
 
         const sessionUser = {
           nombre: aliasFinal,
-          rol: encontrado.NombrePerfil || encontrado.nombrePerfil || 'Docente',
+          rol: encontrado.NombrePerfil || encontrado.nombrePerfil || encontrado.Perfil || encontrado.rol || 'Administrador',
           token: `token-${Date.now()}`
         };
 
@@ -215,11 +232,16 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 4. Contingencia de desarrollo para usuarios recién creados
+      // 4. Contingencia de desarrollo flexible
       if (inputUser.length >= 3 && inputPass.length >= 6) {
+        let rolAsignado = 'Docente';
+        if (inputUser.includes('admin')) rolAsignado = 'Administrador';
+        if (inputUser.includes('alumno') || inputUser.includes('estudiante') || inputUser.includes('luis')) rolAsignado = 'Alumno';
+        if (inputUser.includes('padre') || inputUser.includes('apoderado')) rolAsignado = 'Padre de Familia';
+
         const sessionUser = {
           nombre: inputUser,
-          rol: 'Docente',
+          rol: rolAsignado,
           token: `token-dev-${Date.now()}`
         };
         localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
@@ -234,6 +256,16 @@ export default function LandingPage({ onLoginSuccess }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAccesoRapido = (nombre, rol) => {
+    const sessionUser = {
+      nombre,
+      rol,
+      token: `demo-token-${rol.toLowerCase()}`
+    };
+    localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
+    onLoginSuccess(sessionUser);
   };
 
   return (
@@ -301,7 +333,7 @@ export default function LandingPage({ onLoginSuccess }) {
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-20">
           <button
             onClick={() => openModal('login')}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-indigo-600/25 hover:shadow-indigo-600/40 flex items-center justify-center gap-3 transition group"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-indigo-600/25 hover:shadow-indigo-600/40 flex items-center justify-center gap-3 transition group cursor-pointer"
           >
             <span>Acceder al Panel de Control</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -344,11 +376,11 @@ export default function LandingPage({ onLoginSuccess }) {
       {/* Modal flotante */}
       {authModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="relative w-full max-w-md bg-[#0d1322]/95 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-indigo-500/10 backdrop-blur-2xl">
+          <div className="relative w-full max-w-md bg-[#0d1322]/95 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-indigo-500/10 backdrop-blur-2xl max-h-[92vh] overflow-y-auto">
             
             <button
               onClick={closeModal}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition"
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -363,7 +395,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <p className="text-xs text-slate-400 mt-0.5">
                 {authModal === 'login' 
                   ? 'Ingresa al portal administrativo de AcadeSys' 
-                  : 'Regístrate directamente en la base de datos de AcadeSys'}
+                  : 'Selecciona tu rol y regístrate en la plataforma'}
               </p>
             </div>
 
@@ -425,18 +457,55 @@ export default function LandingPage({ onLoginSuccess }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
+                  className="w-full mt-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   {loading ? 'Accediendo...' : 'Entrar al Sistema'}
                 </button>
 
-                <div className="mt-4 text-center text-xs text-slate-400">
+                {/* BOTONERA DE ACCESO RÁPIDO PARA PRUEBAS */}
+                <div className="pt-4 border-t border-slate-800/80">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2.5">
+                    O ingresa con 1 clic (Modo Demo):
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => handleAccesoRapido('Yan Leví Picon', 'Administrador')}
+                      className="py-2 px-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold transition"
+                    >
+                      🛡️ Administrador
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAccesoRapido('Prof. Carlos Mendoza', 'Docente')}
+                      className="py-2 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold transition"
+                    >
+                      👨‍🏫 Docente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAccesoRapido('Luis Fernando Tóccas', 'Alumno')}
+                      className="py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold transition"
+                    >
+                      🎓 Estudiante
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAccesoRapido('Roberto Tóccas', 'Padre de Familia')}
+                      className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold transition"
+                    >
+                      👨‍👧 Apoderado
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-center text-xs text-slate-400">
                   ¿No tienes una cuenta?{' '}
                   <button
                     type="button"
                     onClick={() => openModal('register')}
-                    className="text-indigo-400 font-semibold hover:underline"
+                    className="text-indigo-400 font-semibold hover:underline cursor-pointer"
                   >
                     Regístrate aquí
                   </button>
@@ -444,6 +513,27 @@ export default function LandingPage({ onLoginSuccess }) {
               </form>
             ) : (
               <form onSubmit={handleRegisterSubmit} className="space-y-3 text-left">
+                
+                {/* SELECTOR DE PERFIL / ROL */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Tipo de Cuenta / Rol
+                  </label>
+                  <div className="relative">
+                    <Shield className="w-3.5 h-3.5 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <select
+                      value={registerData.idPerfil}
+                      onChange={(e) => setRegisterData({ ...registerData, idPerfil: e.target.value })}
+                      className="w-full pl-8 pr-3 py-2 bg-slate-900/90 border border-indigo-500/40 rounded-xl text-xs text-indigo-200 outline-none focus:border-indigo-400 transition cursor-pointer font-semibold"
+                    >
+                      <option value="1">Administrador (Acceso Total a Ajustes)</option>
+                      <option value="2">Docente (Asistencia y Registrar Notas)</option>
+                      <option value="3">Alumno / Estudiante (Boleta y Tutor IA)</option>
+                      <option value="4">Padre de Familia (Supervisión y Pensiones)</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -522,7 +612,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Contraseña (mínimo 6 caracteres, letras y números)
+                    Contraseña (mínimo 6 caracteres)
                   </label>
                   <div className="relative">
                     <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -571,7 +661,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
+                  className="w-full mt-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   {loading ? 'Creando cuenta en BD...' : 'Completar Registro'}
@@ -582,7 +672,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   <button
                     type="button"
                     onClick={() => openModal('login')}
-                    className="text-indigo-400 font-semibold hover:underline"
+                    className="text-indigo-400 font-semibold hover:underline cursor-pointer"
                   >
                     Inicia sesión
                   </button>

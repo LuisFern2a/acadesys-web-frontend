@@ -32,7 +32,8 @@ export default function UsuariosPage() {
   const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
   const DNI_REGEX = /^\d{8}$/;
   const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu|acadesys\.edu\.pe)$/;
-  const CONTRASENA_PERMITIDA = /^(?=(?:.*[A-Za-z]){8})(?=(?:.*\d){8})[A-Za-z\d]{16}$/;
+  // Regla unificada: mínimo 8 caracteres con al menos una letra y un número
+  const CONTRASENA_PERMITIDA = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{8,}$/;
 
   // --------------------------------------------------
   // CARGA INICIAL
@@ -141,7 +142,9 @@ export default function UsuariosPage() {
 
   const resolverNombreCompleto = (u) => {
     const nombres = u.nombres || u.Nombres || u.nombre || u.Nombre || '';
-    const apellidos = u.apellidos || u.Apellidos || u.apellido || u.Apellido || '';
+    const apellidos = u.ApellidoPaterno
+      ? `${u.ApellidoPaterno} ${u.ApellidoMaterno || ''}`.trim()
+      : (u.apellidos || u.Apellidos || u.apellido || u.Apellido || '');
     const completo = `${nombres} ${apellidos}`.trim();
     return completo || resolverUsuario(u);
   };
@@ -234,7 +237,7 @@ export default function UsuariosPage() {
       nombreUsuario: resolverUsuario(u),
       dni: resolverDni(u) !== '-' ? resolverDni(u) : '',
       nombre: u.nombre || u.Nombre || u.nombres || '',
-      apellido: u.apellido || u.Apellido || u.apellidos || '',
+      apellido: u.ApellidoPaterno || u.apellido || u.Apellido || u.apellidos || '',
       correo: resolverCorreo(u) !== '-' ? resolverCorreo(u) : '',
       contrasena: '',
       estadoRegistro: resolverEstado(u),
@@ -330,7 +333,7 @@ export default function UsuariosPage() {
     }
 
     if (!usuarioEditando && !CONTRASENA_PERMITIDA.test(formData.contrasena)) {
-      nuevosErrores.contrasena = 'La contraseña debe tener exactamente 16 caracteres (8 letras y 8 números).';
+      nuevosErrores.contrasena = 'La contraseña debe tener al menos 8 caracteres (con letras y números).';
     }
 
     if (perfilesSeleccionados.length === 0) {
@@ -371,6 +374,8 @@ export default function UsuariosPage() {
       idPerfil: primerPerfil,
       IdPerfil: primerPerfil,
       id_perfil: primerPerfil,
+      apellidoMaterno: usuarioEditando?.ApellidoMaterno || '',
+      celular: usuarioEditando?.Celular || '',
     };
 
     setGuardando(true);
@@ -518,25 +523,22 @@ export default function UsuariosPage() {
                         {estadoTxt}
                       </span>
                     </td>
-                    {/* ACCIONES */}
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-2 text-slate-400">
-                        {/* EDITAR */}
                         <button
                           type="button"
                           onClick={() => handleEditar(u)}
                           title="Editar usuario"
-                          className="p-1.5 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                          className="p-1.5 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
 
-                        {/* BLOQUEAR / ACTIVAR */}
                         <button
                           type="button"
                           onClick={() => handleToggleEstado(u)}
                           title={esActivo ? 'Bloquear usuario' : 'Activar usuario'}
-                          className={`p-1.5 rounded-lg transition-all ${
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                             esActivo 
                               ? 'hover:text-amber-600 hover:bg-amber-50' 
                               : 'text-amber-500 hover:text-emerald-600 hover:bg-emerald-50'
@@ -545,12 +547,11 @@ export default function UsuariosPage() {
                           {esActivo ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                         </button>
 
-                        {/* ELIMINAR */}
                         <button
                           type="button"
                           onClick={() => handleEliminar(u)}
                           title="Eliminar usuario"
-                          className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all"
+                          className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -575,7 +576,7 @@ export default function UsuariosPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 text-slate-400"
+                className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -583,7 +584,6 @@ export default function UsuariosPage() {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* NOMBRE DE USUARIO */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                     Nombre de Usuario
@@ -605,7 +605,6 @@ export default function UsuariosPage() {
                   )}
                 </div>
 
-                {/* DNI (8 DÍGITOS) */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                     DNI (8 dígitos)
@@ -632,7 +631,6 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
-              {/* NOMBRE Y APELLIDO */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
@@ -687,7 +685,6 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
-              {/* CORREO */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                   Correo electrónico
@@ -709,7 +706,6 @@ export default function UsuariosPage() {
                 )}
               </div>
 
-              {/* CONTRASEÑA */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                   Contraseña {usuarioEditando && <span className="text-slate-400 font-normal lowercase">(dejar vacío para mantener la actual)</span>}
@@ -717,10 +713,9 @@ export default function UsuariosPage() {
                 <input
                   type="password"
                   name="contrasena"
-                  maxLength={16}
                   value={formData.contrasena}
                   onChange={handleChange}
-                  placeholder={usuarioEditando ? "••••••••••••••••" : "Ej: ClaveSec12345678"}
+                  placeholder={usuarioEditando ? "••••••••••••••••" : "Mínimo 8 caracteres (letras y números)"}
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none ${
                     errores.contrasena ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                   }`}
@@ -732,7 +727,6 @@ export default function UsuariosPage() {
                 )}
               </div>
 
-              {/* CHECKBOXES DE PERFILES */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
                   Perfiles asignados
@@ -774,19 +768,18 @@ export default function UsuariosPage() {
                 )}
               </div>
 
-              {/* BOTONES */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {guardando && <Loader2 className="w-4 h-4 animate-spin" />}
                   {guardando ? 'Guardando...' : usuarioEditando ? 'Actualizar Usuario' : 'Guardar Usuario'}
