@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AcadeSys - Intranet Escolar</title>
+    <meta name="theme-color" content="#1e3a8a" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Carga de Tailwind CSS garantizada -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,5 +21,14 @@
   <body class="bg-slate-100 text-slate-800 antialiased m-0 p-0">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((reg) => console.log('SW registrado correctamente:', reg.scope))
+            .catch((err) => console.error('Error registrando SW:', err));
+        });
+      }
+    </script>
   </body>
 </html>
