@@ -1,6 +1,61 @@
 const API_URL = "https://acadesys-api.onrender.com";
 
 // ==========================================
+// CONTROL DE TOKEN JWT Y SESIÓN
+// ==========================================
+
+export function guardarToken(token) {
+  localStorage.setItem('acadesys_token', token);
+}
+
+export function obtenerToken() {
+  const directToken = localStorage.getItem('acadesys_token');
+  if (directToken) return directToken;
+
+  const session = localStorage.getItem('acadesys_session');
+  if (session) {
+    try {
+      const parsed = JSON.parse(session);
+      return parsed.token || parsed.jwt || parsed.accessToken || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export function cerrarSesion() {
+  localStorage.removeItem('acadesys_token');
+  localStorage.removeItem('usuario');
+  window.location.href = '/';
+}
+
+// Interceptor centralizado para inyectar JWT en cabeceras
+async function fetchWithAuth(endpoint, options = {}) {
+  const token = obtenerToken();
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...options.headers
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  // Si el token expiró o no es válido (401), se limpia la sesión
+  if (response.status === 401) {
+    console.warn("Sesión expirada o no autorizada (401). Redirigiendo...");
+    cerrarSesion();
+    throw new Error("Sesión expirada. Por favor inicie sesión nuevamente.");
+  }
+
+  return response;
+}
+
+// ==========================================
 // MOCKS BASE DE DATOS LOCAL
 // ==========================================
 
@@ -8,7 +63,7 @@ let mockPerfiles = [
   { IdPerfil: 1, NombrePerfil: 'Administrador', EstadoRegistro: 1 },
   { IdPerfil: 2, NombrePerfil: 'Docente', EstadoRegistro: 1 },
   { IdPerfil: 3, NombrePerfil: 'Alumno', EstadoRegistro: 1 },
-  { IdPerfil: 4, NombrePerfil: 'Padre de Familia', EstadoRegistro: 1 }
+  { IdPerfil: 4, NombrePerfil: 'Apoderado', EstadoRegistro: 1 }
 ];
 
 let mockOpcionesMenu = [
@@ -126,11 +181,11 @@ let mockComunicados = [
 ];
 
 // --------------------------------------------------
-// OBTENER PERFILES
+// OBTENER PERFILES (Protegido con JWT)
 // --------------------------------------------------
 export async function obtenerPerfiles() {
   try {
-    const response = await fetch(`${API_URL}/api/perfiles`);
+    const response = await fetchWithAuth(`/api/perfiles`);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -140,11 +195,11 @@ export async function obtenerPerfiles() {
 }
 
 // --------------------------------------------------
-// OBTENER USUARIOS
+// OBTENER USUARIOS (Protegido con JWT)
 // --------------------------------------------------
 export async function obtenerUsuarios() {
   try {
-    const response = await fetch(`${API_URL}/api/usuarios`);
+    const response = await fetchWithAuth(`/api/usuarios`);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -175,9 +230,8 @@ export async function crearUsuario(datosUsuario) {
   };
 
   try {
-    const response = await fetch(`${API_URL}/api/usuarios`, {
+    const response = await fetchWithAuth(`/api/usuarios`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -215,18 +269,9 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
     CorreoElectronico: datosUsuario.correo || '',
   };
 
-  if (datosUsuario.contrasena && datosUsuario.contrasena.trim() !== '') {
-    console.warn(
-      "actualizarUsuario: el backend (PUT /api/usuarios/:id) todavía no admite cambiar la " +
-      "contraseña por esta vía. Esta nueva contraseña NO se guardará hasta que el backend " +
-      "agregue soporte para el campo Clave en ese endpoint."
-    );
-  }
-
   try {
-    const response = await fetch(`${API_URL}/api/usuarios/${idUsuario}`, {
+    const response = await fetchWithAuth(`/api/usuarios/${idUsuario}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -248,9 +293,8 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
 // --------------------------------------------------
 export async function eliminarUsuario(idUsuario) {
   try {
-    const response = await fetch(`${API_URL}/api/usuarios/${idUsuario}`, {
+    const response = await fetchWithAuth(`/api/usuarios/${idUsuario}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -271,7 +315,7 @@ export async function eliminarUsuario(idUsuario) {
 // --------------------------------------------------
 export async function obtenerOpcionesMenu() {
   try {
-    const response = await fetch(`${API_URL}/api/menus`);
+    const response = await fetchWithAuth(`/api/menus`);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -293,9 +337,8 @@ export async function crearOpcionMenu(datosMenu) {
       EstadoRegistro: 1
     };
 
-    const response = await fetch(`${API_URL}/api/menus`, {
+    const response = await fetchWithAuth(`/api/menus`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -331,9 +374,8 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
       EstadoRegistro: 1
     };
 
-    const response = await fetch(`${API_URL}/api/menus/asignar`, {
+    const response = await fetchWithAuth(`/api/menus/asignar`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -355,7 +397,7 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
 
 export async function obtenerAulas() {
   try {
-    const response = await fetch(`${API_URL}/api/aulas`);
+    const response = await fetchWithAuth(`/api/aulas`);
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return await response.json();
   } catch {
@@ -365,9 +407,8 @@ export async function obtenerAulas() {
 
 export async function crearAula(nuevaAula) {
   try {
-    const response = await fetch(`${API_URL}/api/aulas`, {
+    const response = await fetchWithAuth(`/api/aulas`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nuevaAula),
     });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
@@ -381,9 +422,8 @@ export async function crearAula(nuevaAula) {
 
 export async function actualizarAula(idAula, aulaActualizada) {
   try {
-    const response = await fetch(`${API_URL}/api/aulas/${idAula}`, {
+    const response = await fetchWithAuth(`/api/aulas/${idAula}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(aulaActualizada),
     });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
@@ -396,7 +436,7 @@ export async function actualizarAula(idAula, aulaActualizada) {
 
 export async function eliminarAula(idAula) {
   try {
-    const response = await fetch(`${API_URL}/api/aulas/${idAula}`, { method: 'DELETE' });
+    const response = await fetchWithAuth(`/api/aulas/${idAula}`, { method: 'DELETE' });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return true;
   } catch {
@@ -407,7 +447,7 @@ export async function eliminarAula(idAula) {
 
 export async function obtenerCursos() {
   try {
-    const response = await fetch(`${API_URL}/api/cursos`);
+    const response = await fetchWithAuth(`/api/cursos`);
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return await response.json();
   } catch {
@@ -417,9 +457,8 @@ export async function obtenerCursos() {
 
 export async function crearCurso(nuevoCurso) {
   try {
-    const response = await fetch(`${API_URL}/api/cursos`, {
+    const response = await fetchWithAuth(`/api/cursos`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nuevoCurso),
     });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
@@ -433,9 +472,8 @@ export async function crearCurso(nuevoCurso) {
 
 export async function actualizarCurso(idCurso, cursoActualizado) {
   try {
-    const response = await fetch(`${API_URL}/api/cursos/${idCurso}`, {
+    const response = await fetchWithAuth(`/api/cursos/${idCurso}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cursoActualizado),
     });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
@@ -448,7 +486,7 @@ export async function actualizarCurso(idCurso, cursoActualizado) {
 
 export async function eliminarCurso(idCurso) {
   try {
-    const response = await fetch(`${API_URL}/api/cursos/${idCurso}`, { method: 'DELETE' });
+    const response = await fetchWithAuth(`/api/cursos/${idCurso}`, { method: 'DELETE' });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return true;
   } catch {
@@ -459,7 +497,7 @@ export async function eliminarCurso(idCurso) {
 
 export async function obtenerAsignacionesDocente() {
   try {
-    const response = await fetch(`${API_URL}/api/asignaciones`);
+    const response = await fetchWithAuth(`/api/asignaciones`);
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return await response.json();
   } catch {
@@ -469,9 +507,8 @@ export async function obtenerAsignacionesDocente() {
 
 export async function crearAsignacionDocente(nuevaAsig) {
   try {
-    const response = await fetch(`${API_URL}/api/asignaciones`, {
+    const response = await fetchWithAuth(`/api/asignaciones`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nuevaAsig),
     });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
@@ -485,7 +522,7 @@ export async function crearAsignacionDocente(nuevaAsig) {
 
 export async function eliminarAsignacionDocente(idAsignacion) {
   try {
-    const response = await fetch(`${API_URL}/api/asignaciones/${idAsignacion}`, { method: 'DELETE' });
+    const response = await fetchWithAuth(`/api/asignaciones/${idAsignacion}`, { method: 'DELETE' });
     if (!response.ok) throw new Error(`HTTP: ${response.status}`);
     return true;
   } catch {
