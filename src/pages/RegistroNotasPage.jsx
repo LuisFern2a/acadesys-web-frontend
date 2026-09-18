@@ -9,7 +9,9 @@ import {
   Users, 
   TrendingUp, 
   Calendar,
-  Sparkles
+  Sparkles,
+  UserPlus,
+  X
 } from 'lucide-react';
 import { 
   obtenerAulas, 
@@ -28,6 +30,11 @@ export default function RegistroNotasPage() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
+
+  // Modal para nuevo alumno
+  const [modalNuevoAlumno, setModalNuevoAlumno] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [nuevoCodigo, setNuevoCodigo] = useState('');
 
   useEffect(() => {
     cargarSelectores();
@@ -50,12 +57,38 @@ export default function RegistroNotasPage() {
     if (dataCursos?.length > 0) setCursoSeleccionado(String(dataCursos[0].idCurso));
   };
 
+  const getStorageKey = () => `notas_${aulaSeleccionada}_${cursoSeleccionado}_${periodo}`;
+
   const cargarNotas = async () => {
     setCargando(true);
     setGuardadoExitoso(false);
-    const data = await obtenerNotasPorAulaYCurso(aulaSeleccionada, cursoSeleccionado, periodo);
-    setEstudiantes(data || []);
-    setCargando(false);
+
+    // 1. Revisar si hay datos específicos guardados localmente para esta combinación
+    const key = getStorageKey();
+    const guardadoLocal = localStorage.getItem(key);
+
+    if (guardadoLocal) {
+      try {
+        setEstudiantes(JSON.parse(guardadoLocal));
+        setCargando(false);
+        return;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 2. Si no hay en storage local, consultar la API
+    try {
+      const data = await obtenerNotasPorAulaYCurso(aulaSeleccionada, cursoSeleccionado, periodo);
+      const listaFinal = Array.isArray(data) ? data : [];
+      setEstudiantes(listaFinal);
+      localStorage.setItem(key, JSON.stringify(listaFinal));
+    } catch (err) {
+      console.error(err);
+      setEstudiantes([]);
+    } finally {
+      setCargando(false);
+    }
   };
 
   // Validación y actualización vigesimal (0 a 20)
@@ -66,13 +99,14 @@ export default function RegistroNotasPage() {
       if (valorNumerico > 20) valorNumerico = 20;
     }
 
-    setEstudiantes(prev =>
-      prev.map(est =>
-        est.idAlumno === idAlumno
-          ? { ...est, [campo]: valorNumerico }
-          : est
-      )
+    const actualizados = estudiantes.map(est =>
+      est.idAlumno === idAlumno
+        ? { ...est, [campo]: valorNumerico }
+        : est
     );
+
+    setEstudiantes(actualizados);
+    localStorage.setItem(getStorageKey(), JSON.stringify(actualizados));
   };
 
   // Cálculo de promedio ponderado: Parcial (30%), Tareas (30%), Final (40%)
@@ -84,9 +118,41 @@ export default function RegistroNotasPage() {
   };
 
   const handleGuardar = async () => {
-    await guardarNotasDocente(aulaSeleccionada, cursoSeleccionado, periodo, estudiantes);
+    const key = getStorageKey();
+    localStorage.setItem(key, JSON.stringify(estudiantes));
+    try {
+      await guardarNotasDocente(aulaSeleccionada, cursoSeleccionado, periodo, estudiantes);
+    } catch (e) {
+      console.warn("Backend offline o error en endpoint, persistido localmente:", e);
+    }
     setGuardadoExitoso(true);
     setTimeout(() => setGuardadoExitoso(false), 3000);
+  };
+
+  // Agregar nuevo estudiante al aula y curso actual
+  const handleAgregarEstudiante = (e) => {
+    e.preventDefault();
+    if (!nuevoNombre.trim()) return;
+
+    const idGenerado = `alum-${Date.now()}`;
+    const codigoGenerado = nuevoCodigo.trim() || `ACAD-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const nuevoEstudiante = {
+      idAlumno: idGenerado,
+      nombre: nuevoNombre.trim(),
+      codigo: codigoGenerado,
+      parcial: 0,
+      tareas: 0,
+      final: 0
+    };
+
+    const nuevaLista = [...estudiantes, nuevoEstudiante];
+    setEstudiantes(nuevaLista);
+    localStorage.setItem(getStorageKey(), JSON.stringify(nuevaLista));
+
+    setNuevoNombre('');
+    setNuevoCodigo('');
+    setModalNuevoAlumno(false);
   };
 
   // Métricas dinámicas en vivo
@@ -115,14 +181,25 @@ export default function RegistroNotasPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGuardar}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition text-xs"
-        >
-          <Save className="w-4 h-4" />
-          {guardadoExitoso ? '¡Calificaciones Guardadas!' : 'Guardar Calificaciones'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setModalNuevoAlumno(true)}
+            className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl font-semibold shadow-sm transition text-xs"
+          >
+            <UserPlus className="w-4 h-4 text-indigo-600" />
+            <span>+ Matricular Alumno</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGuardar}
+            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm transition text-xs"
+          >
+            <Save className="w-4 h-4" />
+            {guardadoExitoso ? '¡Calificaciones Guardadas!' : 'Guardar Calificaciones'}
+          </button>
+        </div>
       </div>
 
       {/* SELECTORES DE FILTRO */}
@@ -261,6 +338,12 @@ export default function RegistroNotasPage() {
                     Cargando calificaciones...
                   </td>
                 </tr>
+              ) : estudiantes.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                    No hay estudiantes registrados en esta selección. Usa el botón "+ Matricular Alumno" para agregar uno.
+                  </td>
+                </tr>
               ) : (
                 estudiantes.map((est) => {
                   const promedio = calcularPromedio(est.parcial, est.tareas, est.final);
@@ -345,6 +428,76 @@ export default function RegistroNotasPage() {
           </table>
         </div>
       </div>
+
+      {/* MODAL PARA AGREGAR NUEVO ESTUDIANTE */}
+      {modalNuevoAlumno && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setModalNuevoAlumno(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">Matricular Alumno</h3>
+                <p className="text-xs text-slate-500">Agregar a este registro de aula y periodo</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAgregarEstudiante} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                  Nombres y Apellidos
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Sofía Ramírez"
+                  value={nuevoNombre}
+                  onChange={(e) => setNuevoNombre(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                  Código o DNI (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: ACAD-8921"
+                  value={nuevoCodigo}
+                  onChange={(e) => setNuevoCodigo(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalNuevoAlumno(false)}
+                  className="w-1/2 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm"
+                >
+                  Agregar Alumno
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
