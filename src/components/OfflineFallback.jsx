@@ -10,9 +10,13 @@ export default function OfflineFallback({ children }) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Permite alternar la vista manualmente desde la consola con: window.setAcadeSysOffline(true/false)
+    window.setAcadeSysOffline = (estado) => setIsOffline(Boolean(estado));
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      delete window.setAcadeSysOffline;
     };
   }, []);
 
@@ -59,12 +63,12 @@ export default function OfflineFallback({ children }) {
         No se pudo establecer contacto con los servidores de AcadeSys. Verifica tu conexión de red o continúa navegando en los datos cacheados por el Service Worker.
       </p>
 
-      {/* Botones de acción */}
+      {/* Botón de acción */}
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="w-full py-3 px-5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition duration-150 flex items-center justify-center gap-2"
+          className="w-full py-3 px-5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition duration-150 flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

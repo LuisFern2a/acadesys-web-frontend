@@ -10,10 +10,16 @@ import {
   Sparkles,
   ChevronRight,
   Printer,
-  GraduationCap
+  GraduationCap,
+  Users
 } from 'lucide-react';
 
-export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
+export default function CalificacionesPage({ 
+  estudianteActivo, 
+  listaEstudiantes = [], 
+  onCambiarEstudiante, 
+  onIrATutorIA 
+}) {
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('bimestre-2');
 
   const estudiante = estudianteActivo || {
@@ -25,13 +31,7 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
     totalAlumnos: 36,
     promedioGeneral: 15.8,
     cursosCriticos: 1,
-    cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.3, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
-    ]
+    cursos: []
   };
 
   const handleImprimirBoleta = () => {
@@ -50,7 +50,7 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
 
   return (
     <div className="p-8 bg-slate-50 min-h-full print:p-0 print:bg-white">
-      {/* CABECERA MEMBRETADA OFICIAL (SOLO VISIBLE AL IMPRIMIR / GUARDAR EN PDF) */}
+      {/* CABECERA MEMBRETADA OFICIAL (SOLO VISIBLE AL IMPRIMIR / PDF) */}
       <div className="hidden print:block mb-8 border-b-2 border-slate-900 pb-4">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
@@ -84,14 +84,14 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
       </div>
 
       {/* HEADER DE PANTALLA (OCULTO AL IMPRIMIR) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print:hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 print:hidden">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-md shadow-indigo-600/20">
               <Award className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">Calificaciones y Rendimiento</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Calificaciones y Rendimiento</h1>
               <p className="text-slate-500 text-sm">
                 Mostrando registro de: <span className="font-semibold text-slate-800">{estudiante.nombre}</span> ({estudiante.aula})
               </p>
@@ -99,19 +99,37 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* BOTÓN DE IMPRESIÓN / DESCARGA PDF */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* SELECTOR DE ESTUDIANTE */}
+          {listaEstudiantes && listaEstudiantes.length > 1 && (
+            <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm">
+              <Users className="w-4 h-4 text-indigo-600" />
+              <select
+                value={estudiante.id}
+                onChange={(e) => onCambiarEstudiante && onCambiarEstudiante(Number(e.target.value))}
+                className="text-xs font-semibold text-slate-700 bg-transparent outline-none cursor-pointer"
+              >
+                {listaEstudiantes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    Expediente: {a.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* BOTÓN DE IMPRESIÓN */}
           <button
             type="button"
             onClick={handleImprimirBoleta}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition"
+            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition"
           >
             <Printer className="w-4 h-4 text-indigo-600" />
             <span>Exportar PDF / Imprimir</span>
           </button>
 
           {/* SELECTOR DE PERIODO */}
-          <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm text-sm">
+          <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm text-xs sm:text-sm">
             <button
               type="button"
               onClick={() => setPeriodoSeleccionado('bimestre-1')}
@@ -143,7 +161,7 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
         </div>
       </div>
 
-      {/* MÉTRICAS SUPERIORES (OCULTAS AL IMPRIMIR) */}
+      {/* MÉTRICAS SUPERIORES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 print:hidden">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600">
@@ -178,7 +196,9 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
           <div>
             <span className="text-xs text-slate-400 font-semibold uppercase">Materias en Riesgo</span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-slate-800">{estudiante.cursosCriticos} {estudiante.cursosCriticos === 1 ? 'Curso' : 'Cursos'}</span>
+              <span className="text-2xl font-bold text-slate-800">
+                {estudiante.cursosCriticos} {estudiante.cursosCriticos === 1 ? 'Curso' : 'Cursos'}
+              </span>
             </div>
           </div>
         </div>
@@ -188,19 +208,19 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
             <Sparkles className="w-4 h-4" /> Tutor IA
           </div>
           <p className="text-xs text-indigo-100 line-clamp-2 mt-1">
-            Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre.split(' ')[0]}.
+            Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el alumno'}.
           </p>
           <button
             type="button"
             onClick={onIrATutorIA}
-            className="text-xs text-indigo-300 hover:text-white font-medium flex items-center gap-1 mt-2 transition"
+            className="text-xs text-indigo-300 hover:text-white font-medium flex items-center gap-1 mt-2 transition cursor-pointer"
           >
             Ver diagnóstico completo <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* BOLETA DETALLADA DE CALIFICACIONES */}
+      {/* TABLA DE ASIGNATURAS */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 mb-8 overflow-hidden print:border print:border-slate-300 print:shadow-none print:rounded-none">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between print:py-2">
           <div className="flex items-center gap-2">
@@ -226,7 +246,7 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600 print:divide-slate-200">
-              {estudiante.cursos.map((c) => {
+              {estudiante.cursos && estudiante.cursos.map((c) => {
                 const enRiesgo = c.promedio < 13;
 
                 return (
@@ -273,7 +293,7 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
         </div>
       </div>
 
-      {/* SECCIÓN DE FIRMAS (SOLO VISIBLE EN IMPRESIÓN / PDF) */}
+      {/* SECCIÓN DE FIRMAS */}
       <div className="hidden print:grid grid-cols-2 gap-16 mt-20 text-center text-xs text-slate-700">
         <div className="border-t border-slate-400 pt-2">
           <p className="font-bold text-slate-900">Dirección Académica</p>
@@ -285,14 +305,14 @@ export default function CalificacionesPage({ estudianteActivo, onIrATutorIA }) {
         </div>
       </div>
 
-      {/* RECURSOS Y MATERIALES DE ESTUDIO (OCULTO AL IMPRIMIR) */}
+      {/* RECURSOS Y MATERIALES DE ESTUDIO */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 print:hidden">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-5 h-5 text-indigo-600" />
           <h2 className="font-bold text-slate-800 text-base">Recursos de Estudio</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {estudiante.cursos.map((c) => (
+          {estudiante.cursos && estudiante.cursos.map((c) => (
             <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
               <div className="flex items-start gap-3 mb-3">
                 <div className="p-2 bg-rose-50 border border-rose-100 rounded-lg text-rose-600 shrink-0">
