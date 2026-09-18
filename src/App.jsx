@@ -11,6 +11,7 @@ import DashboardOverviewPage from './pages/DashboardOverviewPage';
 import AsistenciaPage from './pages/AsistenciaPage';
 import RegistroNotasPage from './pages/RegistroNotasPage';
 import ComunicadosPage from './pages/ComunicadosPage';
+import OfflineFallback from './components/OfflineFallback';
 import { obtenerHijosMock } from './services/api';
 
 export default function App() {
@@ -75,46 +76,48 @@ export default function App() {
 
   if (loadingSession) return null;
 
-  if (!session) {
-    return <LandingPage onLoginSuccess={handleLogin} />;
-  }
-
   return (
-    <DashboardLayout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab}
-      user={session}
-      onLogout={handleLogout}
-      hijos={hijos}
-      hijoSeleccionado={hijoActivo}
-      onSeleccionarHijo={(id) => setIdHijoSeleccionado(id)}
-      onUpdateUser={handleUpdateUser}
-    >
-      {activeTab === 'dashboard' && (
-        <DashboardOverviewPage setActiveTab={setActiveTab} />
-      )}
-      {activeTab === 'comunicados' && (
-        <ComunicadosPage user={session} />
-      )}
-      {activeTab === 'asistencia' && esDocenteOAdmin && (
-        <AsistenciaPage />
-      )}
-      {activeTab === 'registro-notas' && esDocenteOAdmin && (
-        <RegistroNotasPage />
-      )}
-      {activeTab === 'calificaciones' && (
-        <CalificacionesPage 
-          estudianteActivo={hijoActivo} 
-          onIrATutorIA={() => setActiveTab('tutor-ia')} 
-        />
-      )}
-      {activeTab === 'tutor-ia' && <TutorIAPage estudianteActivo={hijoActivo} />}
+    <OfflineFallback>
+      {!session ? (
+        <LandingPage onLoginSuccess={handleLogin} />
+      ) : (
+        <DashboardLayout 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab}
+          user={session}
+          onLogout={handleLogout}
+          hijos={hijos}
+          hijoSeleccionado={hijoActivo}
+          onSeleccionarHijo={(id) => setIdHijoSeleccionado(id)}
+          onUpdateUser={handleUpdateUser}
+        >
+          {activeTab === 'dashboard' && (
+            <DashboardOverviewPage setActiveTab={setActiveTab} />
+          )}
+          {activeTab === 'comunicados' && (
+            <ComunicadosPage user={session} />
+          )}
+          {activeTab === 'asistencia' && esDocenteOAdmin && (
+            <AsistenciaPage />
+          )}
+          {activeTab === 'registro-notas' && esDocenteOAdmin && (
+            <RegistroNotasPage />
+          )}
+          {activeTab === 'calificaciones' && (
+            <CalificacionesPage 
+              estudianteActivo={hijoActivo} 
+              onIrATutorIA={() => setActiveTab('tutor-ia')} 
+            />
+          )}
+          {activeTab === 'tutor-ia' && <TutorIAPage estudianteActivo={hijoActivo} />}
 
-      {/* Rutas con restricción de permisos */}
-      {activeTab === 'academico' && esDocenteOAdmin && <AcademicoPage />}
-      {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}
-      {activeTab === 'perfiles' && esAdmin && <PerfilesPage />}
-      {activeTab === 'menu-options' && esAdmin && <OpcionesMenuPage />}
-    </DashboardLayout>
+          {/* Rutas con restricción de permisos */}
+          {activeTab === 'academico' && esDocenteOAdmin && <AcademicoPage />}
+          {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}
+          {activeTab === 'perfiles' && esAdmin && <PerfilesPage />}
+          {activeTab === 'menu-options' && esAdmin && <OpcionesMenuPage />}
+        </DashboardLayout>
+      )}
+    </OfflineFallback>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, Lock, User, Eye, EyeOff, Loader2, 
-  ArrowRight, Users, Sparkles, X, CheckCircle2, UserPlus, Check, CreditCard, Shield 
+  ArrowRight, Users, Sparkles, X, CheckCircle2, UserPlus, Check, CreditCard, Shield, AlertCircle
 } from 'lucide-react';
 import { crearUsuario } from '../services/api';
 
@@ -13,25 +13,15 @@ const MAPA_ROLES = {
 };
 
 export default function LandingPage({ onLoginSuccess }) {
-  // Modales: 'login' | 'register' | null
   const [authModal, setAuthModal] = useState(null);
-  
-  // Visibilidad de contraseñas
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Estados de formulario
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Datos para Login
-  const [loginData, setLoginData] = useState({
-    usuario: '',
-    password: ''
-  });
-
-  // Datos para Registro (incluye DNI y perfil)
+  const [loginData, setLoginData] = useState({ usuario: '', password: '' });
   const [registerData, setRegisterData] = useState({
     usuario: '',
     dni: '',
@@ -40,10 +30,9 @@ export default function LandingPage({ onLoginSuccess }) {
     correo: '',
     password: '',
     confirmPassword: '',
-    idPerfil: '1' // Por defecto Administrador
+    idPerfil: '1'
   });
 
-  // Resetear estados al alternar modales
   const resetFormStates = () => {
     setError(null);
     setSuccessMsg(null);
@@ -72,20 +61,14 @@ export default function LandingPage({ onLoginSuccess }) {
     setAuthModal(null);
   };
 
-  // Reglas de contraseña
   const validarPasswordSegura = (pass) => {
-    if (pass.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres.';
-    }
+    if (pass.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
     const tieneLetra = /[a-zA-Z]/.test(pass);
     const tieneNumero = /\d/.test(pass);
-    if (!tieneLetra || !tieneNumero) {
-      return 'La contraseña debe incluir al menos una letra y un número.';
-    }
+    if (!tieneLetra || !tieneNumero) return 'La contraseña debe incluir al menos una letra y un número.';
     return null;
   };
 
-  // 1. Manejar Registro de Nuevo Usuario
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -97,7 +80,7 @@ export default function LandingPage({ onLoginSuccess }) {
     }
 
     if (registerData.password !== registerData.confirmPassword) {
-      setError('Las contraseñas no coinciden. Verifícalas.');
+      setError('Las contraseñas ingresadas no coinciden.');
       return;
     }
 
@@ -108,7 +91,6 @@ export default function LandingPage({ onLoginSuccess }) {
     }
 
     setLoading(true);
-
     const perfilIdNumerico = Number(registerData.idPerfil);
     const nombreRol = MAPA_ROLES[registerData.idPerfil] || 'Administrador';
 
@@ -128,27 +110,25 @@ export default function LandingPage({ onLoginSuccess }) {
 
       await crearUsuario(nuevoUsuarioPayload);
 
-      // Iniciar sesión directamente con el rol elegido
       const sessionUser = {
         nombre: registerData.nombre.trim() || registerData.usuario.trim(),
         rol: nombreRol,
         token: `token-reg-${Date.now()}`
       };
 
-      setSuccessMsg(`¡Cuenta registrada como ${nombreRol}! Entrando a la plataforma...`);
+      setSuccessMsg(`¡Registro completado como ${nombreRol}! Accediendo al sistema...`);
       setTimeout(() => {
         localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
         onLoginSuccess(sessionUser);
       }, 1200);
 
     } catch (err) {
-      setError(err.message || 'Error al conectar con el servidor para registrar el usuario.');
+      setError(err.message || 'No fue posible registrar el usuario.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. Manejar Inicio de Sesión
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -158,7 +138,6 @@ export default function LandingPage({ onLoginSuccess }) {
     const inputPass = loginData.password.trim();
 
     try {
-      // 1. Intento al endpoint de autenticación del backend
       const res = await fetch('https://acadesys-api.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +156,6 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 2. Bypass administrativo
       if (inputUser === 'admin' && (inputPass === 'admin123' || inputPass === 'admin')) {
         const sessionUser = {
           nombre: 'admin',
@@ -189,7 +167,6 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 3. Validación contra usuarios de la API / Base de Datos
       const usuariosRes = await fetch('https://acadesys-api.onrender.com/api/usuarios')
         .then(r => r.ok ? r.json() : [])
         .catch(() => []);
@@ -232,7 +209,6 @@ export default function LandingPage({ onLoginSuccess }) {
         return;
       }
 
-      // 4. Contingencia de desarrollo flexible
       if (inputUser.length >= 3 && inputPass.length >= 6) {
         let rolAsignado = 'Docente';
         if (inputUser.includes('admin')) rolAsignado = 'Administrador';
@@ -269,43 +245,42 @@ export default function LandingPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#070b14] text-slate-100 overflow-hidden font-sans select-none">
-      
-      {/* Luces de Fondo */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/25 rounded-full blur-[128px] pointer-events-none" />
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+      {/* Fondos degradados decorativos */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/3 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-40 left-1/3 w-[500px] h-96 bg-cyan-600/15 rounded-full blur-[160px] pointer-events-none" />
-
-      {/* Rejilla */}
+      <div className="absolute -bottom-40 left-1/3 w-[500px] h-96 bg-cyan-600/10 rounded-full blur-[160px] pointer-events-none" />
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      {/* Navbar */}
-      <header className="relative z-20 max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      {/* Header / Navbar */}
+      <header className="relative z-20 max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-slate-800/40 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 border border-white/10">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-600/25 border border-white/10">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+          <span className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
             AcadeSys
           </span>
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-sm text-slate-400 font-medium">
-          <a href="#modulos" className="hover:text-white transition">Módulos</a>
-          <a href="#seguridad" className="hover:text-white transition">Seguridad RBAC</a>
-          <a href="#institucional" className="hover:text-white transition">Institucional</a>
+          <a href="#modulos" className="hover:text-white transition duration-150">Módulos</a>
+          <a href="#seguridad" className="hover:text-white transition duration-150">Seguridad RBAC</a>
+          <a href="#institucional" className="hover:text-white transition duration-150">Institucional</a>
         </nav>
 
         <div className="flex items-center gap-3">
           <button 
+            type="button"
             onClick={() => openModal('register')}
-            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition"
+            className="px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition duration-150"
           >
             Registrarse
           </button>
           <button
+            type="button"
             onClick={() => openModal('login')}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-[0.98] transition border border-white/10"
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/30 hover:scale-[1.02] active:scale-[0.98] transition duration-150 border border-indigo-400/20"
           >
             Iniciar Sesión
           </button>
@@ -327,127 +302,135 @@ export default function LandingPage({ onLoginSuccess }) {
         </h1>
 
         <p className="max-w-2xl text-slate-400 text-base sm:text-lg mb-10 leading-relaxed font-normal">
-          Plataforma centralizada para la administración de roles, control de accesos RBAC, notas y gestión directiva escolar con infraestructura en la nube.
+          Plataforma integral para gestión de roles RBAC, registro de notas, seguimiento de asistencia y tutoría con inteligencia artificial en la nube.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-20">
           <button
+            type="button"
             onClick={() => openModal('login')}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-indigo-600/25 hover:shadow-indigo-600/40 flex items-center justify-center gap-3 transition group cursor-pointer"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-sm tracking-wide shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 transition group cursor-pointer"
           >
-            <span>Acceder al Panel de Control</span>
+            <span>Acceder al Portal Académico</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-indigo-500/40 transition group">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform">
+        {/* Módulos Destacados */}
+        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left" id="modulos">
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-indigo-500/40 transition duration-200 group">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-105 transition-transform">
               <Users className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">Mantenimiento de Perfiles</h3>
+            <h3 className="text-base font-bold text-white mb-1.5">Control de Roles RBAC</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Administración granular de roles (Administrador, Docente, Alumno y Padre) con persistencia segura.
+              Administración por perfiles (Administrador, Docente, Alumno y Padre) con sincronización fluida y almacenamiento local.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-blue-500/40 transition group">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-blue-500/40 transition duration-200 group">
+            <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">Seguridad & Auditoría</h3>
+            <h3 className="text-base font-bold text-white mb-1.5">Arquitectura Desacoplada</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Control de accesos y persistencia con validación estricta de parámetros en base de datos.
+              Consumo estructurado de endpoints REST con tolerancia a fallos de red y contingencia visual inmediata.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-cyan-500/40 transition group">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-5 h-5" />
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-cyan-500/40 transition duration-200 group">
+            <div className="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">Alta Disponibilidad</h3>
+            <h3 className="text-base font-bold text-white mb-1.5">Tutor Pedagógico IA</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Arquitectura desacoplada en Node.js + React desplegada en la nube con monitoreo de endpoints.
+              Diagnósticos contextuales y resolución asistida de dudas académicas mediante integración con modelos generativos.
             </p>
           </div>
         </div>
       </main>
 
-      {/* Modal flotante */}
+      {/* Modal Profesional de Login y Registro */}
       {authModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="relative w-full max-w-md bg-[#0d1322]/95 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-indigo-500/10 backdrop-blur-2xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-indigo-600/10 backdrop-blur-2xl max-h-[92vh] overflow-y-auto">
             
+            {/* Botón de Cierre */}
             <button
+              type="button"
               onClick={closeModal}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition cursor-pointer"
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl transition"
             >
               <X className="w-5 h-5" />
             </button>
 
+            {/* Cabecera del Formulario */}
             <div className="text-left mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
                 {authModal === 'login' ? <ShieldCheck className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
               </div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-2xl font-black text-white tracking-tight">
                 {authModal === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 mt-1">
                 {authModal === 'login' 
-                  ? 'Ingresa al portal administrativo de AcadeSys' 
-                  : 'Selecciona tu rol y regístrate en la plataforma'}
+                  ? 'Ingresa tus credenciales para acceder a tu panel de gestión' 
+                  : 'Completa los campos para generar tu usuario institucional'}
               </p>
             </div>
 
+            {/* Mensajes de Alerta */}
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-                {error}
+              <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
             {successMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
-                <Check className="w-4 h-4" />
+              <div className="mb-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+                <Check className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
 
+            {/* FORMULARIO DE INICIO DE SESIÓN */}
             {authModal === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Usuario
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Usuario / DNI / Correo
                   </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <div className="relative group">
+                    <User className="w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2 transition" />
                     <input
                       type="text"
                       required
-                      placeholder="Ej. admin, usuario, DNI o correo"
+                      placeholder="admin, DNI o usuario@acadesys.edu.pe"
                       value={loginData.usuario}
                       onChange={(e) => setLoginData({ ...loginData, usuario: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-inner"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
                     Contraseña
                   </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <div className="relative group">
+                    <Lock className="w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2 transition" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      className="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                      className="w-full pl-10 pr-10 py-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-inner"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -457,79 +440,82 @@ export default function LandingPage({ onLoginSuccess }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full mt-2 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {loading ? 'Accediendo...' : 'Entrar al Sistema'}
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? 'Autenticando...' : 'Ingresar al Sistema'}</span>
                 </button>
 
-                {/* BOTONERA DE ACCESO RÁPIDO PARA PRUEBAS */}
-                <div className="pt-4 border-t border-slate-800/80">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2.5">
-                    O ingresa con 1 clic (Modo Demo):
+                {/* ACCESOS RÁPIDOS MOCK / DEMO */}
+                <div className="pt-5 border-t border-slate-800/80">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
+                    Accesos rápidos para demostración:
                   </span>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button
                       type="button"
                       onClick={() => handleAccesoRapido('Yan Leví Picon', 'Administrador')}
-                      className="py-2 px-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold transition"
+                      className="py-2.5 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/25 font-semibold text-left transition flex items-center gap-2"
                     >
-                      🛡️ Administrador
+                      <span>🛡️</span>
+                      <span className="truncate">Administrador</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAccesoRapido('Prof. Carlos Mendoza', 'Docente')}
-                      className="py-2 px-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold transition"
+                      className="py-2.5 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/25 font-semibold text-left transition flex items-center gap-2"
                     >
-                      👨‍🏫 Docente
+                      <span>👨‍🏫</span>
+                      <span className="truncate">Docente</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAccesoRapido('Luis Fernando Tóccas', 'Alumno')}
-                      className="py-2 px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold transition"
+                      className="py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 font-semibold text-left transition flex items-center gap-2"
                     >
-                      🎓 Estudiante
+                      <span>🎓</span>
+                      <span className="truncate">Estudiante</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAccesoRapido('Roberto Tóccas', 'Padre de Familia')}
-                      className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold transition"
+                      className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 font-semibold text-left transition flex items-center gap-2"
                     >
-                      👨‍👧 Apoderado
+                      <span>👨‍👧</span>
+                      <span className="truncate">Apoderado</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-3 text-center text-xs text-slate-400">
-                  ¿No tienes una cuenta?{' '}
+                <div className="mt-4 text-center text-xs text-slate-400">
+                  ¿Aún no tienes cuenta?{' '}
                   <button
                     type="button"
                     onClick={() => openModal('register')}
-                    className="text-indigo-400 font-semibold hover:underline cursor-pointer"
+                    className="text-indigo-400 font-semibold hover:underline"
                   >
                     Regístrate aquí
                   </button>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3 text-left">
-                
-                {/* SELECTOR DE PERFIL / ROL */}
+              /* FORMULARIO DE REGISTRO */
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-left">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Tipo de Cuenta / Rol
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Perfil Asignado
                   </label>
                   <div className="relative">
-                    <Shield className="w-3.5 h-3.5 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Shield className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <select
                       value={registerData.idPerfil}
                       onChange={(e) => setRegisterData({ ...registerData, idPerfil: e.target.value })}
-                      className="w-full pl-8 pr-3 py-2 bg-slate-900/90 border border-indigo-500/40 rounded-xl text-xs text-indigo-200 outline-none focus:border-indigo-400 transition cursor-pointer font-semibold"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-800/90 border border-indigo-500/30 rounded-xl text-xs text-indigo-200 outline-none focus:border-indigo-400 transition font-semibold"
                     >
-                      <option value="1">Administrador (Acceso Total a Ajustes)</option>
-                      <option value="2">Docente (Asistencia y Registrar Notas)</option>
+                      <option value="1">Administrador (Control global)</option>
+                      <option value="2">Docente (Notas y Asistencias)</option>
                       <option value="3">Alumno / Estudiante (Boleta y Tutor IA)</option>
-                      <option value="4">Padre de Familia (Supervisión y Pensiones)</option>
+                      <option value="4">Padre de Familia (Supervisión)</option>
                     </select>
                   </div>
                 </div>
@@ -539,34 +525,28 @@ export default function LandingPage({ onLoginSuccess }) {
                     <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                       Usuario
                     </label>
-                    <div className="relative">
-                      <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="usuario"
-                        value={registerData.usuario}
-                        onChange={(e) => setRegisterData({ ...registerData, usuario: e.target.value })}
-                        className="w-full pl-8 pr-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="usuario"
+                      value={registerData.usuario}
+                      onChange={(e) => setRegisterData({ ...registerData, usuario: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                    />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                       DNI (8 dígitos)
                     </label>
-                    <div className="relative">
-                      <CreditCard className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        maxLength={8}
-                        placeholder="72345678"
-                        value={registerData.dni}
-                        onChange={(e) => setRegisterData({ ...registerData, dni: e.target.value.replace(/\D/g, '') })}
-                        className="w-full pl-8 pr-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition font-mono"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      required
+                      maxLength={8}
+                      placeholder="72345678"
+                      value={registerData.dni}
+                      onChange={(e) => setRegisterData({ ...registerData, dni: e.target.value.replace(/\D/g, '') })}
+                      className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition font-mono"
+                    />
                   </div>
                 </div>
 
@@ -580,7 +560,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       placeholder="Nombre"
                       value={registerData.nombre}
                       onChange={(e) => setRegisterData({ ...registerData, nombre: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                      className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
                     />
                   </div>
                   <div>
@@ -592,7 +572,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       placeholder="Apellido"
                       value={registerData.apellido}
                       onChange={(e) => setRegisterData({ ...registerData, apellido: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                      className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
                     />
                   </div>
                 </div>
@@ -606,7 +586,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     placeholder="usuario@acadesys.edu.pe"
                     value={registerData.correo}
                     onChange={(e) => setRegisterData({ ...registerData, correo: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                    className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
                   />
                 </div>
 
@@ -615,14 +595,13 @@ export default function LandingPage({ onLoginSuccess }) {
                     Contraseña (mínimo 6 caracteres)
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={registerData.password}
                       onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                      className="w-full pl-8 pr-9 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                      className="w-full pl-3 pr-9 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
                     />
                     <button
                       type="button"
@@ -639,14 +618,13 @@ export default function LandingPage({ onLoginSuccess }) {
                     Confirmar Contraseña
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={registerData.confirmPassword}
                       onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                      className="w-full pl-8 pr-9 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                      className="w-full pl-3 pr-9 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
                     />
                     <button
                       type="button"
@@ -661,18 +639,18 @@ export default function LandingPage({ onLoginSuccess }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full mt-3 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {loading ? 'Creando cuenta en BD...' : 'Completar Registro'}
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? 'Creando cuenta...' : 'Completar Registro'}</span>
                 </button>
 
                 <div className="mt-3 text-center text-xs text-slate-400">
-                  ¿Ya tienes cuenta?{' '}
+                  ¿Ya tienes cuenta institucional?{' '}
                   <button
                     type="button"
                     onClick={() => openModal('login')}
-                    className="text-indigo-400 font-semibold hover:underline cursor-pointer"
+                    className="text-indigo-400 font-semibold hover:underline"
                   >
                     Inicia sesión
                   </button>
@@ -683,7 +661,6 @@ export default function LandingPage({ onLoginSuccess }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BrainCircuit, 
   Sparkles, 
@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 
 export default function TutorIAPage({ estudianteActivo }) {
-  // Datos del estudiante activo con valores de respaldo
   const estudiante = estudianteActivo || {
     id: 1,
     nombre: 'Luis Fernando Tóccas',
@@ -35,12 +34,23 @@ export default function TutorIAPage({ estudianteActivo }) {
   const [planEstudio, setPlanEstudio] = useState(null);
   const [analizandoPlan, setAnalizandoPlan] = useState(false);
 
-  // Reiniciar contexto cuando se cambie de hijo en la cabecera
+  // Referencia para la barra de desplazamiento automática
+  const chatFinRef = useRef(null);
+
+  const autoScroll = () => {
+    chatFinRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    autoScroll();
+  }, [mensajes, cargando]);
+
   useEffect(() => {
     setMensajes([
       {
         emisor: 'ia',
-        texto: `¡Hola! Soy el Tutor Pedagógico Inteligente de AcadeSys. Estoy revisando el historial académico de **${estudiante.nombre}** (${estudiante.aula}). ¿En qué tema o curso te gustaría que enfoquemos su plan de refuerzo hoy?`
+        texto: `¡Hola! Soy el Tutor Pedagógico Inteligente de AcadeSys. Estoy analizando el historial académico de **${estudiante.nombre}** (${estudiante.aula}). ¿En qué tema o curso te gustaría enfocar el plan de refuerzo hoy?`,
+        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
     generarPlanPedagogico();
@@ -49,10 +59,8 @@ export default function TutorIAPage({ estudianteActivo }) {
   const cursosCriticos = estudiante.cursos?.filter(c => c.promedio < 13) || [];
   const cursosDestacados = estudiante.cursos?.filter(c => c.promedio >= 16) || [];
 
-  // Llamada o simulación a la API de Gemini
   const generarPlanPedagogico = async () => {
     setAnalizandoPlan(true);
-
     const resumenMaterias = estudiante.cursos?.map(c => `${c.nombre}: Promedio ${c.promedio}`).join(', ');
 
     const promptContextual = `Actúa como tutor pedagógico escolar de élite. Analiza al estudiante:
@@ -61,7 +69,7 @@ Grado: ${estudiante.aula}
 Promedio Ponderado: ${estudiante.promedioGeneral}/20
 Materias: ${resumenMaterias}
 
-Genera un diagnóstico preciso y 3 acciones clave para mejorar su desempeño.`;
+Genera un diagnóstico conciso y 3 acciones clave para potenciar su aprendizaje.`;
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -70,9 +78,7 @@ Genera un diagnóstico preciso y 3 acciones clave para mejorar su desempeño.`;
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptContextual }] }]
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptContextual }] }] })
       });
 
       if (!response.ok) throw new Error("Error en Gemini API");
@@ -84,21 +90,20 @@ Genera un diagnóstico preciso y 3 acciones clave para mejorar su desempeño.`;
         fecha: new Date().toLocaleDateString('es-PE')
       });
     } catch {
-      // Fallback pedagógico dinámico según notas reales del estudiante
       const tieneRiesgo = cursosCriticos.length > 0;
       setPlanEstudio({
         diagnostico: tieneRiesgo
-          ? `Se observa un rendimiento global sólido (${estudiante.promedioGeneral}/20), pero requiere intervención prioritaria en **${cursosCriticos.map(c => c.nombre).join(', ')}**, donde el promedio se sitúa por debajo de la valla de 13.0.`
-          : `Excelente desempeño general con promedio sobresaliente de **${estudiante.promedioGeneral}/20**. Se sugiere potenciar su nivel competitivo con ejercicios de olimpiadas y simulacros avanzados en **${cursosDestacados.map(c => c.nombre).join(', ')}**.`,
+          ? `Rendimiento global estable (${estudiante.promedioGeneral}/20), con necesidad de refuerzo focalizado en ${cursosCriticos.map(c => c.nombre).join(', ')} para superar la valla aprobatoria.`
+          : `Excelente nivel académico con promedio de ${estudiante.promedioGeneral}/20. Se sugiere resolver ejercicios de nivel preuniversitario en ${cursosDestacados.map(c => c.nombre).join(', ')}.`,
         acciones: tieneRiesgo
           ? [
-              `Dedicar 45 minutos diarios de resolución guiada para ${cursosCriticos[0]?.nombre}.`,
-              'Revisar el banco de ejercicios y simulacros pasados con retroalimentación paso a paso.',
-              'Coordinar asesoría de reforzamiento con el docente titular antes del examen final.'
+              `Dedicar 40 minutos diarios a repasar ejercicios prácticos de ${cursosCriticos[0]?.nombre || 'la materia en riesgo'}.`,
+              'Resolver el simulacro de diagnóstico paso a paso antes de la próxima evaluación.',
+              'Solicitar retroalimentación puntual al docente de área sobre los errores comunes.'
             ]
           : [
-              'Entrenamiento en bancos de preguntas tipo admisión con control estricto de tiempo.',
-              'Profundizar en demostraciones teóricas y aplicaciones interdisciplinarias.',
+              'Entrenamiento en simulacros con límite estricto de tiempo por problema.',
+              'Aplicación de conceptos avanzados mediante proyectos prácticos.',
               'Mantener la constancia en el ritmo de entrega de tareas y evaluaciones.'
             ],
         fecha: new Date().toLocaleDateString('es-PE')
@@ -113,8 +118,10 @@ Genera un diagnóstico preciso y 3 acciones clave para mejorar su desempeño.`;
     if (!inputMensaje.trim() || cargando) return;
 
     const textoUsuario = inputMensaje.trim();
+    const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     setInputMensaje('');
-    setMensajes(prev => [...prev, { emisor: 'usuario', texto: textoUsuario }]);
+    setMensajes(prev => [...prev, { emisor: 'usuario', texto: textoUsuario, hora }]);
     setCargando(true);
 
     try {
@@ -122,32 +129,37 @@ Genera un diagnóstico preciso y 3 acciones clave para mejorar su desempeño.`;
       if (!apiKey) throw new Error("No API Key");
 
       const promptChat = `Eres el Tutor IA de AcadeSys para el estudiante ${estudiante.nombre} (${estudiante.aula}).
-Promedio actual: ${estudiante.promedioGeneral}/20.
+Promedio: ${estudiante.promedioGeneral}/20.
 Cursos: ${estudiante.cursos?.map(c => `${c.nombre} (${c.promedio})`).join(', ')}.
 Pregunta del usuario: "${textoUsuario}".
-Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos con viñetas si aplica.`;
+Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos breves.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptChat }] }]
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptChat }] }] })
       });
 
       if (!response.ok) throw new Error("Error en respuesta");
       const data = await response.json();
       const respuestaIA = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      setMensajes(prev => [...prev, { emisor: 'ia', texto: respuestaIA }]);
+      setMensajes(prev => [
+        ...prev, 
+        { 
+          emisor: 'ia', 
+          texto: respuestaIA, 
+          hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }
+      ]);
     } catch {
-      // Fallback de respuesta conversacional
       setTimeout(() => {
         setMensajes(prev => [
           ...prev,
           {
             emisor: 'ia',
-            texto: `Para apoyar a **${estudiante.nombre.split(' ')[0]}** en esta consulta sobre "${textoUsuario}", recomiendo enfocar la sesión en descomponer el problema en sub-pasos y repasar la guía descargable del curso en la pestaña de Calificaciones.`
+            texto: `Para consolidar el aprendizaje de **${estudiante.nombre.split(' ')[0]}** en "${textoUsuario}", sugiero descomponer el tema en sub-conceptos clave y practicar al menos dos problemas guiados el día de hoy.`,
+            hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
       }, 700);
@@ -157,22 +169,22 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-full">
       {/* HEADER DINÁMICO */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-sm">
+          <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md shadow-indigo-600/20">
             <BrainCircuit className="w-7 h-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-800">Tutor Pedagógico IA</h1>
-              <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-bold border border-indigo-100">
-                Gemini 1.5
+              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Tutor Pedagógico IA</h1>
+              <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-bold border border-indigo-100 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Gemini 1.5
               </span>
             </div>
-            <p className="text-slate-500 text-sm">
-              Analizando expediente académico de: <strong className="text-slate-800">{estudiante.nombre}</strong> ({estudiante.gradoCorto})
+            <p className="text-slate-500 text-sm mt-0.5">
+              Expediente activo: <strong className="text-slate-800">{estudiante.nombre}</strong> ({estudiante.gradoCorto})
             </p>
           </div>
         </div>
@@ -181,21 +193,21 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           type="button"
           onClick={generarPlanPedagogico}
           disabled={analizandoPlan}
-          className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+          className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${analizandoPlan ? 'animate-spin' : ''}`} />
           Recalcular Diagnóstico
         </button>
       </div>
 
-      {/* METRICAS DEL ESTUDIANTE SELECCIONADO */}
+      {/* MÉTRICAS RÁPIDAS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Promedio del Alumno</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Promedio Ponderado</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">{estudiante.promedioGeneral}</span>
               <span className="text-xs text-slate-400 font-medium">/ 20</span>
@@ -203,12 +215,12 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
           <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
             <Award className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Posición en Aula</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Posición en Aula</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">Puesto #{estudiante.puestoRanking}</span>
               <span className="text-xs text-slate-400 font-medium">de {estudiante.totalAlumnos}</span>
@@ -216,38 +228,38 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
             cursosCriticos.length > 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
           }`}>
             {cursosCriticos.length > 0 ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Asignaturas en Riesgo</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cursos por Reforzar</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">{cursosCriticos.length}</span>
               <span className="text-xs text-slate-400 font-medium">
-                {cursosCriticos.length === 1 ? 'materia' : 'materias'}
+                {cursosCriticos.length === 1 ? 'asignatura' : 'asignaturas'}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CONTENIDO PRINCIPAL: PLAN PEDAGÓGICO + CHAT */}
+      {/* CONTENEDOR PRINCIPAL */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* COLUMNA IZQUIERDA: DIAGNÓSTICO Y ACCIONES (2 columnas) */}
+        {/* PANEL IZQUIERDO: Diagnóstico y Cursos */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-slate-800 text-base">Estrategia Personalizada</h2>
+              <h2 className="font-bold text-slate-800 text-sm">Plan Pedagógico Sugerido</h2>
             </div>
 
             {analizandoPlan ? (
               <div className="py-8 text-center text-xs text-slate-400">
                 <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                Generando diagnóstico cognitivo con Gemini...
+                Sintetizando plan con IA...
               </div>
             ) : (
               <div className="space-y-4">
@@ -258,7 +270,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
                 {planEstudio?.acciones && (
                   <div>
                     <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
-                      Ruta de Acción Recomendada:
+                      Ruta de Acción:
                     </span>
                     <ul className="space-y-2">
                       {planEstudio.acciones.map((acc, i) => (
@@ -277,7 +289,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-indigo-600" />
-              Cursos Evaluados de {estudiante.nombre.split(' ')[0]}
+              Notas Registradas de {estudiante.nombre.split(' ')[0]}
             </h3>
             <div className="space-y-2">
               {estudiante.cursos?.map((c) => (
@@ -294,70 +306,92 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: CHAT PEDAGÓGICO INTERACTIVO (3 columnas) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[600px] overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div className="flex items-center gap-2">
-              <BrainCircuit className="w-5 h-5 text-indigo-600" />
+        {/* PANEL DERECHO: Chat Interactivo con Auto-Scroll y Thinking State */}
+        <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[600px] overflow-hidden">
+          {/* Header del Chat */}
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                <BrainCircuit className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm">Chat Pedagógico</h3>
-                <span className="text-[11px] text-slate-400">Contexto activo: {estudiante.nombre}</span>
+                <h3 className="font-bold text-slate-800 text-sm leading-tight">Asistente Virtual</h3>
+                <span className="text-[11px] text-slate-400">Enfocado en: {estudiante.nombre}</span>
               </div>
             </div>
-            <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> En línea
+            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Activo
             </span>
           </div>
 
-          {/* LISTA DE MENSAJES */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+          {/* Área de Mensajes con Scroll Suave */}
+          <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/30">
             {mensajes.map((m, idx) => {
               const esIA = m.emisor === 'ia';
               return (
-                <div key={idx} className={`flex gap-3 ${esIA ? 'justify-start' : 'justify-end'}`}>
+                <div key={idx} className={`flex items-end gap-2.5 ${esIA ? 'justify-start' : 'justify-end'}`}>
                   {esIA && (
-                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
                       <BrainCircuit className="w-4 h-4" />
                     </div>
                   )}
-                  <div className={`p-3.5 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
+
+                  <div className={`p-4 rounded-2xl max-w-[82%] text-xs leading-relaxed transition-all shadow-sm ${
                     esIA
-                      ? 'bg-slate-50 border border-slate-200/80 text-slate-700'
-                      : 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-white border border-slate-200/90 text-slate-700 rounded-bl-none'
+                      : 'bg-indigo-600 text-white rounded-br-none'
                   }`}>
-                    {m.texto}
+                    <p className="whitespace-pre-wrap">{m.texto}</p>
+                    {m.hora && (
+                      <span className={`block text-[10px] mt-1.5 text-right font-medium ${
+                        esIA ? 'text-slate-400' : 'text-indigo-200'
+                      }`}>
+                        {m.hora}
+                      </span>
+                    )}
                   </div>
+
                   {!esIA && (
-                    <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
                       <User className="w-4 h-4" />
                     </div>
                   )}
                 </div>
               );
             })}
+
+            {/* Spinner Animado: Estado "Thinking" de la IA */}
             {cargando && (
-              <div className="flex gap-3 items-center text-xs text-slate-400">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
-                  <BrainCircuit className="w-4 h-4 animate-spin" />
+              <div className="flex items-end gap-2.5 justify-start">
+                <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                  <BrainCircuit className="w-4 h-4" />
                 </div>
-                <span>El Tutor IA está analizando la respuesta...</span>
+                <div className="bg-white border border-slate-200/90 rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce"></span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.2s]"></span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.4s]"></span>
+                  <span className="text-[11px] text-slate-400 ml-2 font-medium">Generando respuesta...</span>
+                </div>
               </div>
             )}
+
+            {/* Marcador invisible para auto-scroll */}
+            <div ref={chatFinRef} />
           </div>
 
-          {/* INPUT DEL CHAT */}
-          <form onSubmit={handleEnviarMensaje} className="p-3 border-t border-slate-100 bg-white flex items-center gap-2">
+          {/* Barra de Entrada */}
+          <form onSubmit={handleEnviarMensaje} className="p-3.5 border-t border-slate-200/80 bg-white flex items-center gap-2">
             <input
               type="text"
-              placeholder={`Hazle una pregunta pedagógica sobre ${estudiante.nombre.split(' ')[0]}...`}
+              placeholder={`Escribe tu consulta pedagógica sobre ${estudiante.nombre.split(' ')[0]}...`}
               value={inputMensaje}
               onChange={(e) => setInputMensaje(e.target.value)}
-              className="flex-1 text-xs px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+              className="flex-1 text-xs px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
             />
             <button
               type="submit"
               disabled={cargando || !inputMensaje.trim()}
-              className="p-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+              className="p-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl shadow-md shadow-indigo-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             >
               <Send className="w-4 h-4" />
             </button>
