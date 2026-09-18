@@ -1,9 +1,27 @@
-const CACHE_NAME = 'acadesys-cache-v3';
+const CACHE_NAME = 'acadesys-cache-v4';
 
+const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest'
+];
+
+// 1. Precarga forzada en instalación
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of PRECACHE_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('[SW] No se pudo precargar:', asset, err);
+        }
+      }
+    }).then(() => self.skipWaiting())
+  );
 });
 
+// 2. Limpieza de cachés viejas y toma de control inmediata
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -14,41 +32,57 @@ self.addEventListener('activate', (event) => {
           }
         })
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// 3. Interceptación de peticiones
 self.addEventListener('fetch', (event) => {
-  // Ignorar llamadas que no sean GET o que sean hacia APIs externas
-  if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  const { request } = event;
 
-  // 1. Para navegación de páginas (HTML): NETWORK-FIRST
-  // Siempre busca la versión más reciente del servidor. Solo usa caché si no hay internet.
-  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+  if (request.method !== 'GET') return;
+  if (!request.url.startsWith(self.location.origin)) return;
+
+  // Manejo de navegación / recargas completas (F5)
+  if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-          return networkResponse;
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(async () => {
+          // Si no hay red, busca la URL pedida; si no, entrega index.html raíz
+          const cachedMatch = await caches.match(request);
+          if (cachedMatch) return cachedMatch;
+
+          const rootIndex = await caches.match('/index.html');
+          if (rootIndex) return rootIndex;
+
+          const slashMatch = await caches.match('/');
+          if (slashMatch) return slashMatch;
+
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+        })
     );
     return;
   }
 
-  // 2. Para otros archivos (CSS, JS, imágenes): NETWORK PRIMERO con fallback a caché
+  // Recursos estáticos (JS, CSS, imágenes): Cache-First con guardado automático
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+
+      return fetch(request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
+      });
+    })
   );
 });
