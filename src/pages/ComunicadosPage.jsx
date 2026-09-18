@@ -9,7 +9,6 @@ import {
   Search, 
   UserCheck, 
   AlertTriangle, 
-  FileText, 
   Users, 
   X 
 } from 'lucide-react';
@@ -28,7 +27,7 @@ export default function ComunicadosPage({ user }) {
 
   // Formulario nuevo comunicado
   const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState('Academico');
+  const [categoria, setCategoria] = useState('Académico');
   const [prioridad, setPrioridad] = useState('media');
   const [dirigidoA, setDirigidoA] = useState('Todos los Niveles');
   const [contenido, setContenido] = useState('');
@@ -37,19 +36,38 @@ export default function ComunicadosPage({ user }) {
   const rol = (user?.rol || user?.Perfil || 'Administrador').toLowerCase();
   const puedePublicar = rol.includes('admin') || rol.includes('docente');
 
+  const categoriasFiltro = [
+    { id: 'todos', label: 'Todos' },
+    { id: 'académico', label: 'Académico' },
+    { id: 'reunión', label: 'Reunión' },
+    { id: 'salud', label: 'Salud' },
+    { id: 'feriado', label: 'Feriado' }
+  ];
+
   useEffect(() => {
     cargarLista();
   }, []);
 
   const cargarLista = async () => {
     setCargando(true);
-    const data = await obtenerComunicados();
-    setComunicados(data || []);
-    setCargando(false);
+    try {
+      const data = await obtenerComunicados();
+      setComunicados(data || []);
+    } catch (err) {
+      console.error('Error cargando comunicados:', err);
+    } finally {
+      setCargando(false);
+    }
   };
 
   const handleConfirmar = async (id) => {
-    await confirmarLecturaComunicado(id);
+    try {
+      if (confirmarLecturaComunicado) {
+        await confirmarLecturaComunicado(id);
+      }
+    } catch (err) {
+      console.warn('Servidor sin endpoint de confirmación, actualizando vista localmente:', err);
+    }
     setComunicados(prev => 
       prev.map(c => c.id === id ? { ...c, confirmado: true, leido: true } : c)
     );
@@ -57,36 +75,68 @@ export default function ComunicadosPage({ user }) {
 
   const handleCrear = async (e) => {
     e.preventDefault();
-    if (!titulo || !contenido) return;
+    if (!titulo.trim() || !contenido.trim()) return;
     setGuardando(true);
 
     const autorNombre = user?.nombre || user?.NombreCompleto || 'Dirección Académica';
+    const ahora = new Date();
+    const fechaActual = ahora.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const horaActual = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const nuevo = await crearComunicado({
-      titulo,
-      categoria,
-      prioridad,
-      dirigidoA,
-      autor: autorNombre,
-      contenido
-    });
+    try {
+      let nuevo = null;
+      if (crearComunicado) {
+        nuevo = await crearComunicado({
+          titulo,
+          categoria,
+          prioridad,
+          dirigidoA,
+          autor: autorNombre,
+          contenido
+        });
+      }
 
-    setComunicados([nuevo, ...comunicados]);
-    setGuardando(false);
-    setModalAbierto(false);
-    setTitulo('');
-    setContenido('');
+      const comunicadoListo = nuevo || {
+        id: Date.now(),
+        titulo,
+        categoria,
+        prioridad,
+        dirigidoA,
+        autor: autorNombre,
+        contenido,
+        fecha: fechaActual,
+        hora: horaActual,
+        confirmado: false
+      };
+
+      setComunicados(prev => [comunicadoListo, ...prev]);
+      setModalAbierto(false);
+      setTitulo('');
+      setContenido('');
+    } catch (err) {
+      console.error('Error creando comunicado:', err);
+    } finally {
+      setGuardando(false);
+    }
   };
 
+  const normalizarTexto = (txt = '') => 
+    txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   const comunicadosFiltrados = comunicados.filter(c => {
-    const coincideCat = filtroCategoria === 'todos' || c.categoria.toLowerCase() === filtroCategoria.toLowerCase();
-    const coincideTexto = c.titulo.toLowerCase().includes(busqueda.toLowerCase()) || 
-                          c.contenido.toLowerCase().includes(busqueda.toLowerCase());
+    const catNorm = normalizarTexto(c.categoria);
+    const filtroNorm = normalizarTexto(filtroCategoria);
+    const coincideCat = filtroCategoria === 'todos' || catNorm === filtroNorm;
+    
+    const termino = busqueda.toLowerCase();
+    const coincideTexto = (c.titulo || '').toLowerCase().includes(termino) || 
+                          (c.contenido || '').toLowerCase().includes(termino);
     return coincideCat && coincideTexto;
   });
 
-  const getBadgeCategoria = (cat) => {
-    switch (cat.toLowerCase()) {
+  const getBadgeCategoria = (cat = '') => {
+    const norm = normalizarTexto(cat);
+    switch (norm) {
       case 'academico':
         return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       case 'reunion':
@@ -109,8 +159,8 @@ export default function ComunicadosPage({ user }) {
             <Megaphone className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Agenda y Comunicados Oficiales</h1>
-            <p className="text-slate-500 text-sm">
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Agenda y Comunicados Oficiales</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Notificaciones institucionales, circulares pedagógicas y acuerdos directivos
             </p>
           </div>
@@ -120,7 +170,7 @@ export default function ComunicadosPage({ user }) {
           <button
             type="button"
             onClick={() => setModalAbierto(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Comunicado
           </button>
@@ -141,18 +191,18 @@ export default function ComunicadosPage({ user }) {
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs font-medium">
-          {['todos', 'academico', 'reunion', 'salud', 'feriado'].map((cat) => (
+          {categoriasFiltro.map((cat) => (
             <button
-              key={cat}
+              key={cat.id}
               type="button"
-              onClick={() => setFiltroCategoria(cat)}
-              className={`px-3 py-1.5 rounded-xl capitalize transition shrink-0 ${
-                filtroCategoria === cat
+              onClick={() => setFiltroCategoria(cat.id)}
+              className={`px-3 py-1.5 rounded-xl transition shrink-0 cursor-pointer ${
+                filtroCategoria === cat.id
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -166,8 +216,8 @@ export default function ComunicadosPage({ user }) {
       ) : comunicadosFiltrados.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
           <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-          <p className="text-sm font-semibold">No se encontraron comunicados</p>
-          <p className="text-xs">No hay avisos para el criterio seleccionado.</p>
+          <p className="text-sm font-semibold text-slate-700">No se encontraron comunicados</p>
+          <p className="text-xs text-slate-400 mt-1">No hay avisos para el criterio seleccionado.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -178,7 +228,9 @@ export default function ComunicadosPage({ user }) {
               <div 
                 key={item.id} 
                 className={`bg-white rounded-2xl border p-6 shadow-sm transition hover:shadow-md ${
-                  esUrgente ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200/90'
+                  esUrgente 
+                    ? 'border-l-4 border-l-rose-500 border-rose-200 bg-rose-50/15' 
+                    : 'border-slate-200/90'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -217,7 +269,7 @@ export default function ComunicadosPage({ user }) {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
-                      {item.autor.slice(0, 2).toUpperCase()}
+                      {(item.autor || 'DA').slice(0, 2).toUpperCase()}
                     </span>
                     <span>Emitido por: <strong className="text-slate-700">{item.autor}</strong></span>
                   </div>
@@ -256,7 +308,7 @@ export default function ComunicadosPage({ user }) {
               <button
                 type="button"
                 onClick={() => setModalAbierto(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -283,8 +335,8 @@ export default function ComunicadosPage({ user }) {
                     onChange={(e) => setCategoria(e.target.value)}
                     className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer"
                   >
-                    <option value="Academico">Académico</option>
-                    <option value="Reunion">Reunión de Padres</option>
+                    <option value="Académico">Académico</option>
+                    <option value="Reunión">Reunión de Padres</option>
                     <option value="Salud">Salud y Tópico</option>
                     <option value="Feriado">Feriado / Suspensión</option>
                   </select>
@@ -310,7 +362,7 @@ export default function ComunicadosPage({ user }) {
                   type="text"
                   value={dirigidoA}
                   onChange={(e) => setDirigidoA(e.target.value)}
-                  placeholder="Ej: Todos los Niveles, 5to de Secundaria UNI"
+                  placeholder="Ej: Todos los Niveles, 5to de Secundaria - Aula 101 UNI"
                   className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
                 />
               </div>
@@ -331,14 +383,14 @@ export default function ComunicadosPage({ user }) {
                 <button
                   type="button"
                   onClick={() => setModalAbierto(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
                 >
                   {guardando ? 'Publicando...' : 'Publicar Comunicado'}
                 </button>

@@ -14,18 +14,26 @@ import {
 } from 'lucide-react';
 
 export default function TutorIAPage({ estudianteActivo }) {
-  const estudiante = estudianteActivo || {
-    id: 1,
-    nombre: 'Luis Fernando Tóccas',
-    gradoCorto: '5to Sec',
-    aula: '5to de Secundaria - Aula 101 UNI',
-    puestoRanking: 3,
-    totalAlumnos: 36,
-    promedioGeneral: 15.8,
-    cursos: [
-      { id: 1, nombre: 'Álgebra Superior', promedio: 16.3 },
-      { id: 4, nombre: 'Física y Cinemática', promedio: 11.0 }
-    ]
+  // Lista oficial sincronizada con CalificacionesPage
+  const cursosOficiales = [
+    { id: 1, nombre: 'Álgebra Superior', promedio: 16.2 },
+    { id: 2, nombre: 'Razonamiento Matemático', promedio: 18.0 },
+    { id: 3, nombre: 'Geometría del Espacio', promedio: 14.0 },
+    { id: 4, nombre: 'Física y Cinemática', promedio: 11.0 },
+    { id: 5, nombre: 'Química Orgánica', promedio: 12.3 }
+  ];
+
+  const estudiante = {
+    id: estudianteActivo?.id || 1,
+    nombre: estudianteActivo?.nombre || 'Luis Fernando Tóccas',
+    gradoCorto: estudianteActivo?.gradoCorto || '5to Sec',
+    aula: estudianteActivo?.aula || '5to de Secundaria - Aula 101 UNI',
+    puestoRanking: estudianteActivo?.puestoRanking || 3,
+    totalAlumnos: estudianteActivo?.totalAlumnos || 36,
+    promedioGeneral: estudianteActivo?.promedioGeneral || 15.8,
+    cursos: (estudianteActivo?.cursos && estudianteActivo.cursos.length > 0) 
+      ? estudianteActivo.cursos 
+      : cursosOficiales
   };
 
   const [mensajes, setMensajes] = useState([]);
@@ -34,7 +42,6 @@ export default function TutorIAPage({ estudianteActivo }) {
   const [planEstudio, setPlanEstudio] = useState(null);
   const [analizandoPlan, setAnalizandoPlan] = useState(false);
 
-  // Referencia para la barra de desplazamiento automática
   const chatFinRef = useRef(null);
 
   const autoScroll = () => {
@@ -44,6 +51,9 @@ export default function TutorIAPage({ estudianteActivo }) {
   useEffect(() => {
     autoScroll();
   }, [mensajes, cargando]);
+
+  const cursosCriticos = estudiante.cursos?.filter(c => c.promedio < 13) || [];
+  const cursosDestacados = estudiante.cursos?.filter(c => c.promedio >= 16) || [];
 
   useEffect(() => {
     setMensajes([
@@ -55,9 +65,6 @@ export default function TutorIAPage({ estudianteActivo }) {
     ]);
     generarPlanPedagogico();
   }, [estudiante.id]);
-
-  const cursosCriticos = estudiante.cursos?.filter(c => c.promedio < 13) || [];
-  const cursosDestacados = estudiante.cursos?.filter(c => c.promedio >= 16) || [];
 
   const generarPlanPedagogico = async () => {
     setAnalizandoPlan(true);
@@ -93,13 +100,13 @@ Genera un diagnóstico conciso y 3 acciones clave para potenciar su aprendizaje.
       const tieneRiesgo = cursosCriticos.length > 0;
       setPlanEstudio({
         diagnostico: tieneRiesgo
-          ? `Rendimiento global estable (${estudiante.promedioGeneral}/20), con necesidad de refuerzo focalizado en ${cursosCriticos.map(c => c.nombre).join(', ')} para superar la valla aprobatoria.`
+          ? `Rendimiento global estable (${estudiante.promedioGeneral}/20), con necesidad de refuerzo focalizado en ${cursosCriticos.map(c => c.nombre).join(' y ')} para superar la valla aprobatoria institucional.`
           : `Excelente nivel académico con promedio de ${estudiante.promedioGeneral}/20. Se sugiere resolver ejercicios de nivel preuniversitario en ${cursosDestacados.map(c => c.nombre).join(', ')}.`,
         acciones: tieneRiesgo
           ? [
-              `Dedicar 40 minutos diarios a repasar ejercicios prácticos de ${cursosCriticos[0]?.nombre || 'la materia en riesgo'}.`,
-              'Resolver el simulacro de diagnóstico paso a paso antes de la próxima evaluación.',
-              'Solicitar retroalimentación puntual al docente de área sobre los errores comunes.'
+              `Dedicar 40 minutos diarios a repasar ejercicios prácticos de ${cursosCriticos[0]?.nombre || 'Física'} y ${cursosCriticos[1]?.nombre || 'Química'}.`,
+              'Resolver el simulacro de diagnóstico paso a paso antes de la próxima evaluación parcial.',
+              'Solicitar retroalimentación puntual al docente de área sobre el balance de errores comunes.'
             ]
           : [
               'Entrenamiento en simulacros con límite estricto de tiempo por problema.',
@@ -132,7 +139,7 @@ Genera un diagnóstico conciso y 3 acciones clave para potenciar su aprendizaje.
 Promedio: ${estudiante.promedioGeneral}/20.
 Cursos: ${estudiante.cursos?.map(c => `${c.nombre} (${c.promedio})`).join(', ')}.
 Pregunta del usuario: "${textoUsuario}".
-Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos breves.`;
+Responde con tono pedagógico, directo y resolutivo en 2 párrafos concisos.`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -154,11 +161,22 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
       ]);
     } catch {
       setTimeout(() => {
+        let respuestaSimulada = `Para consolidar el aprendizaje de **${estudiante.nombre.split(' ')[0]}** en "${textoUsuario}", sugiero descomponer el tema en sub-conceptos clave y practicar al menos dos problemas guiados el día de hoy.`;
+        
+        const q = textoUsuario.toLowerCase();
+        if (q.includes('física') || q.includes('cinemática')) {
+          respuestaSimulada = `En **Física y Cinemática** (Promedio actual: 11.0), el error principal suele radicar en la descomposición de vectores y el planteamiento de unidades. Se aconseja resolver 3 problemas tipo de MRUV y Movimiento Parabólico revisando las gráficas posición-tiempo.`;
+        } else if (q.includes('química') || q.includes('orgánica')) {
+          respuestaSimulada = `En **Química Orgánica** (Promedio actual: 12.3), recomiendo elaborar fichas nemotécnicas para los grupos funcionales y repasar nomenclatura IUPAC para afianzar la base teórica del examen final.`;
+        } else if (q.includes('álgebra') || q.includes('matemática')) {
+          respuestaSimulada = `El estudiante presenta un gran dominio en **Álgebra Superior** (16.2) y **Razonamiento Matemático** (18.0). La recomendación es canalizar esa destreza para resolver problemas interdisciplinarios aplicados a la cinemática.`;
+        }
+
         setMensajes(prev => [
           ...prev,
           {
             emisor: 'ia',
-            texto: `Para consolidar el aprendizaje de **${estudiante.nombre.split(' ')[0]}** en "${textoUsuario}", sugiero descomponer el tema en sub-conceptos clave y practicar al menos dos problemas guiados el día de hoy.`,
+            texto: respuestaSimulada,
             hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -193,17 +211,17 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           type="button"
           onClick={generarPlanPedagogico}
           disabled={analizandoPlan}
-          className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${analizandoPlan ? 'animate-spin' : ''}`} />
           Recalcular Diagnóstico
         </button>
       </div>
 
-      {/* MÉTRICAS RÁPIDAS */}
+      {/* MÉTRICAS RÁPIDAS COHERENTES */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
@@ -216,7 +234,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
             <Award className="w-6 h-6" />
           </div>
           <div>
@@ -229,7 +247,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
             cursosCriticos.length > 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
           }`}>
             {cursosCriticos.length > 0 ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
@@ -238,7 +256,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
             <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cursos por Reforzar</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">{cursosCriticos.length}</span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-slate-400 font-medium ml-1">
                 {cursosCriticos.length === 1 ? 'asignatura' : 'asignaturas'}
               </span>
             </div>
@@ -306,7 +324,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
           </div>
         </div>
 
-        {/* PANEL DERECHO: Chat Interactivo con Auto-Scroll y Thinking State */}
+        {/* PANEL DERECHO: Chat Interactivo */}
         <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[600px] overflow-hidden">
           {/* Header del Chat */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -324,7 +342,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
             </span>
           </div>
 
-          {/* Área de Mensajes con Scroll Suave */}
+          {/* Área de Mensajes */}
           <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/30">
             {mensajes.map((m, idx) => {
               const esIA = m.emisor === 'ia';
@@ -337,8 +355,8 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
                   )}
 
                   <div className={`p-4 rounded-2xl max-w-[82%] text-xs leading-relaxed transition-all shadow-sm ${
-                    esIA
-                      ? 'bg-white border border-slate-200/90 text-slate-700 rounded-bl-none'
+                    esIA 
+                      ? 'bg-white border border-slate-200/90 text-slate-700 rounded-bl-none' 
                       : 'bg-indigo-600 text-white rounded-br-none'
                   }`}>
                     <p className="whitespace-pre-wrap">{m.texto}</p>
@@ -360,7 +378,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
               );
             })}
 
-            {/* Spinner Animado: Estado "Thinking" de la IA */}
+            {/* Spinner Animado: Estado "Thinking" */}
             {cargando && (
               <div className="flex items-end gap-2.5 justify-start">
                 <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
@@ -375,7 +393,6 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
               </div>
             )}
 
-            {/* Marcador invisible para auto-scroll */}
             <div ref={chatFinRef} />
           </div>
 
@@ -391,7 +408,7 @@ Responde con tono motivador, conciso, pedagógico y práctico en 2 o 3 párrafos
             <button
               type="submit"
               disabled={cargando || !inputMensaje.trim()}
-              className="p-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl shadow-md shadow-indigo-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              className="p-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl shadow-md shadow-indigo-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>

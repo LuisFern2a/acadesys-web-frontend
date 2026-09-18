@@ -30,7 +30,6 @@ export function cerrarSesion() {
   window.location.href = '/';
 }
 
-// Interceptor centralizado para inyectar JWT en cabeceras
 async function fetchWithAuth(endpoint, options = {}) {
   const token = obtenerToken();
   
@@ -45,7 +44,6 @@ async function fetchWithAuth(endpoint, options = {}) {
     headers
   });
 
-  // Si el token expiró o no es válido (401), se limpia la sesión
   if (response.status === 401) {
     console.warn("Sesión expirada o no autorizada (401). Redirigiendo...");
     cerrarSesion();
@@ -60,10 +58,10 @@ async function fetchWithAuth(endpoint, options = {}) {
 // ==========================================
 
 let mockPerfiles = [
-  { IdPerfil: 1, NombrePerfil: 'Administrador', EstadoRegistro: 1 },
-  { IdPerfil: 2, NombrePerfil: 'Docente', EstadoRegistro: 1 },
-  { IdPerfil: 3, NombrePerfil: 'Alumno', EstadoRegistro: 1 },
-  { IdPerfil: 4, NombrePerfil: 'Apoderado', EstadoRegistro: 1 }
+  { IdPerfil: 1, Nombre: 'Administrador', NombrePerfil: 'Administrador', Descripcion: 'Acceso total a métricas institucionales, asignaciones docentes, seguridad y usuarios.', EstadoRegistro: 1 },
+  { IdPerfil: 2, Nombre: 'Docente', NombrePerfil: 'Docente', Descripcion: 'Control de asistencia, cuaderno de calificaciones bimestrales y publicación de circulares.', EstadoRegistro: 1 },
+  { IdPerfil: 3, Nombre: 'Padre', NombrePerfil: 'Padre', Descripcion: 'Visualización de boletas de notas de hijos, alertas de asistencia y comunicados directivos.', EstadoRegistro: 1 },
+  { IdPerfil: 4, Nombre: 'Alumno', NombrePerfil: 'Alumno', Descripcion: 'Consulta de calificaciones personales, agenda escolar e interacción con el Tutor Pedagógico IA.', EstadoRegistro: 1 }
 ];
 
 let mockOpcionesMenu = [
@@ -79,9 +77,9 @@ let mockOpcionesMenu = [
 ];
 
 let mockUsuarios = [
-  { IdUsuario: 1, NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Administrador', EstadoRegistro: 1 },
-  { IdUsuario: 2, NombreCompleto: 'Carlos Mendoza', Correo: 'cmendoza@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
-  { IdUsuario: 3, NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
+  { IdUsuario: 1, dni: '72345678', NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Administrador', EstadoRegistro: 1 },
+  { IdUsuario: 2, dni: '45892014', NombreCompleto: 'Carlos Mendoza', Correo: 'cmendoza@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
+  { IdUsuario: 3, dni: '75849201', NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
 ];
 
 let mockAulas = [
@@ -107,10 +105,10 @@ let mockAsignaciones = [
 
 let mockAsistencias = {
   '1-2026-09-14': [
-    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:45 AM' },
-    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'tardanza', horaLlegada: '08:15 AM' },
-    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:50 AM' },
-    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'falta', horaLlegada: '--' },
+    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:50 AM' },
+    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'presente', horaLlegada: '07:52 AM' },
+    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:48 AM' },
+    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'presente', horaLlegada: '07:55 AM' },
     { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
   ]
 };
@@ -129,7 +127,7 @@ let mockComunicados = [
   {
     id: 1,
     titulo: 'Simulacro Tipo Examen de Admisión UNI - Fase II',
-    categoria: 'Academico',
+    categoria: 'Académico',
     prioridad: 'alta',
     dirigidoA: '5to de Secundaria - Aula 101 UNI',
     fecha: '14/09/2026',
@@ -142,7 +140,7 @@ let mockComunicados = [
   {
     id: 2,
     titulo: 'Primera Reunión General de Padres y Entrega de Boletas Bimestrales',
-    categoria: 'Reunion',
+    categoria: 'Reunión',
     prioridad: 'media',
     dirigidoA: 'Todos los Niveles',
     fecha: '18/09/2026',
@@ -180,9 +178,10 @@ let mockComunicados = [
   }
 ];
 
-// --------------------------------------------------
-// OBTENER PERFILES (Protegido con JWT)
-// --------------------------------------------------
+// ==========================================
+// MÓDULO DE PERFILES (RBAC)
+// ==========================================
+
 export async function obtenerPerfiles() {
   try {
     const response = await fetchWithAuth(`/api/perfiles`);
@@ -194,9 +193,66 @@ export async function obtenerPerfiles() {
   }
 }
 
-// --------------------------------------------------
-// OBTENER USUARIOS (Protegido con JWT)
-// --------------------------------------------------
+export async function crearPerfil(nuevoPerfil) {
+  try {
+    const response = await fetchWithAuth(`/api/perfiles`, {
+      method: "POST",
+      body: JSON.stringify(nuevoPerfil),
+    });
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al crear perfil en API, registrando en mock:", error);
+    const id = Date.now();
+    const creado = {
+      IdPerfil: id,
+      Nombre: nuevoPerfil.nombre || nuevoPerfil.Nombre,
+      NombrePerfil: nuevoPerfil.nombre || nuevoPerfil.Nombre,
+      Descripcion: nuevoPerfil.descripcion || nuevoPerfil.Descripcion,
+      EstadoRegistro: 1
+    };
+    mockPerfiles = [...mockPerfiles, creado];
+    return creado;
+  }
+}
+
+export async function actualizarPerfil(idPerfil, perfilActualizado) {
+  try {
+    const response = await fetchWithAuth(`/api/perfiles/${idPerfil}`, {
+      method: "PUT",
+      body: JSON.stringify(perfilActualizado),
+    });
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al actualizar perfil en API, aplicando en mock:", error);
+    mockPerfiles = mockPerfiles.map(p => 
+      (p.IdPerfil === idPerfil || p.id === idPerfil) 
+        ? { ...p, ...perfilActualizado, IdPerfil: idPerfil } 
+        : p
+    );
+    return { ok: true, idPerfil };
+  }
+}
+
+export async function eliminarPerfil(idPerfil) {
+  try {
+    const response = await fetchWithAuth(`/api/perfiles/${idPerfil}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al eliminar perfil en API, removiendo de mock:", error);
+    mockPerfiles = mockPerfiles.filter(p => p.IdPerfil !== idPerfil && p.id !== idPerfil);
+    return { ok: true };
+  }
+}
+
+// ==========================================
+// MÓDULO DE USUARIOS
+// ==========================================
+
 export async function obtenerUsuarios() {
   try {
     const response = await fetchWithAuth(`/api/usuarios`);
@@ -208,9 +264,6 @@ export async function obtenerUsuarios() {
   }
 }
 
-// --------------------------------------------------
-// REGISTRAR USUARIO CON PERFILES (POST)
-// --------------------------------------------------
 export async function crearUsuario(datosUsuario) {
   const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
     ? Number(datosUsuario.perfiles[0])
@@ -256,9 +309,6 @@ export async function crearUsuario(datosUsuario) {
   }
 }
 
-// --------------------------------------------------
-// ACTUALIZAR USUARIO (PUT /api/usuarios/:id)
-// --------------------------------------------------
 export async function actualizarUsuario(idUsuario, datosUsuario) {
   const payload = {
     DNI: String(datosUsuario.dni || '').trim().slice(0, 8),
@@ -288,9 +338,6 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
   }
 }
 
-// --------------------------------------------------
-// ELIMINAR USUARIO (DELETE /api/usuarios/:id)
-// --------------------------------------------------
 export async function eliminarUsuario(idUsuario) {
   try {
     const response = await fetchWithAuth(`/api/usuarios/${idUsuario}`, {
@@ -310,9 +357,10 @@ export async function eliminarUsuario(idUsuario) {
   }
 }
 
-// --------------------------------------------------
-// OBTENER OPCIONES DE MENÚ (GET /api/menus)
-// --------------------------------------------------
+// ==========================================
+// MÓDULO DE MENÚS Y PERMISOS
+// ==========================================
+
 export async function obtenerOpcionesMenu() {
   try {
     const response = await fetchWithAuth(`/api/menus`);
@@ -324,9 +372,6 @@ export async function obtenerOpcionesMenu() {
   }
 }
 
-// --------------------------------------------------
-// CREAR OPCIÓN DE MENÚ (POST /api/menus)
-// --------------------------------------------------
 export async function crearOpcionMenu(datosMenu) {
   try {
     const payload = {
@@ -362,9 +407,6 @@ export async function crearOpcionMenu(datosMenu) {
   }
 }
 
-// --------------------------------------------------
-// ASIGNAR MENÚ A PERFIL (POST /api/menus/asignar)
-// --------------------------------------------------
 export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
   try {
     const payload = {
@@ -391,9 +433,9 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
   }
 }
 
-// ==================================================
-// MÓDULO ACADÉMICO (AULAS, CURSOS, CARGA DOCENTE)
-// ==================================================
+// ==========================================
+// MÓDULO ACADÉMICO (AULAS, CURSOS, CARGA)
+// ==========================================
 
 export async function obtenerAulas() {
   try {
@@ -531,9 +573,9 @@ export async function eliminarAsignacionDocente(idAsignacion) {
   }
 }
 
-// ==================================================
-// MÓDULO DE ASISTENCIA (Con persistencia en LocalStorage)
-// ==================================================
+// ==========================================
+// MÓDULO DE ASISTENCIA
+// ==========================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
   const claveStorage = `acadesys_asist_${idAula}_${fecha}`;
@@ -569,9 +611,9 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
   return { ok: true, mensaje: 'Asistencia registrada con éxito' };
 }
 
-// ==================================================
-// MÓDULO DE REGISTRO DE CALIFICACIONES (Con persistencia en LocalStorage)
-// ==================================================
+// ==========================================
+// MÓDULO DE CALIFICACIONES
+// ==========================================
 
 export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bimestre-2') {
   const claveStorage = `acadesys_notas_${idAula}_${idCurso}_${periodo}`;
@@ -590,11 +632,11 @@ export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bime
   }
 
   const nominaBase = [
-    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 15, tareas: 16, final: 14 },
-    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 13, tareas: 14, final: 12 },
-    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 17, tareas: 18, final: 17 },
-    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 10, tareas: 12, final: 11 },
-    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 14, tareas: 15, final: 13 }
+    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
+    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
+    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
+    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
+    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
   ];
   localStorage.setItem(claveStorage, JSON.stringify(nominaBase));
   return JSON.parse(JSON.stringify(nominaBase));
@@ -607,9 +649,9 @@ export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) 
   return { ok: true, mensaje: 'Calificaciones registradas correctamente' };
 }
 
-// ==================================================
-// MÓDULO DE COMUNICADOS (Con persistencia en LocalStorage)
-// ==================================================
+// ==========================================
+// MÓDULO DE COMUNICADOS
+// ==========================================
 
 export async function obtenerComunicados() {
   const guardado = localStorage.getItem('acadesys_comunicados');
@@ -650,9 +692,9 @@ export async function confirmarLecturaComunicado(id) {
   return { ok: true };
 }
 
-// ==================================================
-// ESTUDIANTES / HIJOS ASOCIADOS (MOCK CENTRALIZADO)
-// ==================================================
+// ==========================================
+// HIJOS Y EXPEDIENTES (MOCK OFICIAL)
+// ==========================================
 
 const MOCK_HIJOS = [
   {
@@ -664,9 +706,9 @@ const MOCK_HIJOS = [
     puestoRanking: 3,
     totalAlumnos: 36,
     promedioGeneral: 15.8,
-    cursosCriticos: 1,
+    cursosCriticos: 2,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.3, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
+      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
       { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
       { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
       { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },

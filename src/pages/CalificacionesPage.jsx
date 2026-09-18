@@ -22,17 +22,30 @@ export default function CalificacionesPage({
 }) {
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('bimestre-2');
 
-  const estudiante = estudianteActivo || {
-    id: 1,
-    nombre: 'Luis Fernando Tóccas',
-    codigo: 'ACAD-2026-755',
-    aula: '5to de Secundaria - Aula 101 UNI',
-    puestoRanking: 3,
-    totalAlumnos: 36,
-    promedioGeneral: 15.8,
-    cursosCriticos: 1,
-    cursos: []
+  const cursosPorDefecto = [
+    { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Guia_Matrices_Polinomios_v2.pdf', pesoMb: '2.4 MB' },
+    { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Compendio_Problemas_Tipo_UNI.pdf', pesoMb: '3.1 MB' },
+    { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Solucionario_Poliedros_Regulares.pdf', pesoMb: '1.8 MB' },
+    { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Modulo_Cinematica_Vectorial.pdf', pesoMb: '4.2 MB' },
+    { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Formulario_Reacciones_Quimicas.pdf', pesoMb: '1.5 MB' }
+  ];
+
+  const estudiante = {
+    id: estudianteActivo?.id || 1,
+    nombre: estudianteActivo?.nombre || 'Luis Fernando Tóccas',
+    codigo: estudianteActivo?.codigo || 'ACAD-2026-755',
+    aula: estudianteActivo?.aula || '5to de Secundaria - Aula 101 UNI',
+    puestoRanking: estudianteActivo?.puestoRanking || 3,
+    totalAlumnos: estudianteActivo?.totalAlumnos || 36,
+    cursos: (estudianteActivo?.cursos && estudianteActivo.cursos.length > 0) ? estudianteActivo.cursos : cursosPorDefecto
   };
+
+  // Cálculo reactivo de materias en riesgo y promedio ponderado
+  const cursosEnRiesgo = estudiante.cursos.filter(c => c.promedio < 13);
+  const totalCursos = estudiante.cursos.length;
+  const promedioGeneralCalculado = totalCursos > 0 
+    ? (estudiante.cursos.reduce((acc, c) => acc + c.promedio, 0) / totalCursos).toFixed(1)
+    : '0.0';
 
   const handleImprimirBoleta = () => {
     window.print();
@@ -44,7 +57,7 @@ export default function CalificacionesPage({
 
   const nombresPeriodo = {
     'bimestre-1': 'I Bimestre',
-    'bimestre-2': 'II Bimestre',
+    'bimestre-2': 'II Bimestre (Actual)',
     'simulacros': 'Simulacros de Examen'
   };
 
@@ -92,7 +105,7 @@ export default function CalificacionesPage({
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Calificaciones y Rendimiento</h1>
-              <p className="text-slate-500 text-sm">
+              <p className="text-slate-500 text-sm mt-0.5">
                 Mostrando registro de: <span className="font-semibold text-slate-800">{estudiante.nombre}</span> ({estudiante.aula})
               </p>
             </div>
@@ -103,7 +116,7 @@ export default function CalificacionesPage({
           {/* SELECTOR DE ESTUDIANTE */}
           {listaEstudiantes && listaEstudiantes.length > 1 && (
             <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm">
-              <Users className="w-4 h-4 text-indigo-600" />
+              <Users className="w-4 h-4 text-indigo-600 shrink-0" />
               <select
                 value={estudiante.id}
                 onChange={(e) => onCambiarEstudiante && onCambiarEstudiante(Number(e.target.value))}
@@ -122,7 +135,7 @@ export default function CalificacionesPage({
           <button
             type="button"
             onClick={handleImprimirBoleta}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition"
+            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition cursor-pointer"
           >
             <Printer className="w-4 h-4 text-indigo-600" />
             <span>Exportar PDF / Imprimir</span>
@@ -133,7 +146,7 @@ export default function CalificacionesPage({
             <button
               type="button"
               onClick={() => setPeriodoSeleccionado('bimestre-1')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                 periodoSeleccionado === 'bimestre-1' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -142,7 +155,7 @@ export default function CalificacionesPage({
             <button
               type="button"
               onClick={() => setPeriodoSeleccionado('bimestre-2')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                 periodoSeleccionado === 'bimestre-2' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -151,7 +164,7 @@ export default function CalificacionesPage({
             <button
               type="button"
               onClick={() => setPeriodoSeleccionado('simulacros')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                 periodoSeleccionado === 'simulacros' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -161,14 +174,14 @@ export default function CalificacionesPage({
         </div>
       </div>
 
-      {/* MÉTRICAS SUPERIORES */}
+      {/* MÉTRICAS SUPERIORES CON ARITMÉTICA EXACTA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 print:hidden">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600 shrink-0">
             <Award className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Ranking del Aula</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Ranking del Aula</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">Puesto #{estudiante.puestoRanking}</span>
               <span className="text-xs text-slate-500 font-medium">de {estudiante.totalAlumnos}</span>
@@ -177,39 +190,41 @@ export default function CalificacionesPage({
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200/50 flex items-center justify-center text-indigo-600">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200/50 flex items-center justify-center text-indigo-600 shrink-0">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Promedio Ponderado</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Promedio Ponderado</span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-slate-800">{estudiante.promedioGeneral}</span>
+              <span className="text-2xl font-bold text-slate-800">{promedioGeneralCalculado}</span>
               <span className="text-xs text-slate-500 font-medium">/ 20</span>
             </div>
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200/50 flex items-center justify-center text-rose-600">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200/50 flex items-center justify-center text-rose-600 shrink-0">
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Materias en Riesgo</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Materias en Riesgo</span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-slate-800">
-                {estudiante.cursosCriticos} {estudiante.cursosCriticos === 1 ? 'Curso' : 'Cursos'}
+              <span className="text-2xl font-bold text-rose-600">
+                {cursosEnRiesgo.length} {cursosEnRiesgo.length === 1 ? 'Curso' : 'Cursos'}
               </span>
             </div>
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 rounded-2xl text-white shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-semibold">
-            <Sparkles className="w-4 h-4" /> Tutor IA
+          <div>
+            <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-semibold">
+              <Sparkles className="w-4 h-4" /> Tutor IA
+            </div>
+            <p className="text-xs text-indigo-100 line-clamp-2 mt-1">
+              Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el alumno'}.
+            </p>
           </div>
-          <p className="text-xs text-indigo-100 line-clamp-2 mt-1">
-            Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el alumno'}.
-          </p>
           <button
             type="button"
             onClick={onIrATutorIA}
@@ -228,7 +243,7 @@ export default function CalificacionesPage({
             <h2 className="font-bold text-slate-800 text-base">Boleta Oficial de Asignaturas</h2>
           </div>
           <span className="text-xs text-slate-400 font-medium print:text-slate-600">
-            Escala vigesimal (0 - 20)
+            Escala vigesimal (0 - 20) • Ponderación: Parcial (30%) + Tareas (30%) + Final (40%)
           </span>
         </div>
 
@@ -238,15 +253,15 @@ export default function CalificacionesPage({
               <tr className="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase print:bg-slate-100 print:text-slate-900">
                 <th className="py-4 px-6 print:py-2 print:px-3">Asignatura</th>
                 <th className="py-4 px-6 print:py-2 print:px-3">Docente</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Parcial</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Tareas</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Final</th>
+                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Parcial (30%)</th>
+                <th className="py-4 px-4 text-center print:py-2 print:px-2">Tareas (30%)</th>
+                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Final (40%)</th>
                 <th className="py-4 px-6 text-center print:py-2 print:px-3">Promedio</th>
                 <th className="py-4 px-6 text-center print:py-2 print:px-3">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600 print:divide-slate-200">
-              {estudiante.cursos && estudiante.cursos.map((c) => {
+              {estudiante.cursos.map((c) => {
                 const enRiesgo = c.promedio < 13;
 
                 return (
@@ -257,23 +272,23 @@ export default function CalificacionesPage({
                     <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.tareas}</td>
                     <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.final}</td>
                     <td className="py-4 px-6 text-center font-bold font-mono text-base print:py-2 print:px-3 print:text-sm">
-                      <span className={enRiesgo ? 'text-rose-600 print:text-slate-900' : 'text-slate-800'}>
+                      <span className={enRiesgo ? 'text-rose-600 font-bold' : 'text-slate-800'}>
                         {c.promedio.toFixed(1)}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center print:py-2 print:px-3">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         enRiesgo
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200 print:border-none print:text-slate-900'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200 print:border-none print:text-slate-900'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}>
                         {enRiesgo ? (
                           <>
-                            <AlertCircle className="w-3 h-3 print:hidden" /> En Riesgo
+                            <AlertCircle className="w-3.5 h-3.5" /> En Riesgo
                           </>
                         ) : (
                           <>
-                            <CheckCircle2 className="w-3 h-3 print:hidden" /> Aprobado
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Aprobado
                           </>
                         )}
                       </span>
@@ -285,15 +300,17 @@ export default function CalificacionesPage({
             <tfoot className="hidden print:table-footer-group border-t-2 border-slate-900 text-xs font-bold text-slate-900">
               <tr>
                 <td colSpan={5} className="py-3 px-3 text-right">PROMEDIO PONDERADO GENERAL:</td>
-                <td className="py-3 px-3 text-center text-sm">{estudiante.promedioGeneral} / 20</td>
-                <td className="py-3 px-3 text-center">APROBADO</td>
+                <td className="py-3 px-3 text-center text-sm">{promedioGeneralCalculado} / 20</td>
+                <td className="py-3 px-3 text-center">
+                  {Number(promedioGeneralCalculado) >= 13 ? 'APROBADO' : 'OBSERVADO'}
+                </td>
               </tr>
             </tfoot>
           </table>
         </div>
       </div>
 
-      {/* SECCIÓN DE FIRMAS */}
+      {/* SECCIÓN DE FIRMAS PARA IMPRESIÓN */}
       <div className="hidden print:grid grid-cols-2 gap-16 mt-20 text-center text-xs text-slate-700">
         <div className="border-t border-slate-400 pt-2">
           <p className="font-bold text-slate-900">Dirección Académica</p>
@@ -309,11 +326,11 @@ export default function CalificacionesPage({
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 print:hidden">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-5 h-5 text-indigo-600" />
-          <h2 className="font-bold text-slate-800 text-base">Recursos de Estudio</h2>
+          <h2 className="font-bold text-slate-800 text-base">Recursos y Materiales de Refuerzo</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {estudiante.cursos && estudiante.cursos.map((c) => (
-            <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+          {estudiante.cursos.map((c) => (
+            <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between hover:bg-slate-50 transition-colors">
               <div className="flex items-start gap-3 mb-3">
                 <div className="p-2 bg-rose-50 border border-rose-100 rounded-lg text-rose-600 shrink-0">
                   <FileText className="w-5 h-5" />
@@ -326,7 +343,7 @@ export default function CalificacionesPage({
               <button
                 type="button"
                 onClick={() => handleDescargar(c.materialPdf)}
-                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition"
+                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" /> Descargar Material
               </button>

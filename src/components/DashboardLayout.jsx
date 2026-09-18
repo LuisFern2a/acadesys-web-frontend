@@ -102,6 +102,20 @@ export default function DashboardLayout({
     item.rolesPermitidos.some(r => rolUsuario.includes(r))
   );
 
+  // Mapeo para nombres limpios en la miga de pan
+  const titulosTabs = {
+    'dashboard': 'Dashboard',
+    'comunicados': 'Comunicados Oficiales',
+    'asistencia': 'Control de Asistencia',
+    'registro-notas': 'Registro de Notas',
+    'academico': 'Gestión Académica',
+    'calificaciones': 'Calificaciones y Rendimiento',
+    'tutor-ia': 'Tutor IA Pedagógico',
+    'usuarios': 'Gestión de Usuarios',
+    'perfiles': 'Seguridad y Perfiles',
+    'menu-options': 'Opciones del Sistema'
+  };
+
   const esPadre = rolUsuario.includes('padre') || rolUsuario.includes('apoderado');
   const nombreDisplay = user?.nombre || user?.NombreCompleto || user?.Nombre || 'Usuario';
   const iniciales = nombreDisplay ? nombreDisplay.trim().slice(0, 2).toUpperCase() : 'US';
@@ -133,6 +147,7 @@ export default function DashboardLayout({
               type="button"
               onClick={() => setCollapsed(!collapsed)}
               className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              title={collapsed ? "Expandir menú" : "Colapsar menú"}
             >
               {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
@@ -177,7 +192,8 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between print:hidden">
           <div className="text-sm text-slate-500 font-medium">
-            Intranet Escolar <span className="mx-2 text-slate-300">/</span> <span className="text-slate-800 capitalize font-semibold">{activeTab}</span>
+            Intranet Escolar <span className="mx-2 text-slate-300">/</span> 
+            <span className="text-slate-800 font-semibold">{titulosTabs[activeTab] || activeTab}</span>
           </div>
           
           <div className="flex items-center gap-4">
