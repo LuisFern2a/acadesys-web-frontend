@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, Lock, User, Eye, EyeOff, Loader2, 
-  ArrowRight, Users, Sparkles, X, CheckCircle2, UserPlus, Check, CreditCard, Shield, AlertCircle
+  ArrowRight, Users, Sparkles, X, Check, Shield, AlertCircle, UserPlus
 } from 'lucide-react';
 import { crearUsuario } from '../services/api';
 
@@ -234,19 +234,9 @@ export default function LandingPage({ onLoginSuccess }) {
     }
   };
 
-  const handleAccesoRapido = (nombre, rol) => {
-    const sessionUser = {
-      nombre,
-      rol,
-      token: `demo-token-${rol.toLowerCase()}`
-    };
-    localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
-    onLoginSuccess(sessionUser);
-  };
-
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
-      {/* Fondos degradados decorativos */}
+      {/* Fondos decorativos */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/3 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 left-1/3 w-[500px] h-96 bg-cyan-600/10 rounded-full blur-[160px] pointer-events-none" />
@@ -277,7 +267,7 @@ export default function LandingPage({ onLoginSuccess }) {
           >
             Registrarse
           </button>
-          <button
+          <button 
             type="button"
             onClick={() => openModal('login')}
             className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/30 hover:scale-[1.02] active:scale-[0.98] transition duration-150 border border-indigo-400/20"
@@ -446,48 +436,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   <span>{loading ? 'Autenticando...' : 'Ingresar al Sistema'}</span>
                 </button>
 
-                {/* ACCESOS RÁPIDOS MOCK / DEMO */}
-                <div className="pt-5 border-t border-slate-800/80">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
-                    Accesos rápidos para demostración:
-                  </span>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleAccesoRapido('Yan Leví Picon', 'Administrador')}
-                      className="py-2.5 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/25 font-semibold text-left transition flex items-center gap-2"
-                    >
-                      <span>🛡️</span>
-                      <span className="truncate">Administrador</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAccesoRapido('Prof. Carlos Mendoza', 'Docente')}
-                      className="py-2.5 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/25 font-semibold text-left transition flex items-center gap-2"
-                    >
-                      <span>👨‍🏫</span>
-                      <span className="truncate">Docente</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAccesoRapido('Luis Fernando Tóccas', 'Alumno')}
-                      className="py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 font-semibold text-left transition flex items-center gap-2"
-                    >
-                      <span>🎓</span>
-                      <span className="truncate">Estudiante</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAccesoRapido('Roberto Tóccas', 'Padre de Familia')}
-                      className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 font-semibold text-left transition flex items-center gap-2"
-                    >
-                      <span>👨‍👧</span>
-                      <span className="truncate">Apoderado</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-center text-xs text-slate-400">
+                <div className="mt-4 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400">
                   ¿Aún no tienes cuenta?{' '}
                   <button
                     type="button"
