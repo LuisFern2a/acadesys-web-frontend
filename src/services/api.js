@@ -762,3 +762,30 @@ const MOCK_HIJOS = [
 export async function obtenerHijosMock() {
   return MOCK_HIJOS;
 }
+
+// ==========================================
+// MÓDULO DE TUTOR IA (ASISTENTE ACADÉMICO)
+// ==========================================
+
+export async function consultarTutorIA(pregunta) {
+  try {
+    const response = await fetchWithAuth(`/api/tutor-ia`, {
+      method: "POST",
+      body: JSON.stringify({ pregunta }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al conectar con la API del Tutor IA, usando respuesta local simulada:", error);
+    
+    // Fallback local para garantizar estabilidad en el chat si el backend no responde
+    return { 
+      respuesta: "Entendido. Como tu tutor académico, te sugiero revisar las fórmulas principales de tu guía de estudios para resolver este ejercicio de manera óptima." 
+    };
+  }
+}
