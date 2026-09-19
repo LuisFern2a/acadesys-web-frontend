@@ -1,4 +1,4 @@
-const API_URL = "https://acadesys-api.onrender.com";
+const API_URL = "http://localhost:3000";
 
 // ==========================================
 // CONTROL DE TOKEN JWT Y SESIÓN
@@ -658,7 +658,6 @@ export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) 
 
     const data = await response.json().catch(() => ({ mensaje: 'Calificaciones registradas correctamente' }));
 
-    // Sincronizar con almacenamiento local tras una respuesta exitosa
     localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
     mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
 
@@ -666,7 +665,6 @@ export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) 
   } catch (error) {
     console.warn("Fallo al guardar notas en el backend, aplicando respaldo local:", error);
     
-    // Respaldo local para mantener la estabilidad de la interfaz
     localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
     mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
     
@@ -769,8 +767,11 @@ export async function obtenerHijosMock() {
 
 export async function consultarTutorIA(pregunta) {
   try {
-    const response = await fetchWithAuth(`/api/tutor-ia`, {
+    const response = await fetch("http://localhost:3000/api/tutor-ia", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({ pregunta }),
     });
 
@@ -783,7 +784,6 @@ export async function consultarTutorIA(pregunta) {
   } catch (error) {
     console.warn("Fallo al conectar con la API del Tutor IA, usando respuesta local simulada:", error);
     
-    // Fallback local para garantizar estabilidad en el chat si el backend no responde
     return { 
       respuesta: "Entendido. Como tu tutor académico, te sugiero revisar las fórmulas principales de tu guía de estudios para resolver este ejercicio de manera óptima." 
     };

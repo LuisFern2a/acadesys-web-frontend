@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Award
 } from 'lucide-react';
+import { consultarTutorIA } from '../services/api'; // Ajusta la ruta relativa si es necesario
 
 export default function TutorIAPage({ estudianteActivo }) {
   // Lista oficial sincronizada con CalificacionesPage
@@ -79,18 +80,9 @@ Materias: ${resumenMaterias}
 Genera un diagnóstico conciso y 3 acciones clave para potenciar su aprendizaje.`;
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("No API Key");
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptContextual }] }] })
-      });
-
-      if (!response.ok) throw new Error("Error en Gemini API");
-      const data = await response.json();
-      const respuestaTexto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Petición a través del servicio centralizado api.js
+      const resultado = await consultarTutorIA(promptContextual);
+      const respuestaTexto = resultado.respuesta || resultado.message;
 
       setPlanEstudio({
         diagnostico: respuestaTexto,
@@ -132,8 +124,8 @@ Genera un diagnóstico conciso y 3 acciones clave para potenciar su aprendizaje.
     setCargando(true);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("No API Key");
+      // Pequeña pausa visual controlada para que se luzca la animación de carga ("Generando respuesta...")
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const promptChat = `Eres el Tutor IA de AcadeSys para el estudiante ${estudiante.nombre} (${estudiante.aula}).
 Promedio: ${estudiante.promedioGeneral}/20.
@@ -141,15 +133,9 @@ Cursos: ${estudiante.cursos?.map(c => `${c.nombre} (${c.promedio})`).join(', ')}
 Pregunta del usuario: "${textoUsuario}".
 Responde con tono pedagógico, directo y resolutivo en 2 párrafos concisos.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptChat }] }] })
-      });
-
-      if (!response.ok) throw new Error("Error en respuesta");
-      const data = await response.json();
-      const respuestaIA = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Llamada al backend mediante el servicio centralizado api.js
+      const resultado = await consultarTutorIA(promptChat);
+      const respuestaIA = resultado.respuesta || resultado.message;
 
       setMensajes(prev => [
         ...prev, 
