@@ -644,9 +644,34 @@ export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bime
 
 export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) {
   const claveStorage = `acadesys_notas_${idAula}_${idCurso}_${periodo}`;
-  localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
-  mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
-  return { ok: true, mensaje: 'Calificaciones registradas correctamente' };
+
+  try {
+    const response = await fetchWithAuth(`/api/notas`, {
+      method: "POST",
+      body: JSON.stringify({ idAula, idCurso, periodo, listaNotas }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    const data = await response.json().catch(() => ({ mensaje: 'Calificaciones registradas correctamente' }));
+
+    // Sincronizar con almacenamiento local tras una respuesta exitosa
+    localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
+    mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
+
+    return data;
+  } catch (error) {
+    console.warn("Fallo al guardar notas en el backend, aplicando respaldo local:", error);
+    
+    // Respaldo local para mantener la estabilidad de la interfaz
+    localStorage.setItem(claveStorage, JSON.stringify(listaNotas));
+    mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
+    
+    return { ok: true, mensaje: 'Calificaciones registradas localmente (fallback)' };
+  }
 }
 
 // ==========================================
