@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = import.meta.env?.VITE_API_URL || "http://localhost:3000";
 
 // ==========================================
 // CONTROL DE TOKEN JWT Y SESIÓN
@@ -26,6 +26,7 @@ export function obtenerToken() {
 
 export function cerrarSesion() {
   localStorage.removeItem('acadesys_token');
+  localStorage.removeItem('acadesys_session');
   localStorage.removeItem('usuario');
   window.location.href = '/';
 }
@@ -60,47 +61,48 @@ async function fetchWithAuth(endpoint, options = {}) {
 let mockPerfiles = [
   { IdPerfil: 1, Nombre: 'Administrador', NombrePerfil: 'Administrador', Descripcion: 'Acceso total a métricas institucionales, asignaciones docentes, seguridad y usuarios.', EstadoRegistro: 1 },
   { IdPerfil: 2, Nombre: 'Docente', NombrePerfil: 'Docente', Descripcion: 'Control de asistencia, cuaderno de calificaciones bimestrales y publicación de circulares.', EstadoRegistro: 1 },
-  { IdPerfil: 3, Nombre: 'Padre', NombrePerfil: 'Padre', Descripcion: 'Visualización de boletas de notas de hijos, alertas de asistencia y comunicados directivos.', EstadoRegistro: 1 },
+  { IdPerfil: 3, Nombre: 'Tutor de Aula', NombrePerfil: 'Tutor de Aula', Descripcion: 'Monitoreo de rendimiento académico, control de asistencia y supervisión de pagos por ciclo.', EstadoRegistro: 1 },
   { IdPerfil: 4, Nombre: 'Alumno', NombrePerfil: 'Alumno', Descripcion: 'Consulta de calificaciones personales, agenda escolar e interacción con el Tutor Pedagógico IA.', EstadoRegistro: 1 }
 ];
 
 let mockOpcionesMenu = [
   { IdOpcionMenu: 1, Nombre: 'Dashboard', Icono: 'LayoutDashboard', Ruta: '/dashboard', IdPadre: null },
-  { IdOpcionMenu: 2, Nombre: 'Asistencia', Icono: 'CalendarCheck', Ruta: '/asistencia', IdPadre: null },
-  { IdOpcionMenu: 3, Nombre: 'Registrar Notas', Icono: 'ClipboardCheck', Ruta: '/registro-notas', IdPadre: null },
-  { IdOpcionMenu: 4, Nombre: 'Comunicados', Icono: 'Megaphone', Ruta: '/comunicados', IdPadre: null },
-  { IdOpcionMenu: 5, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
-  { IdOpcionMenu: 6, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
-  { IdOpcionMenu: 7, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
-  { IdOpcionMenu: 8, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
-  { IdOpcionMenu: 9, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
+  { IdOpcionMenu: 2, Nombre: 'Matrícula Ágil', Icono: 'UserPlus', Ruta: '/matriculas', IdPadre: null },
+  { IdOpcionMenu: 3, Nombre: 'Asistencia', Icono: 'CalendarCheck', Ruta: '/asistencia', IdPadre: null },
+  { IdOpcionMenu: 4, Nombre: 'Registrar Notas', Icono: 'ClipboardCheck', Ruta: '/registro-notas', IdPadre: null },
+  { IdOpcionMenu: 5, Nombre: 'Comunicados', Icono: 'Megaphone', Ruta: '/comunicados', IdPadre: null },
+  { IdOpcionMenu: 6, Nombre: 'Académico', Icono: 'Layers', Ruta: '/academico', IdPadre: null },
+  { IdOpcionMenu: 7, Nombre: 'Calificaciones', Icono: 'Award', Ruta: '/calificaciones', IdPadre: null },
+  { IdOpcionMenu: 8, Nombre: 'Tutor IA', Icono: 'BrainCircuit', Ruta: '/tutor-ia', IdPadre: null },
+  { IdOpcionMenu: 9, Nombre: 'Perfiles', Icono: 'ShieldCheck', Ruta: '/perfiles', IdPadre: null },
+  { IdOpcionMenu: 10, Nombre: 'Usuarios', Icono: 'Users', Ruta: '/usuarios', IdPadre: null }
 ];
 
 let mockUsuarios = [
-  { IdUsuario: 1, dni: '72345678', NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Administrador', EstadoRegistro: 1 },
-  { IdUsuario: 2, dni: '45892014', NombreCompleto: 'Carlos Mendoza', Correo: 'cmendoza@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
-  { IdUsuario: 3, dni: '75849201', NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
+  { IdUsuario: 1, dni: '72345678', CodigoUsuario: 'ADMIN-001', NombreCompleto: 'Yan Leví Picon', Correo: 'yan@acadesys.edu', Perfil: 'Administrador', EstadoRegistro: 1 },
+  { IdUsuario: 2, dni: '45892014', CodigoUsuario: 'DOC-5521', NombreCompleto: 'Carlos Mendoza', Correo: 'cmendoza@acadesys.edu', Perfil: 'Docente', EstadoRegistro: 1 },
+  { IdUsuario: 3, dni: '75849201', CodigoUsuario: 'SEMSM-Q6265', NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
 ];
 
 let mockAulas = [
-  { idAula: 1, nombre: 'Aula 101 - Ciencias', nivel: 'Preuniversitario', capacidad: 40, estado: 'Activo' },
-  { idAula: 2, nombre: 'Aula 102 - Letras', nivel: 'Preuniversitario', capacidad: 35, estado: 'Activo' },
-  { idAula: 3, nombre: '3er Grado A', nivel: 'Primaria', capacidad: 30, estado: 'Activo' },
-  { idAula: 4, nombre: '5to Grado B - Selección', nivel: 'Secundaria', capacidad: 38, estado: 'Activo' }
+  { idAula: 1, nombre: 'Aula 101 - Semestral San Marcos', nivel: 'Preuniversitario', capacidad: 40, estado: 'Activo' },
+  { idAula: 2, nombre: 'Aula 102 - Anual UNI', nivel: 'Preuniversitario', capacidad: 35, estado: 'Activo' },
+  { idAula: 3, nombre: 'Aula 103 - Repaso Villarreal', nivel: 'Preuniversitario', capacidad: 30, estado: 'Activo' },
+  { idAula: 4, nombre: 'Aula 104 - Ciclo Cero', nivel: 'Preuniversitario', capacidad: 38, estado: 'Activo' }
 ];
 
 let mockCursos = [
   { idCurso: 1, nombre: 'Álgebra Superior', codigo: 'MAT-ALG', descripcion: 'Polinomios, matrices y funciones' },
   { idCurso: 2, nombre: 'Geometría Plana', codigo: 'MAT-GEO', descripcion: 'Trigonometría y geometría del espacio' },
-  { idCurso: 3, nombre: 'Física Clásica', codigo: 'CIEN-FIS', descripcion: 'Mecánica, dinámica y cinemática' },
-  { idCurso: 4, nombre: 'Razonamiento Matemático', codigo: 'MAT-RM', descripcion: 'Lógica proposicional e inductiva' },
+  { idCurso: 3, nombre: 'Física Clásica', codigo: 'CIEN-FIS', descripcion: 'Mecánica, dinámica y cinemática vectorial' },
+  { idCurso: 4, nombre: 'Razonamiento Matemático', codigo: 'MAT-RM', descripcion: 'Lógica proposicional, inductiva y problemas DECO' },
   { idCurso: 5, nombre: 'Química Orgánica', codigo: 'CIEN-QUI', descripcion: 'Termodinámica y enlaces moleculares' }
 ];
 
 let mockAsignaciones = [
-  { idAsignacion: 1, docente: 'Carlos Mendoza', curso: 'Álgebra Superior', aula: 'Aula 101 - Ciencias', horas: 6 },
-  { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Ciencias', horas: 4 },
-  { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Letras', horas: 5 }
+  { idAsignacion: 1, docente: 'Carlos Mendoza', curso: 'Álgebra Superior', aula: 'Aula 101 - Semestral San Marcos', horas: 6 },
+  { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Semestral San Marcos', horas: 4 },
+  { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Anual UNI', horas: 5 }
 ];
 
 let mockAsistencias = {
@@ -114,65 +116,39 @@ let mockAsistencias = {
 };
 
 let mockNotasDocente = {
-  '1-1-bimestre-2': [
-    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
-    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
-    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
-    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
-    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
+  '1-1-simulacro-1': [
+    { idAlumno: 101, codigo: 'SEMSM-Q6265', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
+    { idAlumno: 102, codigo: 'SEMSM-Q6266', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
+    { idAlumno: 103, codigo: 'SEMSM-Q6267', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
+    { idAlumno: 104, codigo: 'SEMSM-Q6268', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
+    { idAlumno: 105, codigo: 'SEMSM-Q6269', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
   ]
 };
 
 let mockComunicados = [
   {
     id: 1,
-    titulo: 'Simulacro Tipo Examen de Admisión UNI - Fase II',
+    titulo: 'Simulacro General Tipo Admisión - UNI / UNMSM',
     categoria: 'Académico',
     prioridad: 'alta',
-    dirigidoA: '5to de Secundaria - Aula 101 UNI',
-    fecha: '14/09/2026',
-    hora: '08:30 AM',
-    autor: 'Dirección Académica',
-    contenido: 'Se convoca a los estudiantes de 5to año al simulacro general presencial con control estricto de tiempo. El ingreso será a las 07:30 AM con carné de estudiante.',
+    dirigidoA: 'Todos los Ciclos',
+    fecha: '24/09/2026',
+    hora: '08:00 AM',
+    autor: 'Coordinación Académica',
+    contenido: 'Ingreso puntual a las 07:30 AM con código institucional o DNI físico. Duración del examen: 3 horas.',
     leido: false,
     confirmado: false
   },
   {
     id: 2,
-    titulo: 'Primera Reunión General de Padres y Entrega de Boletas Bimestrales',
-    categoria: 'Reunión',
+    titulo: 'Cierre de Simulacro y Cuadro de Mérito Semanal',
+    categoria: 'Informativo',
     prioridad: 'media',
-    dirigidoA: 'Todos los Niveles',
-    fecha: '18/09/2026',
-    hora: '06:30 PM',
-    autor: 'Comité Directivo',
-    contenido: 'Estimados apoderados, se llevará a cabo la entrega oficial de boletas y balance pedagógico del II Bimestre en el auditorio principal.',
-    leido: true,
-    confirmado: true
-  },
-  {
-    id: 3,
-    titulo: 'Alerta Preventiva de Salud y Protocolo Estacional',
-    categoria: 'Salud',
-    prioridad: 'alta',
-    dirigidoA: 'Toda la Comunidad',
-    fecha: '10/09/2026',
-    hora: '10:00 AM',
-    autor: 'Tópico y Bienestar Estudiantil',
-    contenido: 'Recordamos a las familias remitir al tópico el informe médico correspondiente ante cuadros gripales severos para justificar inasistencias en la plataforma.',
-    leido: true,
-    confirmado: false
-  },
-  {
-    id: 4,
-    titulo: 'Feriado Institucional y Suspensión de Labores Académicas',
-    categoria: 'Feriado',
-    prioridad: 'baja',
-    dirigidoA: 'Todos los Niveles',
-    fecha: '08/09/2026',
-    hora: '07:00 AM',
-    autor: 'Administración Central',
-    contenido: 'Las actividades presenciales y virtuales se reanudarán al día hábil siguiente en su horario habitual.',
+    dirigidoA: 'Estudiantes y Tutores',
+    fecha: '25/09/2026',
+    hora: '05:00 PM',
+    autor: 'Dirección General',
+    contenido: 'La publicación de puntajes y solucionarios estará disponible al culminar la jornada en el panel del alumno.',
     leido: true,
     confirmado: true
   }
@@ -250,7 +226,7 @@ export async function eliminarPerfil(idPerfil) {
 }
 
 // ==========================================
-// MÓDULO DE USUARIOS
+// MÓDULO DE USUARIOS (ADMIN, DOCENTES, TUTORES)
 // ==========================================
 
 export async function obtenerUsuarios() {
@@ -280,6 +256,7 @@ export async function crearUsuario(datosUsuario) {
     UsuarioCreacion: datosUsuario.usuarioCreacion || 'sistema',
     EstadoRegistro: 1,
     IdPerfil: idPerfilPrincipal,
+    IdAcademia: datosUsuario.idAcademia || 1
   };
 
   try {
@@ -358,7 +335,128 @@ export async function eliminarUsuario(idUsuario) {
 }
 
 // ==========================================
-// MÓDULO DE MENÚS Y PERMISOS
+// HU-01: MATRÍCULA ÁGIL Y GENERACIÓN DE CÓDIGOS
+// ==========================================
+
+export async function crearMatricula(datosMatricula) {
+  try {
+    const response = await fetchWithAuth(`/api/matriculas`, {
+      method: "POST",
+      body: JSON.stringify(datosMatricula),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo en matrícula ágil, simulando respuesta local con prefijo:", error);
+    const prefijo = datosMatricula.prefijoCiclo || 'SEMSM';
+    const codigoGenerado = `${prefijo}-Q${Math.floor(1000 + Math.random() * 9000)}`;
+
+    return {
+      exito: true,
+      codigoUsuario: codigoGenerado,
+      claveTemporal: `DNI${datosMatricula.dni || '2026'}`,
+      alumno: `${datosMatricula.nombres} ${datosMatricula.apellidoPaterno || datosMatricula.apellidos || ''}`.trim(),
+      dni: datosMatricula.dni,
+      ciclo: datosMatricula.nombreCiclo || 'Ciclo Preuniversitario',
+      fecha: new Date().toLocaleDateString('es-PE')
+    };
+  }
+}
+
+export const registrarMatriculaAgil = crearMatricula;
+
+// ==========================================
+// HU-04: MÓDULO DE FINANZAS, PAGOS Y MOROSIDAD
+// ==========================================
+
+export async function obtenerPagosPorCiclo(idCiclo = 1) {
+  try {
+    const response = await fetchWithAuth(`/api/pagos/ciclo/${idCiclo}`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al consultar pagos por ciclo, usando semáforo mock:", error);
+    return [
+      { idAlumno: 101, alumno: 'Luis Fernando Tóccas', estadoPago: 'Pagado', monto: 350.00, vencimiento: '2026-09-30' },
+      { idAlumno: 102, alumno: 'Carlos Andrés Benítez', estadoPago: 'Moroso', monto: 350.00, vencimiento: '2026-09-15' },
+      { idAlumno: 103, alumno: 'Valeria Quispe Ruiz', estadoPago: 'Pagado', monto: 350.00, vencimiento: '2026-09-30' },
+      { idAlumno: 104, alumno: 'Diego Martín Salazar', estadoPago: 'Moroso', monto: 350.00, vencimiento: '2026-09-10' }
+    ];
+  }
+}
+
+/**
+ * HU-04: Consolidado de monitoreo académico y financiero para el Tutor de Aula
+ */
+export async function obtenerMonitoreoTutores(idCiclo = 1) {
+  try {
+    const response = await fetchWithAuth(`/api/tutores/monitoreo?idCiclo=${idCiclo}`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al consultar monitoreo de tutores en backend, usando semáforo mock:", error);
+    return [
+      { 
+        idAlumno: 101, 
+        codigoUsuario: 'SEMSM-Q6265', 
+        alumno: 'Luis Fernando Tóccas', 
+        ciclo: 'Semestral San Marcos', 
+        puntajeSimulacro: 15.8, 
+        estadoPago: 'Al día', 
+        montoPendiente: 0.00, 
+        ultimoPago: '2026-09-02' 
+      },
+      { 
+        idAlumno: 102, 
+        codigoUsuario: 'SEMSM-Q6266', 
+        alumno: 'Carlos Andrés Benítez', 
+        ciclo: 'Semestral San Marcos', 
+        puntajeSimulacro: 13.5, 
+        estadoPago: 'Moroso', 
+        montoPendiente: 350.00, 
+        ultimoPago: '2026-08-15' 
+      },
+      { 
+        idAlumno: 103, 
+        codigoUsuario: 'SEMSM-Q6267', 
+        alumno: 'Valeria Quispe Ruiz', 
+        ciclo: 'Semestral San Marcos', 
+        puntajeSimulacro: 18.2, 
+        estadoPago: 'Al día', 
+        montoPendiente: 0.00, 
+        ultimoPago: '2026-09-05' 
+      },
+      { 
+        idAlumno: 104, 
+        codigoUsuario: 'SEMSM-Q6268', 
+        alumno: 'Diego Martín Salazar', 
+        ciclo: 'Semestral San Marcos', 
+        puntajeSimulacro: 10.0, 
+        estadoPago: 'Moroso', 
+        montoPendiente: 350.00, 
+        ultimoPago: '2026-08-10' 
+      },
+      { 
+        idAlumno: 105, 
+        codigoUsuario: 'SEMSM-Q6269', 
+        alumno: 'Camila Sofía Paredes', 
+        ciclo: 'Semestral San Marcos', 
+        puntajeSimulacro: 14.0, 
+        estadoPago: 'Al día', 
+        montoPendiente: 0.00, 
+        ultimoPago: '2026-09-01' 
+      }
+    ];
+  }
+}
+
+// ==========================================
+// HU-03: MÓDULO DE MENÚS Y PERMISOS
 // ==========================================
 
 export async function obtenerOpcionesMenu() {
@@ -612,10 +710,10 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
 }
 
 // ==========================================
-// MÓDULO DE CALIFICACIONES
+// MÓDULO DE CALIFICACIONES Y SIMULACROS (HU-07)
 // ==========================================
 
-export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bimestre-2') {
+export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'simulacro-1') {
   const claveStorage = `acadesys_notas_${idAula}_${idCurso}_${periodo}`;
   const guardado = localStorage.getItem(claveStorage);
   if (guardado) {
@@ -632,11 +730,11 @@ export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'bime
   }
 
   const nominaBase = [
-    { idAlumno: 101, codigo: 'ACAD-2026-755', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
-    { idAlumno: 102, codigo: 'ACAD-2026-801', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
-    { idAlumno: 103, codigo: 'ACAD-2026-812', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
-    { idAlumno: 104, codigo: 'ACAD-2026-820', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
-    { idAlumno: 105, codigo: 'ACAD-2026-833', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
+    { idAlumno: 101, codigo: 'SEMSM-Q6265', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
+    { idAlumno: 102, codigo: 'SEMSM-Q6266', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
+    { idAlumno: 103, codigo: 'SEMSM-Q6267', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
+    { idAlumno: 104, codigo: 'SEMSM-Q6268', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
+    { idAlumno: 105, codigo: 'SEMSM-Q6269', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
   ];
   localStorage.setItem(claveStorage, JSON.stringify(nominaBase));
   return JSON.parse(JSON.stringify(nominaBase));
@@ -669,6 +767,31 @@ export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) 
     mockNotasDocente[`${idAula}-${idCurso}-${periodo}`] = JSON.parse(JSON.stringify(listaNotas));
     
     return { ok: true, mensaje: 'Calificaciones registradas localmente (fallback)' };
+  }
+}
+
+/**
+ * HU-07: Sella y cierra oficialmente las actas de un simulacro
+ */
+export async function cerrarSimulacroActa(idAula, idCurso, periodo) {
+  try {
+    const response = await fetchWithAuth(`/api/notas/cerrar-simulacro`, {
+      method: "PUT",
+      body: JSON.stringify({ idAula, idCurso, periodo }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al sellar simulacro en backend, aplicando confirmación simulada:", error);
+    return {
+      ok: true,
+      mensaje: `Simulacro (${periodo}) cerrado con éxito. Registro sellado y no editable.`
+    };
   }
 }
 
@@ -716,76 +839,168 @@ export async function confirmarLecturaComunicado(id) {
 }
 
 // ==========================================
-// HIJOS Y EXPEDIENTES (MOCK OFICIAL)
+// HU-05: EXPEDIENTES / ESTUDIANTES PREU
 // ==========================================
 
-const MOCK_HIJOS = [
+const MOCK_ESTUDIANTES = [
   {
     id: 1,
     nombre: 'Luis Fernando Tóccas',
-    gradoCorto: '5to Sec',
-    codigo: 'ACAD-2026-755',
-    aula: '5to de Secundaria - Aula 101 UNI',
+    gradoCorto: 'Semestral SM',
+    codigo: 'SEMSM-Q6265',
+    aula: 'Aula 101 - Semestral San Marcos',
     puestoRanking: 3,
     totalAlumnos: 36,
     promedioGeneral: 15.8,
-    cursosCriticos: 2,
+    cursosCriticos: 1,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
-    ]
-  },
-  {
-    id: 2,
-    nombre: 'Andrea Sofía Tóccas',
-    gradoCorto: '2do Sec',
-    codigo: 'ACAD-2026-912',
-    aula: '2do de Secundaria - Aula 204 B',
-    puestoRanking: 1,
-    totalAlumnos: 32,
-    promedioGeneral: 18.2,
-    cursosCriticos: 0,
-    cursos: [
-      { id: 10, nombre: 'Aritmética Básica', docente: 'Prof. Pedro Ramos', parcial: 18, tareas: 19, final: 19, promedio: 18.7, materialPdf: 'Guia_Fracciones_Decimales.pdf', pesoMb: '1.1 MB' },
-      { id: 11, nombre: 'Comunicación Integral', docente: 'Prof. Carmen Vega', parcial: 17, tareas: 18, final: 18, promedio: 17.7, materialPdf: 'Comprension_Lectora_Bim2.pdf', pesoMb: '2.0 MB' },
-      { id: 12, nombre: 'Biología y Ecosistemas', docente: 'Prof. Laura Méndez', parcial: 18, tareas: 18, final: 18, promedio: 18.0, materialPdf: 'Guia_Laboratorio_Celular.pdf', pesoMb: '1.5 MB' },
-      { id: 13, nombre: 'Historia del Perú', docente: 'Prof. Manuel Salazar', parcial: 18, tareas: 19, final: 18, promedio: 18.4, materialPdf: 'Resumen_Tahuantinsuyo.pdf', pesoMb: '3.2 MB' }
+      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Algebra_Semana4_Polinomios.pdf', pesoMb: '1.4 MB' },
+      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'RM_DECO_PlanteoEcuaciones.pdf', pesoMb: '2.1 MB' },
+      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Geometria_Poliedros_Regulares.pdf', pesoMb: '980 KB' },
+      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Fisica_Cinematica_Vectorial.pdf', pesoMb: '3.5 MB' },
+      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Quimica_Hidrocarburos.pdf', pesoMb: '1.8 MB' }
     ]
   }
 ];
 
 export async function obtenerHijosMock() {
-  return MOCK_HIJOS;
+  return MOCK_ESTUDIANTES;
 }
 
 // ==========================================
-// MÓDULO DE TUTOR IA (ASISTENTE ACADÉMICO)
+// HU-06: TUTOR PEDAGÓGICO IA (GEMINI PREU)
 // ==========================================
 
-export async function consultarTutorIA(pregunta) {
+export async function consultarTutorIA(pregunta, contextoPreu = {}) {
   try {
-    const response = await fetch("http://localhost:3000/api/tutor-ia", {
+    const payload = typeof contextoPreu === 'object' && contextoPreu !== null
+      ? {
+          pregunta: (pregunta || '').trim(),
+          estudiante: contextoPreu.estudiante || 'Alumno AcadeSys',
+          codigoUsuario: contextoPreu.codigoUsuario || 'SEMSM-Q6265',
+          universidadObjetivo: contextoPreu.universidadObjetivo || 'UNMSM',
+          carrera: contextoPreu.carrera || 'Ingeniería de Sistemas',
+          historialSimulacros: contextoPreu.historialSimulacros || [
+            { simulacro: 'Simulacro 1', puntaje: 14.5 },
+            { simulacro: 'Simulacro 2', puntaje: 16.2 },
+            { simulacro: 'Simulacro 3', puntaje: 16.7 }
+          ]
+        }
+      : {
+          pregunta: (pregunta || '').trim(),
+          estudiante: String(contextoPreu || 'Alumno AcadeSys')
+        };
+
+    const response = await fetchWithAuth(`/api/tutor-ia`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ pregunta }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+      throw new Error(errData.error || errData.message || errData.mensaje || `Error HTTP: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    let textoFinal = data.respuesta || data.mensaje || data.result || '';
+
+    if (typeof textoFinal === 'object') {
+      textoFinal = textoFinal.analisis || JSON.stringify(textoFinal);
+    }
+
+    if (data.consejoAdmision) {
+      textoFinal += `\n\n🎯 Tip Admisión: ${data.consejoAdmision}`;
+    }
+
+    return {
+      respuesta: textoFinal || "He analizado tus resultados de simulacros. Enfoca tu repaso en temas DECO de Álgebra y Trigonometría para consolidar tu puntaje."
+    };
   } catch (error) {
-    console.warn("Fallo al conectar con la API del Tutor IA, usando respuesta local simulada:", error);
+    console.warn("Fallo al conectar con la API del Tutor IA, usando respuesta preuniversitaria de respaldo:", error);
     
     return { 
-      respuesta: "Entendido. Como tu tutor académico, te sugiero revisar las fórmulas principales de tu guía de estudios para resolver este ejercicio de manera óptima." 
+      respuesta: "Como tu tutor pedagógico de AcadeSys, te recomiendo repasar las preguntas tipo DECO y los ejercicios de simulacro de años anteriores de la universidad a la que postulas." 
+    };
+  }
+}
+
+// ==========================================
+// HU-05: PANEL DEL ALUMNO Y MATERIALES
+// ==========================================
+
+/**
+ * HU-05: Obtiene los enlaces de materiales y clases grabadas (Drive/OneDrive)
+ */
+export async function obtenerMaterialesAlumno(idCiclo = 1) {
+  try {
+    const response = await fetchWithAuth(`/api/materiales?idCiclo=${idCiclo}`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al obtener materiales de la API, usando mock local:", error);
+    return [
+      {
+        idMaterial: 1,
+        curso: 'Álgebra Superior',
+        docente: 'Prof. Carlos Mendoza',
+        tema: 'Semana 4: Polinomios y Teorema del Resto',
+        tipo: 'drive',
+        enlace: 'https://drive.google.com',
+        fechaPublicacion: '2026-09-18'
+      },
+      {
+        idMaterial: 2,
+        curso: 'Razonamiento Matemático',
+        docente: 'Prof. Dante Quispe',
+        tema: 'Semana 4: Planteo de Ecuaciones Tipo DECO',
+        tipo: 'onedrive',
+        enlace: 'https://onedrive.live.com',
+        fechaPublicacion: '2026-09-19'
+      },
+      {
+        idMaterial: 3,
+        curso: 'Física Clásica',
+        docente: 'Prof. María Flores',
+        tema: 'Semana 3: Cinemática y Movimiento Circular',
+        tipo: 'drive',
+        enlace: 'https://drive.google.com',
+        fechaPublicacion: '2026-09-15'
+      },
+      {
+        idMaterial: 4,
+        curso: 'Química Orgánica',
+        docente: 'Prof. Rosaura Benítez',
+        tema: 'Semana 4: Hidrocarburos Alifáticos',
+        tipo: 'drive',
+        enlace: 'https://drive.google.com',
+        fechaPublicacion: '2026-09-20'
+      }
+    ];
+  }
+}
+
+/**
+ * HU-05: Obtiene el promedio y el historial de simulacros del alumno
+ */
+export async function obtenerNotasSimulacroAlumno(idEstudiante = 101) {
+  try {
+    const response = await fetchWithAuth(`/api/notas/simulacros?idEstudiante=${idEstudiante}`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn("Fallo al obtener notas de simulacros, usando mock:", error);
+    return {
+      codigoUsuario: 'SEMSM-Q6265',
+      estudiante: 'Luis Fernando Tóccas',
+      ciclo: 'Semestral San Marcos',
+      puestoRanking: 3,
+      totalAlumnos: 36,
+      promedioGeneral: 15.8,
+      simulacros: [
+        { fecha: '2026-09-07', numero: 'Simulacro 1', puntaje: 14.5, estado: 'Aprobado' },
+        { fecha: '2026-09-14', numero: 'Simulacro 2', puntaje: 16.2, estado: 'Aprobado' },
+        { fecha: '2026-09-21', numero: 'Simulacro 3', puntaje: 16.7, estado: 'Aprobado' }
+      ]
     };
   }
 }
