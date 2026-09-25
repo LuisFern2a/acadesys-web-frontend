@@ -5,6 +5,7 @@ import {
   Building2, CheckCircle2
 } from 'lucide-react';
 import { crearUsuario } from '../services/api';
+import PortalAccesos from '../components/PortalAccesos';
 
 const MAPA_ROLES = {
   '1': 'Administrador',
@@ -15,6 +16,7 @@ const MAPA_ROLES = {
 
 export default function LandingPage({ onLoginSuccess }) {
   const [authModal, setAuthModal] = useState(null);
+  const [rolEsperado, setRolEsperado] = useState(null); // '1', '2', '4' o null si entra desde el header
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -52,14 +54,28 @@ export default function LandingPage({ onLoginSuccess }) {
     });
   };
 
-  const openModal = (modalType) => {
+  const openModal = (modalType, idPerfil = null) => {
     resetFormStates();
+    setRolEsperado(idPerfil ? idPerfil.toString() : null);
     setAuthModal(modalType);
   };
 
   const closeModal = () => {
     resetFormStates();
+    setRolEsperado(null);
     setAuthModal(null);
+  };
+
+  // Manejadores activados desde las tarjetas del portal
+  const handleIngresarPorRol = (idPerfil) => {
+    openModal('login', idPerfil);
+  };
+
+  const handleRegistrarPorRol = (idPerfil) => {
+    resetFormStates();
+    setRolEsperado(idPerfil.toString());
+    setRegisterData(prev => ({ ...prev, idPerfil: idPerfil.toString() }));
+    setAuthModal('register');
   };
 
   const validarPasswordSegura = (pass) => {
@@ -114,7 +130,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
       setSuccessMsg(`¡Registro completado como ${nombreRol}! Ya puedes iniciar sesión.`);
       setTimeout(() => {
-        openModal('login');
+        openModal('login', registerData.idPerfil);
       }, 1500);
 
     } catch (err) {
@@ -148,6 +164,29 @@ export default function LandingPage({ onLoginSuccess }) {
 
       if (!res.ok) {
         throw new Error(data.error || data.mensaje || data.message || 'Credenciales inválidas.');
+      }
+
+      // Identificación normalizada del perfil devuelto por la API
+      const rolRecibidoTexto = (data.rol || data.perfil || data.NombrePerfil || '').toString().toLowerCase();
+      const idPerfilRecibido = (data.idPerfil || data.IdPerfil || data.id_perfil || '').toString();
+
+      // Validación de concordancia con la tarjeta por la que entró
+      if (rolEsperado) {
+        const nombreEsperado = (MAPA_ROLES[rolEsperado] || '').toLowerCase();
+        
+        // Coincidencia por ID o por nombre de rol
+        const coincideId = idPerfilRecibido === rolEsperado;
+        const coincideNombre = rolRecibidoTexto.includes(nombreEsperado);
+        
+        // El administrador (ID 1) siempre tiene permiso de entrar si lo requiere
+        const esAdminGlobal = idPerfilRecibido === '1' || rolRecibidoTexto.includes('admin');
+
+        if (!coincideId && !coincideNombre && !esAdminGlobal) {
+          const perfilCuenta = data.rol || data.perfil || data.NombrePerfil || 'Usuario';
+          throw new Error(
+            `Acceso restringido: Esta cuenta tiene asignado el perfil "${perfilCuenta}" y no puede ingresar por el portal de ${MAPA_ROLES[rolEsperado]}. Por favor ingresa por la tarjeta correspondiente.`
+          );
+        }
       }
 
       // Captura de datos de branding multi-tenant (res.data.academia)
@@ -197,9 +236,9 @@ export default function LandingPage({ onLoginSuccess }) {
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-sm text-slate-400 font-medium">
+          <a href="#portal-accesos" className="hover:text-white transition duration-150">Accesos</a>
           <a href="#modulos" className="hover:text-white transition duration-150">Módulos</a>
           <a href="#seguridad" className="hover:text-white transition duration-150">Seguridad RBAC</a>
-          <a href="#institucional" className="hover:text-white transition duration-150">Institucional</a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -233,19 +272,16 @@ export default function LandingPage({ onLoginSuccess }) {
           </span>
         </h1>
 
-        <p className="max-w-2xl text-slate-400 text-base sm:text-lg mb-10 leading-relaxed font-normal">
+        <p className="max-w-2xl text-slate-400 text-base sm:text-lg mb-12 leading-relaxed font-normal">
           Plataforma integral para gestión de roles RBAC, registro de notas, seguimiento de asistencia y tutoría con inteligencia artificial en la nube.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-20">
-          <button
-            type="button"
-            onClick={() => openModal('login')}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-sm tracking-wide shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 transition group cursor-pointer"
-          >
-            <span>Acceder al Portal Académico</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+        {/* Portal con las 3 tarjetas interactivas de perfiles */}
+        <div className="w-full mb-16">
+          <PortalAccesos 
+            onSelectRoleLogin={handleIngresarPorRol}
+            onSelectRoleRegister={handleRegistrarPorRol}
+          />
         </div>
 
         <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-16" id="modulos">
@@ -342,7 +378,7 @@ export default function LandingPage({ onLoginSuccess }) {
               </h2>
               <p className="text-xs text-slate-400 mt-1">
                 {authModal === 'login' 
-                  ? 'Ingresa tus credenciales para acceder a tu panel de gestión' 
+                  ? (rolEsperado ? `Ingreso asignado para perfil: ${MAPA_ROLES[rolEsperado]}` : 'Ingresa tus credenciales para acceder a tu panel') 
                   : 'Completa los campos para generar tu usuario institucional'}
               </p>
             </div>
@@ -416,7 +452,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   ¿Aún no tienes cuenta?{' '}
                   <button
                     type="button"
-                    onClick={() => openModal('register')}
+                    onClick={() => openModal('register', rolEsperado)}
                     className="text-indigo-400 font-semibold hover:underline"
                   >
                     Regístrate aquí
@@ -573,7 +609,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   ¿Ya tienes cuenta institucional?{' '}
                   <button
                     type="button"
-                    onClick={() => openModal('login')}
+                    onClick={() => openModal('login', rolEsperado)}
                     className="text-indigo-400 font-semibold hover:underline"
                   >
                     Inicia sesión
