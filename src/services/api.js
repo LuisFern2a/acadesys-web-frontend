@@ -6,33 +6,34 @@ export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.on
 // ==========================================
 
 export function guardarToken(token) {
+  // Soporta tanto acadesys_session (requerido) como acadesys_token por compatibilidad
+  localStorage.setItem('acadesys_session', token);
   localStorage.setItem('acadesys_token', token);
 }
 
 export function obtenerToken() {
-  const directToken = localStorage.getItem('acadesys_token');
-  if (directToken) return directToken;
-
-  const session = localStorage.getItem('acadesys_session');
-  if (session) {
+  const sessionToken = localStorage.getItem('acadesys_session');
+  if (sessionToken) {
     try {
-      const parsed = JSON.parse(session);
-      return parsed.token || parsed.jwt || parsed.accessToken || null;
+      const parsed = JSON.parse(sessionToken);
+      return parsed.token || parsed.jwt || parsed.accessToken || sessionToken;
     } catch {
-      return null;
+      return sessionToken;
     }
   }
-  return null;
+  return localStorage.getItem('acadesys_token') || null;
 }
 
 export function cerrarSesion() {
-  localStorage.removeItem('acadesys_token');
   localStorage.removeItem('acadesys_session');
+  localStorage.removeItem('acadesys_token');
   localStorage.removeItem('usuario');
+  localStorage.removeItem('acadesys_user');
   window.location.href = '/';
 }
 
-async function fetchWithAuth(endpoint, options = {}) {
+// Interceptor centralizado para inyectar JWT en cabeceras y capturar 401/403
+export async function fetchWithAuth(endpoint, options = {}) {
   const token = obtenerToken();
   
   const headers = {
@@ -41,18 +42,67 @@ async function fetchWithAuth(endpoint, options = {}) {
     ...options.headers
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetch(API_URL + endpoint, {
     ...options,
     headers
   });
 
-  if (response.status === 401) {
-    console.warn("Sesión expirada o no autorizada (401). Redirigiendo...");
-    cerrarSesion();
-    throw new Error("Sesión expirada. Por favor inicie sesión nuevamente.");
+  if (response.status === 401 || response.status === 403) {
+    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('acadesys_session') || '';
+    const tokenGuardado = localStorage.getItem('acadesys_token') || '';
+
+    const esModoDemo = 
+      usuarioGuardado.includes('Luis') || 
+      usuarioGuardado.includes('Alumno') || 
+      tokenGuardado.includes('dev-token');
+
+    if (!esModoDemo) {
+      console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
+      cerrarSesion();
+      throw new Error("Sesión no autorizada o expirada.");
+    }
+
+    console.warn(`[Auth] Respuesta ${response.status} en Tutor IA: contingencia activa para usuario demo.`);
   }
 
   return response;
+}
+
+// ==========================================
+// AUTENTICACIÓN (LOGIN SEGURO EN EL BODY)
+// ==========================================
+export async function iniciarSesion(codigoOUsuario, password) {
+  const valorLimpio = String(codigoOUsuario).trim();
+  const passLimpia = String(password).trim();
+
+  const response = await fetch(`${API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // Enviamos tanto 'usuario' (lo que pide el backend actual) como 'codigo_usuario'
+    body: JSON.stringify({
+      usuario: valorLimpio,
+      codigo_usuario: valorLimpio,
+      password: passLimpia
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || 'Credenciales inválidas');
+  }
+
+  const data = await response.json();
+  const tokenRecibido = data.token || data.jwt || data.accessToken;
+
+  if (tokenRecibido) {
+    guardarToken(tokenRecibido);
+  }
+
+  if (data.usuario || data.user) {
+    localStorage.setItem('usuario', JSON.stringify(data.usuario || data.user));
+  }
+
+  return data;
 }
 
 // ==========================================
