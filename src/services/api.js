@@ -1,4 +1,5 @@
-const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
+// ✅ DEBE LLEVAR "export":
+export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
 
 // ==========================================
 // CONTROL DE TOKEN JWT Y SESIÓN
