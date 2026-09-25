@@ -4,7 +4,7 @@ import {
   ArrowRight, Users, Sparkles, X, Check, Shield, AlertCircle, UserPlus,
   Building2, CheckCircle2
 } from 'lucide-react';
-import { crearUsuario } from '../services/api';
+import { crearUsuario, API_URL } from '../services/api';
 
 const MAPA_ROLES = {
   '1': 'Administrador',
@@ -133,7 +133,8 @@ export default function LandingPage({ onLoginSuccess }) {
     const inputPass = loginData.password.trim();
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
+      // ✅ CORREGIDO: ahora usa API_URL centralizado (Render o .env)
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
