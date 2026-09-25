@@ -14,6 +14,7 @@ import ComunicadosPage from './pages/ComunicadosPage';
 import MorosidadPage from './pages/MorosidadPage';
 import PanelAlumnoPage from './pages/PanelAlumnoPage';
 import OfflineFallback from './components/OfflineFallback';
+import TutorDashboardPage from './pages/TutorDashboardPage';
 import { obtenerHijosMock } from './services/api';
 
 const ESTUDIANTES_DEMO = [
@@ -172,6 +173,11 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <DashboardOverviewPage setActiveTab={setActiveTab} />
           )}
+
+          {activeTab === 'tutor-dashboard' && (
+            <TutorDashboardPage setActiveTab={setActiveTab} />
+       )}
+
 
           {/* HU-01: Matrícula Ágil */}
           {activeTab === 'matriculas' && (esAdmin || esTutor) && (
