@@ -4,12 +4,7 @@ import {
   ArrowRight, Users, Sparkles, X, Check, Shield, AlertCircle, UserPlus,
   Building2, CheckCircle2
 } from 'lucide-react';
-<<<<<<< HEAD
-import { crearUsuario, API_URL } from '../services/api';
-=======
-import { crearUsuario, iniciarSesion, guardarToken } from '../services/api';
->>>>>>> fb927cf (feat(auth): integracion completa de jwt en acadesys_session, inyeccion bearer, interceptores 401/403 y payload seguro)
-
+import { crearUsuario, API_URL, guardarToken } from '../services/api';
 const MAPA_ROLES = {
   '1': 'Administrador',
   '2': 'Docente',
@@ -137,13 +132,7 @@ export default function LandingPage({ onLoginSuccess }) {
     const inputPass = loginData.password.trim();
 
     try {
-<<<<<<< HEAD
-      // ✅ CORREGIDO: ahora usa API_URL centralizado (Render o .env)
       const res = await fetch(`${API_URL}/api/auth/login`, {
-=======
-      // 1. Iniciar sesión apuntando a la API en Render (POST con Body JSON)
-      const res = await fetch('https://acadesys-api.onrender.com/api/auth/login', {
->>>>>>> fb927cf (feat(auth): integracion completa de jwt en acadesys_session, inyeccion bearer, interceptores 401/403 y payload seguro)
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
