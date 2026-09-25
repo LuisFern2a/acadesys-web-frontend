@@ -14,6 +14,7 @@ import ComunicadosPage from './pages/ComunicadosPage';
 import MorosidadPage from './pages/MorosidadPage';
 import PanelAlumnoPage from './pages/PanelAlumnoPage';
 import OfflineFallback from './components/OfflineFallback';
+import TutorDashboardPage from './pages/TutorDashboardPage';
 import { obtenerHijosMock } from './services/api';
 
 const ESTUDIANTES_DEMO = [
@@ -71,11 +72,12 @@ const ESTUDIANTES_DEMO = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('acadesys_tab') || 'dashboard');
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [hijos, setHijos] = useState(ESTUDIANTES_DEMO);
   const [idHijoSeleccionado, setIdHijoSeleccionado] = useState(1);
+
 
   useEffect(() => {
     obtenerHijosMock()
@@ -97,18 +99,24 @@ export default function App() {
         setIdHijoSeleccionado(ESTUDIANTES_DEMO[0].id);
       });
 
-    const saved = localStorage.getItem('acadesys_session');
-    if (saved) {
+    // Leemos 'usuario', que es donde vive el JSON con { nombre: 'Luis', rol: 'Alumno' }
+    const savedUser = localStorage.getItem('usuario') || localStorage.getItem('acadesys_session');
+    if (savedUser) {
       try {
-        const userParsed = JSON.parse(saved);
+        const userParsed = typeof savedUser === 'string' && savedUser.startsWith('{')
+          ? JSON.parse(savedUser)
+          : { nombre: 'Luis', rol: 'Alumno' };
+
         setSession(userParsed);
 
         const rol = (userParsed?.rol || userParsed?.Perfil || '').toLowerCase();
         if (rol.includes('alumno') || rol.includes('estudiante')) {
           setActiveTab('calificaciones');
+        } else {
+          setActiveTab('dashboard');
         }
-      } catch {
-        localStorage.removeItem('acadesys_session');
+      } catch (e) {
+        console.error("Error al procesar sesión:", e);
       }
     }
     setLoadingSession(false);
@@ -165,6 +173,11 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <DashboardOverviewPage setActiveTab={setActiveTab} />
           )}
+
+          {activeTab === 'tutor-dashboard' && (
+            <TutorDashboardPage setActiveTab={setActiveTab} />
+       )}
+
 
           {/* HU-01: Matrícula Ágil */}
           {activeTab === 'matriculas' && (esAdmin || esTutor) && (

@@ -123,7 +123,17 @@ export default function DashboardLayout({
         { id: 'perfiles', label: 'Roles y Permisos', icon: ShieldCheck },
         { id: 'menu-options', label: 'Opciones de Menú', icon: MenuIcon }
       ]
-    }
+    },
+    {
+  id: 'tutor-dashboard',
+  label: 'Dashboard Tutor',
+  icon: Users,
+  rolesPermitidos: [
+    'administrador',
+    'admin',
+    'tutor de aula'
+  ]
+}
   ];
 
   // Filtrado de menús según permisos del usuario
@@ -134,6 +144,7 @@ export default function DashboardLayout({
   const titulosTabs = {
     'dashboard': 'Dashboard Preuniversitario',
     'matriculas': 'Matrícula Ágil y Generación de Códigos',
+    'tutor-dashboard': 'Dashboard de Tutor de Aula',
     'comunicados': 'Comunicados Institucionales',
     'asistencia': 'Control de Asistencia',
     'registro-notas': 'Registro de Notas de Simulacro',
@@ -234,8 +245,11 @@ export default function DashboardLayout({
                     </button>
 
                     {/* Submenús Hijos Desplegables */}
-                    {!collapsed && estaAbierto && (
-                      <div className="pl-6 space-y-1 border-l-2 border-slate-800 ml-4 py-1 animate-in fade-in duration-150">
+                    {!collapsed && (
+                      <div className={`pl-6 space-y-1 border-l-2 border-slate-800 ml-4 py-1 overflow-hidden transition-all duration-300 ${
+    estaAbierto ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+  }`}
+>
                         {item.submenus.map((sub) => {
                           const SubIcon = sub.icon;
                           const isSubActive = activeTab === sub.id;
