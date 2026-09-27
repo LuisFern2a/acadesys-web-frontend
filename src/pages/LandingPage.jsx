@@ -4,7 +4,7 @@ import {
   ArrowRight, Users, Sparkles, X, Check, Shield, AlertCircle, UserPlus,
   Building2, CheckCircle2
 } from 'lucide-react';
-import { crearUsuario } from '../services/api';
+import { crearUsuario, API_URL } from '../services/api';
 import PortalAccesos from '../components/PortalAccesos';
 
 const MAPA_ROLES = {
@@ -149,7 +149,7 @@ export default function LandingPage({ onLoginSuccess }) {
     const inputPass = loginData.password.trim();
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -174,7 +174,6 @@ export default function LandingPage({ onLoginSuccess }) {
       if (rolEsperado) {
         const nombreEsperado = (MAPA_ROLES[rolEsperado] || '').toLowerCase();
         
-        // Coincidencia por ID o por nombre de rol
         const coincideId = idPerfilRecibido === rolEsperado;
         const coincideNombre = rolRecibidoTexto.includes(nombreEsperado);
         
@@ -277,7 +276,7 @@ export default function LandingPage({ onLoginSuccess }) {
         </p>
 
         {/* Portal con las 3 tarjetas interactivas de perfiles */}
-        <div className="w-full mb-16">
+        <div className="w-full mb-16" id="portal-accesos">
           <PortalAccesos 
             onSelectRoleLogin={handleIngresarPorRol}
             onSelectRoleRegister={handleRegistrarPorRol}
