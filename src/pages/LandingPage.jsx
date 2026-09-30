@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 import { 
   ShieldCheck, Lock, User, Eye, EyeOff, Loader2, 
   ArrowRight, Users, Sparkles, X, Check, Shield, AlertCircle, UserPlus,
-  Building2, CheckCircle2
+  Building2, CheckCircle2, GraduationCap, Clock
 } from 'lucide-react';
-import { crearUsuario, API_URL } from '../services/api';
+import { crearUsuario, API_URL, guardarToken, obtenerCiclosPublicos, procesarCheckoutMatricula } from '../services/api';
 import PortalAccesos from '../components/PortalAccesos';
 
 const MAPA_ROLES = {
@@ -36,6 +37,12 @@ export default function LandingPage({ onLoginSuccess }) {
     idPerfil: '1'
   });
 
+  const [ciclos, setCiclos] = useState([]);
+  const [loadingCiclos, setLoadingCiclos] = useState(true);
+  const [cicloSeleccionado, setCicloSeleccionado] = useState(null);
+  const [checkoutData, setCheckoutData] = useState({ nombres: '', apellidos: '', correo: '' });
+  const [procesandoPago, setProcesandoPago] = useState(false);
+
   const resetFormStates = () => {
     setError(null);
     setSuccessMsg(null);
@@ -65,6 +72,80 @@ export default function LandingPage({ onLoginSuccess }) {
     setRolEsperado(null);
     setAuthModal(null);
   };
+
+  React.useEffect(() => {
+    async function cargarCiclos() {
+      try {
+        setLoadingCiclos(true);
+        const data = await obtenerCiclosPublicos();
+        setCiclos(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.warn('Error al cargar ciclos públicos:', err);
+      } finally {
+        setLoadingCiclos(false);
+      }
+    }
+    cargarCiclos();
+  }, []);
+
+  const abrirCheckout = (ciclo) => {
+  setError(null);
+  setCheckoutData({ nombres: '', apellidos: '', correo: '' });
+  setCicloSeleccionado(ciclo);
+};
+
+const cerrarCheckout = () => {
+  if (procesandoPago) return;
+  setCicloSeleccionado(null);
+  setError(null);
+};
+
+  const handlePagarCheckout = async (e) => {
+  e.preventDefault();
+  setError(null);
+  setProcesandoPago(true);
+
+  Swal.fire({
+    title: 'Procesando pago...',
+    text: 'Por favor espera un momento',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    background: '#0f172a',
+    color: '#fff',
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // simulación
+
+    await procesarCheckoutMatricula({
+      idCiclo: cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id,
+      nombres: checkoutData.nombres.trim(),
+      apellidos: checkoutData.apellidos.trim(),
+      correo: checkoutData.correo.trim(),
+      monto: 1.0
+    });
+
+    await Swal.fire({
+      icon: 'success',
+      title: '¡Inscripción exitosa!',
+      text: 'Revisa tu correo para obtener tus accesos',
+      confirmButtonText: 'Ir al inicio',
+      confirmButtonColor: '#4f46e5',
+      background: '#0f172a',
+      color: '#fff'
+    });
+
+    setCicloSeleccionado(null);
+    window.location.href = '/';
+  } catch (err) {
+    Swal.close();
+    setError(err.message || 'Error al procesar el pago.');
+  } finally {
+    setProcesandoPago(false);
+  }
+};
 
   // Manejadores activados desde las tarjetas del portal
   const handleIngresarPorRol = (idPerfil) => {
@@ -145,7 +226,7 @@ export default function LandingPage({ onLoginSuccess }) {
     setLoading(true);
     setError(null);
 
-    const inputUser = loginData.usuario.trim().toLowerCase();
+    const inputUser = loginData.usuario.trim();
     const inputPass = loginData.password.trim();
 
     try {
@@ -154,6 +235,7 @@ export default function LandingPage({ onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           usuario: inputUser,
+          codigoUsuario: inputUser,
           correo: inputUser,
           password: inputPass,
           clave: inputPass
@@ -282,6 +364,46 @@ export default function LandingPage({ onLoginSuccess }) {
             onSelectRoleRegister={handleRegistrarPorRol}
           />
         </div>
+
+        <section className="w-full mb-16 text-left" id="ciclos">
+  <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 text-center">Ciclos disponibles</h2>
+  <p className="text-slate-400 text-sm text-center mb-8">Elige tu ciclo e inscríbete en minutos</p>
+
+  {loadingCiclos ? (
+    <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-indigo-400" /></div>
+  ) : ciclos.length === 0 ? (
+    <p className="text-center text-slate-500 text-sm">No hay ciclos disponibles por el momento.</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {ciclos.map((ciclo) => (
+        <div key={ciclo.idCiclo ?? ciclo.id} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-indigo-500/40 transition flex flex-col">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
+            <GraduationCap className="w-5 h-5" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-3">{ciclo.nombre}</h3>
+          <ul className="space-y-2 text-xs text-slate-300 mb-6">
+            <li className="flex items-center gap-2">
+  <Clock className="w-4 h-4 text-indigo-400" />
+  {ciclo.turno
+    ? `Turno: ${ciclo.turno}`
+    : ciclo.fechaInicio
+      ? `Inicio: ${new Date(ciclo.fechaInicio).toLocaleDateString('es-PE')}`
+      : 'Próximamente'}
+</li>
+            <li className="flex items-center gap-2"><Users className="w-4 h-4 text-indigo-400" /> {ciclo.cantidadAlumnos} alumnos</li>
+          </ul>
+          <button
+            type="button"
+            onClick={() => abrirCheckout(ciclo)}
+            className="mt-auto w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/30 transition"
+          >
+            Inscríbete aquí
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
 
         <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-16" id="modulos">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl hover:border-indigo-500/40 transition duration-200 group">
@@ -617,6 +739,55 @@ export default function LandingPage({ onLoginSuccess }) {
               </form>
             )}
 
+          </div>
+        </div>
+      )}
+      {cicloSeleccionado && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-md bg-slate-900/95 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <button type="button" onClick={cerrarCheckout} className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white rounded-xl transition">
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-2xl font-black text-white mb-1">Inscripción</h2>
+            <p className="text-xs text-slate-400 mb-6">
+              Ciclo: <span className="text-indigo-300 font-semibold">{cicloSeleccionado.nombre}</span>{cicloSeleccionado.turno ? ` · ${cicloSeleccionado.turno}` : ''}
+            </p>
+
+            {error && (
+              <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0" /><span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePagarCheckout} className="space-y-4 text-left">
+              {[
+                { key: 'nombres', label: 'Nombres', type: 'text', ph: 'Tus nombres' },
+                { key: 'apellidos', label: 'Apellidos', type: 'text', ph: 'Tus apellidos' },
+                { key: 'correo', label: 'Correo', type: 'email', ph: 'correo@ejemplo.com' }
+              ].map((f) => (
+                <div key={f.key}>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</label>
+                  <input
+                    type={f.type}
+                    required
+                    placeholder={f.ph}
+                    value={checkoutData[f.key]}
+                    onChange={(e) => setCheckoutData({ ...checkoutData, [f.key]: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+              ))}
+
+              <button
+                type="submit"
+                disabled={procesandoPago}
+                className="w-full mt-2 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                {procesandoPago && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Pagar S/ 1.00</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

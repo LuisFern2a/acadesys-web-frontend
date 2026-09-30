@@ -48,22 +48,10 @@ export async function fetchWithAuth(endpoint, options = {}) {
   });
 
   if (response.status === 401 || response.status === 403) {
-    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('acadesys_session') || '';
-    const tokenGuardado = localStorage.getItem('acadesys_token') || '';
-
-    const esModoDemo = 
-      usuarioGuardado.includes('Luis') || 
-      usuarioGuardado.includes('Alumno') || 
-      tokenGuardado.includes('dev-token');
-
-    if (!esModoDemo) {
-      console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
-      cerrarSesion();
-      throw new Error("Sesión no autorizada o expirada.");
-    }
-
-    console.warn(`[Auth] Respuesta ${response.status} en Tutor IA: contingencia activa para usuario demo.`);
-  }
+  console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
+  cerrarSesion();
+  throw new Error("Sesión no autorizada o expirada.");
+}
 
   return response;
 }
@@ -1054,4 +1042,62 @@ export async function obtenerNotasSimulacroAlumno(idEstudiante = 101) {
       ]
     };
   }
+}
+
+// Tarea 1: GET /api/ciclos/publicos
+export async function obtenerCiclosPublicos() {
+  try {
+    const response = await fetch(`${API_URL}/api/ciclos/publicos`);
+    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    const data = await response.json();
+    const lista = Array.isArray(data) ? data : (data.data || data.ciclos || []);
+
+    return lista.map((c) => ({
+      idCiclo: c.IdCiclo ?? c.idCiclo ?? c.id,
+      nombre: c.Nombre ?? c.nombre,
+      turno: c.Turno ?? c.turno ?? null,
+      cantidadAlumnos: c.TotalAlumnos ?? c.cantidadAlumnos ?? 0,
+      prefijo: c.PrefijoCodigo ?? null,
+      fechaInicio: c.FechaInicio ?? null,
+      fechaFin: c.FechaFin ?? null,
+      precio: 1.0
+    }));
+  } catch (error) {
+    console.warn("Fallo al obtener ciclos públicos, usando fallback:", error);
+    return [
+      { idCiclo: 1, nombre: 'Semestral San Marcos', turno: 'Mañana', cantidadAlumnos: 36, precio: 1.00 },
+      { idCiclo: 2, nombre: 'Anual UNI', turno: 'Mañana', cantidadAlumnos: 28, precio: 1.00 },
+      { idCiclo: 3, nombre: 'Repaso Villarreal', turno: 'Tarde', cantidadAlumnos: 22, precio: 1.00 }
+    ];
+  }
+}
+
+// Tarea 2: POST /api/matriculas/checkout
+export async function procesarCheckoutMatricula(payload) {
+  const cuerpo = {
+    IdCiclo: payload.idCiclo,
+    Nombres: payload.nombres,
+    Apellidos: payload.apellidos,
+    Correo: payload.correo,
+    // camelCase por si acaso
+    idCiclo: payload.idCiclo,
+    nombres: payload.nombres,
+    apellidos: payload.apellidos,
+    correo: payload.correo,
+    monto: payload.monto
+  };
+
+  const response = await fetch(`${API_URL}/api/matriculas/checkout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cuerpo)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  console.log('[checkout]', response.status, data);
+
+  if (!response.ok) {
+    throw new Error(data.message || data.error || data.mensaje || 'Error al procesar el pago e inscripción');
+  }
+  return data;
 }
