@@ -224,10 +224,22 @@ export default function App() {
             <TutorIAPage estudianteActivo={hijoActivo} />
           )}
 
-          {/* Módulo Académico (Aulas y Cursos) */}
-          {activeTab === 'academico' && esStaff && (
-            <AcademicoPage />
-          )}
+          {/* Módulo Académico */}
+{(
+  activeTab === 'academico' ||
+  activeTab === 'academico-ciclos' ||
+  activeTab === 'academico-turnos'
+) && esStaff && (
+  <AcademicoPage
+    vistaInicial={
+      activeTab === 'academico-ciclos'
+        ? 'ciclos'
+        : activeTab === 'academico-turnos'
+          ? 'turnos'
+          : 'asignaciones'
+    }
+  />
+)}
 
           {/* Administración y RBAC */}
           {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}

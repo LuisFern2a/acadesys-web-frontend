@@ -51,12 +51,19 @@ export default function MorosidadPage() {
   const totalAlDia = datos.filter(d => (d.estadoPago || '').toLowerCase().includes('día') || (d.estadoPago || '').toLowerCase().includes('pagado')).length;
   const totalMorosos = datos.filter(d => (d.estadoPago || '').toLowerCase().includes('moroso')).length;
   const porcentajeMorosidad = totalAlumnos > 0 ? Math.round((totalMorosos / totalAlumnos) * 100) : 0;
+  const totalDeuda = datos.reduce(
+  (total, item) => total + Number(item.montoPendiente || 0),
+  0
+);
 
   // Filtrado reactivo
   const alumnosFiltrados = datos.filter((item) => {
-    const coincideTexto = 
-      item.alumno.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      item.codigoUsuario.toLowerCase().includes(filtroTexto.toLowerCase());
+    const nombreAlumno = String(item.alumno || '');
+const codigoAlumno = String(item.codigoUsuario || '');
+
+const coincideTexto =
+  nombreAlumno.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+  codigoAlumno.toLowerCase().includes(filtroTexto.toLowerCase());
 
     const estadoLower = (item.estadoPago || '').toLowerCase();
     const esAlDia = estadoLower.includes('día') || estadoLower.includes('pagado');
@@ -78,7 +85,7 @@ export default function MorosidadPage() {
             <span>HU-04: Panel de Tutoría y Control de Pensiones</span>
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight">
-            Semáforo de Morosidad y Rendimiento
+            Panel de Morosidad
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Supervisa el estado financiero de tus alumnos y correlaciónalo con sus puntajes en simulacros.
@@ -97,7 +104,25 @@ export default function MorosidadPage() {
       </div>
 
       {/* Tarjetas de Métricas Rápidas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between">
+  <div>
+    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block mb-1">
+      Deuda Pendiente
+    </span>
+
+    <span className="text-2xl font-black text-amber-400">
+      S/ {totalDeuda.toFixed(2)}
+    </span>
+  </div>
+
+  <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+    <DollarSign className="w-5 h-5" />
+  </div>
+</div>
+
+
         
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between">
           <div>
@@ -226,7 +251,7 @@ export default function MorosidadPage() {
                           item.puntajeSimulacro >= 14 ? 'text-emerald-400' : 
                           item.puntajeSimulacro >= 11 ? 'text-amber-400' : 'text-rose-400'
                         }`}>
-                          {item.puntajeSimulacro.toFixed(1)} / 20.0
+                          {Number(item.puntajeSimulacro || 0).toFixed(1)} / 20.0
                         </span>
                       </td>
                       <td className="py-4 px-6">
@@ -246,7 +271,7 @@ export default function MorosidadPage() {
                         {esAlDia ? (
                           <span className="text-slate-500">S/ 0.00</span>
                         ) : (
-                          <span className="text-rose-400">S/ {item.montoPendiente.toFixed(2)}</span>
+                          <span className="text-rose-400">S/ {Number(item.montoPendiente || 0).toFixed(2)}</span>
                         )}
                       </td>
                     </tr>

@@ -15,6 +15,7 @@ import {
   Layers, 
   UserCheck,
   CalendarCheck,
+  CalendarClock,
   ClipboardCheck,
   Megaphone,
   UserPlus,
@@ -79,19 +80,21 @@ export default function DashboardLayout({
       rolesPermitidos: ['administrador', 'admin', 'tutor de aula'] 
     },
     { 
-      id: 'academico_grupo', 
-      label: 'Gestión Académica', 
-      icon: Layers, 
-      rolesPermitidos: ['administrador', 'admin', 'docente', 'tutor de aula'],
-      submenus: [
-        { id: 'asistencia', label: 'Control Asistencia', icon: CalendarCheck },
-        { id: 'registro-notas', label: 'Registro Simulacros', icon: ClipboardCheck },
-        { id: 'academico', label: 'Aulas y Cursos', icon: FolderOpen }
-      ]
-    },
+  id: 'academico_grupo', 
+  label: 'Gestión Académica', 
+  icon: Layers, 
+  rolesPermitidos: ['administrador', 'admin', 'docente', 'tutor de aula'],
+  submenus: [
+    { id: 'academico-ciclos', label: 'Ciclos y Cursos', icon: GraduationCap },
+    { id: 'academico-turnos', label: 'Turnos y Horarios', icon: CalendarClock },
+    { id: 'academico', label: 'Aulas y Cursos', icon: FolderOpen },
+    { id: 'asistencia', label: 'Control Asistencia', icon: CalendarCheck },
+    { id: 'registro-notas', label: 'Registro Simulacros', icon: ClipboardCheck }
+  ]
+},
     { 
       id: 'morosidad', 
-      label: 'Semáforo Morosidad', 
+      label: 'Morosidad',
       icon: BadgeAlert, 
       rolesPermitidos: ['administrador', 'admin', 'tutor de aula'] 
     },
