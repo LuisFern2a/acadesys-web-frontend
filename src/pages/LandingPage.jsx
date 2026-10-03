@@ -372,7 +372,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold whitespace-nowrap">
-                      {ciclo.TotalAlumnos ?? ciclo.totalAlumnos ?? ciclo.cantidadAlumnos ?? ciclo.CantidadAlumnos ?? ciclo.alumnos ?? 0} inscritos
+                      {ciclo.TotalAlumnos || 0} inscritos
                     </span>
                   </div>
                   {/* NOMBRE */}
@@ -385,21 +385,21 @@ export default function LandingPage({ onLoginSuccess }) {
                       <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
                       <span>
                         <strong className="text-white">Turno:</strong>{' '}
-                        {ciclo.Turno || ciclo.turno || 'Mañana'}
+                        {ciclo.Turno || 'Por confirmar'}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-slate-300">
                       <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
                       <span>
                         <strong className="text-white">Horario:</strong>{' '}
-                        {ciclo.Horario || ciclo.horario || '08:00 - 14:00'}
+                        {ciclo.Horario || 'Por confirmar'}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-slate-300">
                       <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                       <span>
                         <strong className="text-white">Alumnos:</strong>{' '}
-                        {ciclo.TotalAlumnos || ciclo.totalAlumnos || ciclo.cantidadAlumnos || ciclo.alumnos || 0}
+                        {ciclo.TotalAlumnos || 0}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-slate-300">
@@ -636,7 +636,7 @@ export default function LandingPage({ onLoginSuccess }) {
             <h2 className="text-2xl font-black text-white mb-1">Inscripción</h2>
             <p className="text-xs text-slate-400 mb-6">
               Ciclo: <span className="text-blue-300 font-semibold">{cicloSeleccionado.nombre || cicloSeleccionado.Nombre}</span>
-              {(cicloSeleccionado.Turno || cicloSeleccionado.turno) ? ` · ${cicloSeleccionado.Turno || cicloSeleccionado.turno}` : ''}
+              {cicloSeleccionado.Turno ? ` · ${cicloSeleccionado.Turno}` : ''}
             </p>
             {error && (
               <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
