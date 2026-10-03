@@ -10,33 +10,31 @@ import {
   Sparkles,
   ChevronRight,
   Printer,
-  GraduationCap,
-  Users
+  GraduationCap
 } from 'lucide-react';
 
 export default function CalificacionesPage({ 
   estudianteActivo, 
   listaEstudiantes = [], 
   onCambiarEstudiante, 
-  onIrATutorIA 
+  onIrATutorIA,
+  user
 }) {
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('bimestre-2');
-
   const cursosPorDefecto = [
-    { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Guia_Matrices_Polinomios_v2.pdf', pesoMb: '2.4 MB' },
-    { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Compendio_Problemas_Tipo_UNI.pdf', pesoMb: '3.1 MB' },
-    { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Solucionario_Poliedros_Regulares.pdf', pesoMb: '1.8 MB' },
-    { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Modulo_Cinematica_Vectorial.pdf', pesoMb: '4.2 MB' },
-    { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Formulario_Reacciones_Quimicas.pdf', pesoMb: '1.5 MB' }
+    { id: 1, nombre: 'Álgebra Superior', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Guia_Matrices_Polinomios_v2.pdf', pesoMb: '2.4 MB' },
+    { id: 2, nombre: 'Razonamiento Matemático', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Compendio_Problemas_Tipo_UNI.pdf', pesoMb: '3.1 MB' },
+    { id: 3, nombre: 'Geometría del Espacio', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Solucionario_Poliedros_Regulares.pdf', pesoMb: '1.8 MB' },
+    { id: 4, nombre: 'Física y Cinemática', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Modulo_Cinematica_Vectorial.pdf', pesoMb: '4.2 MB' },
+    { id: 5, nombre: 'Química Orgánica', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Formulario_Reacciones_Quimicas.pdf', pesoMb: '1.5 MB' }
   ];
 
   const estudiante = {
     id: estudianteActivo?.id || 1,
-    nombre: estudianteActivo?.nombre || 'Luis Fernando Tóccas',
+    nombre: estudianteActivo?.nombre || user?.nombre || 'Luis Fernando Tóccas',
     codigo: estudianteActivo?.codigo || 'ACAD-2026-755',
-    aula: estudianteActivo?.aula || '5to de Secundaria - Aula 101 UNI',
+    aula: estudianteActivo?.aula || 'Semestral San Marcos',
     puestoRanking: estudianteActivo?.puestoRanking || 3,
-    totalAlumnos: estudianteActivo?.totalAlumnos || 36,
+    totalAlumnos: estudianteActivo?.totalAlumnos || 120,
     cursos: (estudianteActivo?.cursos && estudianteActivo.cursos.length > 0) ? estudianteActivo.cursos : cursosPorDefecto
   };
 
@@ -47,18 +45,12 @@ export default function CalificacionesPage({
     ? (estudiante.cursos.reduce((acc, c) => acc + c.promedio, 0) / totalCursos).toFixed(1)
     : '0.0';
 
-  const handleImprimirBoleta = () => {
+  const handleImprimir = () => {
     window.print();
   };
 
   const handleDescargar = (archivo) => {
     alert(`Descargando material: ${archivo}`);
-  };
-
-  const nombresPeriodo = {
-    'bimestre-1': 'I Bimestre',
-    'bimestre-2': 'II Bimestre (Actual)',
-    'simulacros': 'Simulacros de Examen'
   };
 
   return (
@@ -73,13 +65,13 @@ export default function CalificacionesPage({
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">ACADESYS</h1>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                Plataforma de Gestión Educativa Integral
+                Academia Preuniversitaria
               </p>
             </div>
           </div>
           <div className="text-right text-xs text-slate-600">
-            <p className="font-bold text-slate-800">BOLETA OFICIAL DE CALIFICACIONES</p>
-            <p>Periodo: {nombresPeriodo[periodoSeleccionado]}</p>
+            <h2 className="text-sm font-bold text-slate-800 uppercase">Boleta Oficial de Resultados</h2>
+            <p>Periodo: Ciclo Actual</p>
             <p>Fecha de emisión: {new Date().toLocaleDateString('es-PE')}</p>
           </div>
         </div>
@@ -90,102 +82,41 @@ export default function CalificacionesPage({
             <p><span className="font-bold text-slate-700">Código:</span> {estudiante.codigo}</p>
           </div>
           <div>
-            <p><span className="font-bold text-slate-700">Grado y Sección:</span> {estudiante.aula}</p>
-            <p><span className="font-bold text-slate-700">Posición en el Aula:</span> Puesto #{estudiante.puestoRanking} de {estudiante.totalAlumnos}</p>
+            <p><span className="font-bold text-slate-700">Ciclo Académico:</span> <strong className="text-slate-800">{estudiante.aula}</strong></p>
+            <p><span className="font-bold text-slate-700">Puesto en el Ciclo:</span> <strong className="text-slate-800">#{estudiante.puestoRanking} de {estudiante.totalAlumnos}</strong></p>
           </div>
         </div>
       </div>
 
       {/* HEADER DE PANTALLA (OCULTO AL IMPRIMIR) */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 print:hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-md shadow-indigo-600/20">
-              <Award className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Calificaciones y Rendimiento</h1>
-              <p className="text-slate-500 text-sm mt-0.5">
-                Mostrando registro de: <span className="font-semibold text-slate-800">{estudiante.nombre}</span> ({estudiante.aula})
-              </p>
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold text-slate-800">Calificaciones y Rendimiento</h2>
+          <p className="text-slate-500 text-sm mt-1">
+            Estudiante: <strong className="text-slate-700">{estudianteActivo?.nombre || user?.nombre}</strong> 
+            <span className="mx-2">|</span> 
+            Ciclo Actual: <strong className="text-indigo-600">{estudianteActivo?.aula || 'Semestral San Marcos'}</strong>
+          </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* SELECTOR DE ESTUDIANTE */}
-          {listaEstudiantes && listaEstudiantes.length > 1 && (
-            <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm">
-              <Users className="w-4 h-4 text-indigo-600 shrink-0" />
-              <select
-                value={estudiante.id}
-                onChange={(e) => onCambiarEstudiante && onCambiarEstudiante(Number(e.target.value))}
-                className="text-xs font-semibold text-slate-700 bg-transparent outline-none cursor-pointer"
-              >
-                {listaEstudiantes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    Expediente: {a.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* BOTÓN DE IMPRESIÓN */}
-          <button
-            type="button"
-            onClick={handleImprimirBoleta}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition cursor-pointer"
-          >
-            <Printer className="w-4 h-4 text-indigo-600" />
-            <span>Exportar PDF / Imprimir</span>
-          </button>
-
-          {/* SELECTOR DE PERIODO */}
-          <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm text-xs sm:text-sm">
-            <button
-              type="button"
-              onClick={() => setPeriodoSeleccionado('bimestre-1')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                periodoSeleccionado === 'bimestre-1' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Bimestre I
-            </button>
-            <button
-              type="button"
-              onClick={() => setPeriodoSeleccionado('bimestre-2')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                periodoSeleccionado === 'bimestre-2' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Bimestre II (Actual)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPeriodoSeleccionado('simulacros')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                periodoSeleccionado === 'simulacros' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Simulacros
-            </button>
-          </div>
+        <div className="flex gap-2">
+           <button 
+             onClick={handleImprimir} 
+             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm cursor-pointer"
+           >
+             <Printer className="w-4 h-4" /> Exportar PDF
+           </button>
         </div>
       </div>
 
       {/* MÉTRICAS SUPERIORES CON ARITMÉTICA EXACTA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 print:hidden">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600 shrink-0">
-            <Award className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Ranking del Aula</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-slate-800">Puesto #{estudiante.puestoRanking}</span>
-              <span className="text-xs text-slate-500 font-medium">de {estudiante.totalAlumnos}</span>
-            </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Award className="w-4 h-4 text-amber-500" /> Ranking del Ciclo
+          </p>
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-black text-slate-800">Puesto #{estudianteActivo?.puestoRanking || 1}</span>
+            <span className="text-sm font-medium text-slate-500 mb-1">de {estudianteActivo?.totalAlumnos || 120} inscritos</span>
           </div>
         </div>
 
@@ -243,7 +174,7 @@ export default function CalificacionesPage({
             <h2 className="font-bold text-slate-800 text-base">Boleta Oficial de Asignaturas</h2>
           </div>
           <span className="text-xs text-slate-400 font-medium print:text-slate-600">
-            Escala vigesimal (0 - 20) • Ponderación: Parcial (30%) + Tareas (30%) + Final (40%)
+            Escala vigesimal (0 - 20) • Ponderación: Parcial (30%) + Simulacros (30%) + Final (40%)
           </span>
         </div>
 
@@ -252,9 +183,8 @@ export default function CalificacionesPage({
             <thead>
               <tr className="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase print:bg-slate-100 print:text-slate-900">
                 <th className="py-4 px-6 print:py-2 print:px-3">Asignatura</th>
-                <th className="py-4 px-6 print:py-2 print:px-3">Docente</th>
                 <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Parcial (30%)</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Tareas (30%)</th>
+                <th className="py-4 px-4 text-center print:py-2 print:px-2">Simulacros (30%)</th>
                 <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Final (40%)</th>
                 <th className="py-4 px-6 text-center print:py-2 print:px-3">Promedio</th>
                 <th className="py-4 px-6 text-center print:py-2 print:px-3">Estado</th>
@@ -267,7 +197,6 @@ export default function CalificacionesPage({
                 return (
                   <tr key={c.id} className="hover:bg-slate-50/50 transition-colors print:hover:bg-transparent">
                     <td className="py-4 px-6 font-semibold text-slate-800 print:py-2 print:px-3">{c.nombre}</td>
-                    <td className="py-4 px-6 text-xs text-slate-500 print:py-2 print:px-3 print:text-slate-700">{c.docente}</td>
                     <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.parcial}</td>
                     <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.tareas}</td>
                     <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.final}</td>
@@ -299,7 +228,7 @@ export default function CalificacionesPage({
             </tbody>
             <tfoot className="hidden print:table-footer-group border-t-2 border-slate-900 text-xs font-bold text-slate-900">
               <tr>
-                <td colSpan={5} className="py-3 px-3 text-right">PROMEDIO PONDERADO GENERAL:</td>
+                <td colSpan={4} className="py-3 px-3 text-right">PROMEDIO PONDERADO GENERAL:</td>
                 <td className="py-3 px-3 text-center text-sm">{promedioGeneralCalculado} / 20</td>
                 <td className="py-3 px-3 text-center">
                   {Number(promedioGeneralCalculado) >= 13 ? 'APROBADO' : 'OBSERVADO'}
@@ -311,14 +240,16 @@ export default function CalificacionesPage({
       </div>
 
       {/* SECCIÓN DE FIRMAS PARA IMPRESIÓN */}
-      <div className="hidden print:grid grid-cols-2 gap-16 mt-20 text-center text-xs text-slate-700">
-        <div className="border-t border-slate-400 pt-2">
-          <p className="font-bold text-slate-900">Dirección Académica</p>
-          <p className="text-[11px] text-slate-500">AcadeSys Institución Educativa</p>
+      <div className="hidden print:flex justify-between mt-12 text-xs font-bold text-slate-500 text-center">
+        <div className="border-t border-slate-400 pt-2 w-48">
+          Coordinación Académica
+          <br />
+          <span className="font-normal text-slate-500">AcadeSys Pre-U</span>
         </div>
-        <div className="border-t border-slate-400 pt-2">
-          <p className="font-bold text-slate-900">Firma del Apoderado</p>
-          <p className="text-[11px] text-slate-500">Conformidad de Notas</p>
+        <div className="border-t border-slate-400 pt-2 w-48">
+          Firma del Estudiante
+          <br />
+          <span className="font-normal text-slate-500">Conformidad de Notas</span>
         </div>
       </div>
 

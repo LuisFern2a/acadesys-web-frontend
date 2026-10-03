@@ -15,15 +15,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export default function DashboardOverviewPage({ setActiveTab }) {
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('2026-B2');
-
-  const periodos = [
-    { id: '2026-B1', label: 'Periodo Lectivo 2026 - I Bimestre' },
-    { id: '2026-B2', label: 'Periodo Lectivo 2026 - II Bimestre (En Curso)' },
-    { id: '2026-B3', label: 'Periodo Lectivo 2026 - III Bimestre' },
-    { id: '2026-B4', label: 'Periodo Lectivo 2026 - IV Bimestre' }
-  ];
+export default function DashboardOverviewPage({ setActiveTab, user }) {
+  const [cicloSeleccionado, setCicloSeleccionado] = useState('2026-I');
 
   const kpis = [
     {
@@ -61,18 +54,20 @@ export default function DashboardOverviewPage({ setActiveTab }) {
   ];
 
   const actividadReciente = [
-    { id: 1, tipo: 'Simulacro', badgeColor: 'bg-amber-100 text-amber-800 border-amber-200', titulo: 'Simulacro General UNI #3 calificado', tiempo: 'Hace 25 min', aula: 'Aula 101 - Ciencias' },
-    { id: 2, tipo: 'Tutor IA', badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200', titulo: '8 diagnósticos generados para el aula 5to B', tiempo: 'Hace 1 hora', aula: '5to Grado B' },
-    { id: 3, tipo: 'Asistencia', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200', titulo: 'Alerta de inasistencia recurrente enviada', tiempo: 'Hace 3 horas', aula: 'Aula 102 - Letras' },
-    { id: 4, tipo: 'Carga', badgeColor: 'bg-blue-100 text-blue-800 border-blue-200', titulo: 'Prof. Carlos Mendoza actualizó sílabo bimestral', tiempo: 'Hace 5 horas', aula: 'Álgebra Superior' }
+    { id: 1, tipo: 'Simulacro', badgeColor: 'bg-amber-100 text-amber-800 border-amber-200', titulo: 'Simulacro General UNI #3 calificado', tiempo: 'Hace 25 min', aula: 'Ciclo UNI - Turno Mañana' },
+    { id: 2, tipo: 'Tutor IA', badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200', titulo: '8 diagnósticos generados para el Ciclo Católica', tiempo: 'Hace 1 hora', aula: 'Ciclo Católica - Turno Tarde' },
+    { id: 3, tipo: 'Asistencia', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200', titulo: 'Alerta de inasistencia recurrente enviada', tiempo: 'Hace 3 horas', aula: 'Ciclo San Marcos - Turno Mañana' },
+    { id: 4, tipo: 'Carga', badgeColor: 'bg-blue-100 text-blue-800 border-blue-200', titulo: 'Prof. Carlos Mendoza actualizó sílabo semestral', tiempo: 'Hace 5 horas', aula: 'Álgebra Superior' }
   ];
 
-  const rendimientoAulas = [
-    { aula: 'Aula 101 - Ciencias', promedio: 16.2, aprobados: 94 },
-    { aula: 'Aula 102 - Letras', promedio: 15.8, aprobados: 91 },
-    { aula: '5to Grado B - Selección', promedio: 14.9, aprobados: 85 },
-    { aula: '3er Grado A', promedio: 16.5, aprobados: 97 }
+  const rendimientoCiclos = [
+    { ciclo: 'Ciclo UNI', promedio: 16.2, aprobados: 94 },
+    { ciclo: 'Ciclo Católica', promedio: 15.8, aprobados: 91 },
+    { ciclo: 'Ciclo San Marcos', promedio: 14.9, aprobados: 85 },
+    { ciclo: 'Ciclo Repaso UNI', promedio: 16.5, aprobados: 97 }
   ];
+
+  const esAlumno = user?.rol?.toLowerCase() === 'alumno' || user?.rol?.toLowerCase() === 'estudiante';
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
@@ -85,19 +80,16 @@ export default function DashboardOverviewPage({ setActiveTab }) {
           </p>
         </div>
 
-        {/* SELECTOR DE PERIODO INTERACTIVO */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20">
-          <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
+        {/* SELECTOR DE CICLO */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm">
+          <Calendar className="w-4 h-4 text-indigo-600" />
           <select
-            value={periodoSeleccionado}
-            onChange={(e) => setPeriodoSeleccionado(e.target.value)}
-            className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer pr-1"
+            value={cicloSeleccionado}
+            onChange={(e) => setCicloSeleccionado(e.target.value)}
+            className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer"
           >
-            {periodos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
+            <option value="2026-I">Ciclo Semestral 2026 - I (Activo)</option>
+            <option value="repaso-uni-2026">Ciclo Repaso UNI 2026</option>
           </select>
         </div>
       </div>
@@ -133,40 +125,40 @@ export default function DashboardOverviewPage({ setActiveTab }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* COLUMNA 1 & 2: RENDIMIENTO POR AULAS */}
+        {/* COLUMNA 1 & 2: RENDIMIENTO POR CICLO */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <School className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-slate-800 text-base">Rendimiento Promedio por Aula</h2>
+              <h2 className="font-bold text-slate-800 text-base">Rendimiento Promedio por Ciclo</h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('academico')}
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 group cursor-pointer"
             >
-              <span>Gestionar Aulas</span>
+              <span>Gestionar Ciclos</span>
               <span className="group-hover:translate-x-0.5 transition-transform">→</span>
             </button>
           </div>
 
           <div className="space-y-4">
-            {rendimientoAulas.map((aula, i) => {
-              const esSobresaliente = aula.promedio >= 16;
-              const porcentaje = Math.min(Math.round((aula.promedio / 20) * 100), 100);
+            {rendimientoCiclos.map((ciclo, i) => {
+              const esSobresaliente = ciclo.promedio >= 16;
+              const porcentaje = Math.min(Math.round((ciclo.promedio / 20) * 100), 100);
 
               return (
                 <div key={i} className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                   <div className="flex justify-between items-center mb-2 text-xs">
-                    <span className="font-bold text-slate-700">{aula.aula}</span>
+                    <span className="font-bold text-slate-700">{ciclo.ciclo}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-slate-500">Tasa de aprobación: <strong className="text-slate-700 font-semibold">{aula.aprobados}%</strong></span>
+                      <span className="text-slate-500">Tasa de aprobación: <strong className="text-slate-700 font-semibold">{ciclo.aprobados}%</strong></span>
                       <span className={`font-bold px-2.5 py-0.5 rounded-md border text-xs ${
                         esSobresaliente 
                           ? 'text-indigo-700 bg-indigo-50 border-indigo-100' 
                           : 'text-slate-700 bg-white border-slate-200'
                       }`}>
-                        {aula.promedio.toFixed(1)} / 20
+                        {ciclo.promedio.toFixed(1)} / 20
                       </span>
                     </div>
                   </div>
@@ -219,14 +211,18 @@ export default function DashboardOverviewPage({ setActiveTab }) {
                 <span>Revisar Boletas y Ranking</span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('academico')}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/70 text-xs font-medium text-slate-700 transition flex items-center justify-between group cursor-pointer"
-              >
-                <span>Asignar Carga Docente</span>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
-              </button>
+
+              {/* Valida que solo lo vean Administradores o Recursos Humanos */}
+              {user?.rol?.toLowerCase() !== 'alumno' && user?.rol?.toLowerCase() !== 'estudiante' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('academico')}
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
+                >
+                  Asignar Carga Docente
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
