@@ -20,7 +20,8 @@ import {
   Megaphone,
   UserPlus,
   BadgeAlert,
-  FolderOpen
+  FolderOpen,
+  BookOpen
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 
@@ -104,6 +105,12 @@ export default function DashboardLayout({
       icon: Award, 
       rolesPermitidos: ['administrador', 'admin', 'docente', 'tutor de aula', 'alumno', 'estudiante'] 
     },
+    {
+      id: 'materiales',
+      label: 'Materiales y Simulacros',
+      icon: BookOpen,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
     { 
       id: 'tutor-ia', 
       label: 'Tutor Pedagógico IA', 
@@ -154,6 +161,7 @@ export default function DashboardLayout({
     'academico': 'Gestión de Ciclos, Cursos y Aulas',
     'morosidad': 'Monitoreo de Pagos y Morosidad',
     'calificaciones': 'Resultados y Cuadro de Mérito',
+    'materiales': 'Materiales y Simulacros',
     'tutor-ia': 'Asistente de Orientación Preuniversitaria IA',
     'usuarios': 'Directorio de Usuarios y Alumnos',
     'perfiles': 'Seguridad y Roles RBAC',
