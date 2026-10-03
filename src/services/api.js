@@ -1097,7 +1097,20 @@ export async function procesarCheckoutMatricula(payload) {
   console.log('[checkout]', response.status, data);
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || data.mensaje || 'Error al procesar el pago e inscripción');
+    const error = new Error(
+      data.message ||
+      data.error ||
+      data.mensaje ||
+      'Error al procesar el pago e inscripción'
+    );
+
+    // Conservamos el código HTTP para que la interfaz pueda distinguir
+    // errores de validación (400), servidor (500), etc.
+    error.status = response.status;
+    error.data = data;
+
+    throw error;
   }
+
   return data;
 }

@@ -44,6 +44,11 @@ export default function LandingPage({ onLoginSuccess }) {
   const [cicloSeleccionado, setCicloSeleccionado] = useState(null);
   const [checkoutData, setCheckoutData] = useState({ nombres: '', apellidos: '', correo: '' });
   const [procesandoPago, setProcesandoPago] = useState(false);
+  const [checkoutErrors, setCheckoutErrors] = useState({
+    nombres: '',
+    apellidos: '',
+    correo: ''
+  });
 
   const resetFormStates = () => {
   setError(null);
@@ -82,66 +87,167 @@ export default function LandingPage({ onLoginSuccess }) {
     cargarCiclos();
   }, []);
 
-  const abrirCheckout = (ciclo) => {
-  setError(null);
-  setCheckoutData({ nombres: '', apellidos: '', correo: '' });
-  setCicloSeleccionado(ciclo);
-};
+  const validarCampoCheckout = (campo, valor) => {
+    const texto = String(valor ?? '').trim();
 
-const cerrarCheckout = () => {
-  if (procesandoPago) return;
-  setCicloSeleccionado(null);
-  setError(null);
-};
+    switch (campo) {
+      case 'nombres':
+        if (!texto) return 'Ingresa tus nombres.';
+        if (texto.length < 2) return 'El nombre debe tener al menos 2 caracteres.';
+        return '';
+
+      case 'apellidos':
+        if (!texto) return 'Ingresa tus apellidos.';
+        if (texto.length < 2) return 'El apellido debe tener al menos 2 caracteres.';
+        return '';
+
+      case 'correo': {
+        if (!texto) return 'Ingresa tu correo electrónico.';
+        const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regexCorreo.test(texto)) return 'Ingresa un correo electrónico válido.';
+        return '';
+      }
+
+      default:
+        return '';
+    }
+  };
+
+  const handleCheckoutChange = (e) => {
+    const { name, value } = e.target;
+
+    setCheckoutData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+
+    setCheckoutErrors((prev) => ({
+      ...prev,
+      [name]: validarCampoCheckout(name, value)
+    }));
+  };
+
+  const validarCheckoutCompleto = () => {
+    const nuevosErrores = {
+      nombres: validarCampoCheckout('nombres', checkoutData.nombres),
+      apellidos: validarCampoCheckout('apellidos', checkoutData.apellidos),
+      correo: validarCampoCheckout('correo', checkoutData.correo)
+    };
+
+    setCheckoutErrors(nuevosErrores);
+
+    const formularioValido = Object.values(nuevosErrores).every(
+      (mensaje) => mensaje === ''
+    );
+
+    const idCiclo = cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id;
+    return formularioValido && Boolean(idCiclo);
+  };
+
+  const abrirCheckout = (ciclo) => {
+    setError(null);
+    setCheckoutData({ nombres: '', apellidos: '', correo: '' });
+    setCheckoutErrors({ nombres: '', apellidos: '', correo: '' });
+    setCicloSeleccionado(ciclo);
+  };
+
+  const cerrarCheckout = () => {
+    if (procesandoPago) return;
+    setCicloSeleccionado(null);
+    setError(null);
+    setCheckoutErrors({ nombres: '', apellidos: '', correo: '' });
+  };
 
   const handlePagarCheckout = async (e) => {
-  e.preventDefault();
-  setError(null);
-  setProcesandoPago(true);
+    e.preventDefault();
+    setError(null);
 
-  Swal.fire({
-    title: 'Procesando pago...',
-    text: 'Por favor espera un momento',
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showConfirmButton: false,
-    background: '#0f172a',
-    color: '#fff',
-    didOpen: () => Swal.showLoading()
-  });
+    if (procesandoPago) return;
 
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // simulación
+    if (!validarCheckoutCompleto()) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Revisa tus datos',
+        text: 'Completa correctamente los campos antes de continuar.',
+        confirmButtonColor: '#4f46e5',
+        background: '#0f172a',
+        color: '#fff'
+      });
+      return;
+    }
 
-    await procesarCheckoutMatricula({
-      idCiclo: cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id,
-      nombres: checkoutData.nombres.trim(),
-      apellidos: checkoutData.apellidos.trim(),
-      correo: checkoutData.correo.trim(),
-      monto: 1.0
-    });
+    setProcesandoPago(true);
 
-    await Swal.fire({
-      icon: 'success',
-      title: '¡Inscripción exitosa!',
-      text: 'Revisa tu correo para obtener tus accesos',
-      confirmButtonText: 'Ir al inicio',
-      confirmButtonColor: '#4f46e5',
+    Swal.fire({
+      title: 'Validando método de pago...',
+      text: 'Estamos procesando tu inscripción.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
       background: '#0f172a',
-      color: '#fff'
+      color: '#fff',
+      didOpen: () => Swal.showLoading()
     });
 
-    setCicloSeleccionado(null);
-    window.location.href = '/';
-  } catch (err) {
-    Swal.close();
-    setError(err.message || 'Error al procesar el pago.');
-  } finally {
-    setProcesandoPago(false);
-  }
-};
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      const payload = {
+        idCiclo: cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id,
+        nombres: checkoutData.nombres.trim(),
+        apellidos: checkoutData.apellidos.trim(),
+        correo: checkoutData.correo.trim(),
+        monto: 1.0
+      };
 
+      await procesarCheckoutMatricula(payload);
+
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Inscripción exitosa!',
+        text: 'Revisa tu correo para obtener tus accesos.',
+        confirmButtonText: 'Ir al inicio',
+        confirmButtonColor: '#4f46e5',
+        background: '#0f172a',
+        color: '#fff'
+      });
+
+      setCicloSeleccionado(null);
+      setCheckoutData({ nombres: '', apellidos: '', correo: '' });
+      setCheckoutErrors({ nombres: '', apellidos: '', correo: '' });
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Error en checkout:', err);
+
+      let titulo = 'No se pudo completar la inscripción';
+      let mensaje = err.message || 'Ocurrió un error inesperado al procesar el pago.';
+
+      if (!navigator.onLine) {
+        titulo = 'Sin conexión';
+        mensaje = 'Verifica tu conexión a Internet antes de realizar el pago.';
+      } else if (err.status === 400) {
+        titulo = 'Datos incorrectos';
+        mensaje = err.message || 'Verifica los datos ingresados e inténtalo nuevamente.';
+      } else if (err.status >= 500) {
+        titulo = 'Error del servidor';
+        mensaje = 'El servidor no pudo procesar la solicitud. Inténtalo nuevamente en unos momentos.';
+      }
+
+      setError(mensaje);
+
+      await Swal.fire({
+        icon: 'error',
+        title: titulo,
+        text: mensaje,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#4f46e5',
+        background: '#0f172a',
+        color: '#fff'
+      });
+    } finally {
+      setProcesandoPago(false);
+    }
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -639,23 +745,40 @@ const inputPass = loginData.password.trim();
                 <div key={f.key}>
                   <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</label>
                   <input
+                    name={f.key}
                     type={f.type}
                     required
                     placeholder={f.ph}
                     value={checkoutData[f.key]}
-                    onChange={(e) => setCheckoutData({ ...checkoutData, [f.key]: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+                    onChange={handleCheckoutChange}
+                    disabled={procesandoPago}
+                    aria-invalid={Boolean(checkoutErrors[f.key])}
+                    aria-describedby={checkoutErrors[f.key] ? `checkout-${f.key}-error` : undefined}
+                    className={`w-full px-4 py-3 bg-slate-800/80 border rounded-2xl text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                      checkoutErrors[f.key]
+                        ? 'border-rose-500 focus:border-rose-400'
+                        : 'border-slate-700 focus:border-indigo-500'
+                    }`}
                   />
+                  {checkoutErrors[f.key] && (
+                    <p
+                      id={`checkout-${f.key}-error`}
+                      className="mt-1.5 text-[11px] text-rose-400 flex items-center gap-1.5"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {checkoutErrors[f.key]}
+                    </p>
+                  )}
                 </div>
               ))}
 
               <button
                 type="submit"
                 disabled={procesandoPago}
-                className="w-full mt-2 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50"
+                className="w-full mt-2 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {procesandoPago && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Pagar S/ 1.00</span>
+                <span>{procesandoPago ? 'Procesando...' : 'Pagar S/ 1.00'}</span>
               </button>
             </form>
           </div>
