@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Users, 
   UserCheck, 
@@ -6,18 +6,14 @@ import {
   AlertTriangle, 
   BrainCircuit, 
   Award, 
-  Calendar, 
   ArrowUpRight, 
   ArrowDownRight,
   School,
   Clock,
-  Sparkles,
-  ChevronRight
+  Sparkles
 } from 'lucide-react';
 
 export default function DashboardOverviewPage({ setActiveTab, user }) {
-  const [cicloSeleccionado, setCicloSeleccionado] = useState('2026-I');
-
   const kpis = [
     {
       titulo: 'Estudiantes Activos',
@@ -72,25 +68,17 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
   return (
     <div className="p-8 bg-slate-50 min-h-full">
       {/* HEADER DE BIENVENIDA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Panel General AcadeSys</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Panel General AcadeSys</h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            Métricas institucionales consolidadas, control de asistencia y alertas académicas
+            Métricas institucionales consolidadas y alertas académicas
           </p>
         </div>
 
-        {/* SELECTOR DE CICLO */}
+        {/* ETIQUETA DE CICLO (SIN SELECTOR) */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm">
-          <Calendar className="w-4 h-4 text-indigo-600" />
-          <select
-            value={cicloSeleccionado}
-            onChange={(e) => setCicloSeleccionado(e.target.value)}
-            className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer"
-          >
-            <option value="2026-I">Ciclo Semestral 2026 - I (Activo)</option>
-            <option value="repaso-uni-2026">Ciclo Repaso UNI 2026</option>
-          </select>
+          <span className="text-xs font-bold text-slate-700">Ciclo Académico 2026</span>
         </div>
       </div>
 
@@ -206,21 +194,19 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
               <button
                 type="button"
                 onClick={() => setActiveTab('calificaciones')}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/70 text-xs font-medium text-slate-700 transition flex items-center justify-between group cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
               >
-                <span>Revisar Boletas y Ranking</span>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+                Revisar Boletas y Ranking
               </button>
 
-              {/* Valida que solo lo vean Administradores o Recursos Humanos */}
-              {user?.rol?.toLowerCase() !== 'alumno' && user?.rol?.toLowerCase() !== 'estudiante' && (
+              {/* AQUÍ ESTÁ EL TRUCO: Solo se muestra si NO es alumno */}
+              {!esAlumno && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('academico')}
                   className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
                 >
                   Asignar Carga Docente
-                  <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>

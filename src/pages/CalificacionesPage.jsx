@@ -5,7 +5,6 @@ import {
   BookOpen, 
   FileText, 
   Download, 
-  CheckCircle2, 
   AlertCircle, 
   Sparkles,
   ChevronRight,
@@ -30,7 +29,7 @@ export default function CalificacionesPage({
 
   const estudiante = {
     id: estudianteActivo?.id || 1,
-    nombre: estudianteActivo?.nombre || user?.nombre || 'Luis Fernando Tóccas',
+    nombre: estudianteActivo?.nombre || user?.nombre || 'Jessenia Patricia',
     codigo: estudianteActivo?.codigo || 'ACAD-2026-755',
     aula: estudianteActivo?.aula || 'Semestral San Marcos',
     puestoRanking: estudianteActivo?.puestoRanking || 3,
@@ -83,7 +82,7 @@ export default function CalificacionesPage({
           </div>
           <div>
             <p><span className="font-bold text-slate-700">Ciclo Académico:</span> <strong className="text-slate-800">{estudiante.aula}</strong></p>
-            <p><span className="font-bold text-slate-700">Puesto en el Ciclo:</span> <strong className="text-slate-800">#{estudiante.puestoRanking} de {estudiante.totalAlumnos}</strong></p>
+            <p><span className="font-bold text-slate-700">Puesto en el Ciclo:</span> <strong className="text-slate-800">#{estudiante.puestoRanking}</strong></p>
           </div>
         </div>
       </div>
@@ -93,18 +92,19 @@ export default function CalificacionesPage({
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Calificaciones y Rendimiento</h2>
           <p className="text-slate-500 text-sm mt-1">
-            Estudiante: <strong className="text-slate-700">{estudianteActivo?.nombre || user?.nombre}</strong> 
-            <span className="mx-2">|</span> 
-            Ciclo Actual: <strong className="text-indigo-600">{estudianteActivo?.aula || 'Semestral San Marcos'}</strong>
+            {/* Aquí mostramos el nombre del alumno y el ciclo al que pertenece */}
+            Estudiante: <strong className="text-slate-700">{estudianteActivo?.nombre || user?.nombre || 'Jessenia Patricia'}</strong>
+            <span className="mx-2">|</span>
+            Ciclo: <strong className="text-indigo-600">{estudianteActivo?.aula || 'Semestral San Marcos'}</strong>
           </p>
         </div>
         <div className="flex gap-2">
-           <button 
-             onClick={handleImprimir} 
-             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm cursor-pointer"
-           >
-             <Printer className="w-4 h-4" /> Exportar PDF
-           </button>
+          <button 
+            onClick={handleImprimir} 
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm cursor-pointer"
+          >
+            <Printer className="w-4 h-4" /> Exportar PDF
+          </button>
         </div>
       </div>
 
@@ -116,7 +116,6 @@ export default function CalificacionesPage({
           </p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-black text-slate-800">Puesto #{estudianteActivo?.puestoRanking || 1}</span>
-            <span className="text-sm font-medium text-slate-500 mb-1">de {estudianteActivo?.totalAlumnos || 120} inscritos</span>
           </div>
         </div>
 
@@ -181,45 +180,38 @@ export default function CalificacionesPage({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase print:bg-slate-100 print:text-slate-900">
-                <th className="py-4 px-6 print:py-2 print:px-3">Asignatura</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Parcial (30%)</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Simulacros (30%)</th>
-                <th className="py-4 px-4 text-center print:py-2 print:px-2">Ex. Final (40%)</th>
-                <th className="py-4 px-6 text-center print:py-2 print:px-3">Promedio</th>
-                <th className="py-4 px-6 text-center print:py-2 print:px-3">Estado</th>
+              <tr className="bg-slate-50/50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider print:bg-slate-100 print:text-slate-900">
+                <th className="py-3 px-4 print:py-2 print:px-3">Asignatura</th>
+                {/* ELIMINADO <th>DOCENTE</th> */}
+                <th className="py-3 px-4 text-center print:py-2 print:px-2">Ex. Parcial (30%)</th>
+                <th className="py-3 px-4 text-center print:py-2 print:px-2">Simulacros (30%)</th>
+                <th className="py-3 px-4 text-center print:py-2 print:px-2">Ex. Final (40%)</th>
+                <th className="py-3 px-4 text-center print:py-2 print:px-2">Promedio</th>
+                <th className="py-3 px-4 text-center print:py-2 print:px-2">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm text-slate-600 print:divide-slate-200">
-              {estudiante.cursos.map((c) => {
-                const enRiesgo = c.promedio < 13;
-
+            <tbody className="divide-y divide-slate-100 text-sm print:divide-slate-200">
+              {estudiante.cursos.map((curso) => {
+                const enRiesgo = curso.promedio < 13;
                 return (
-                  <tr key={c.id} className="hover:bg-slate-50/50 transition-colors print:hover:bg-transparent">
-                    <td className="py-4 px-6 font-semibold text-slate-800 print:py-2 print:px-3">{c.nombre}</td>
-                    <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.parcial}</td>
-                    <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.tareas}</td>
-                    <td className="py-4 px-4 text-center font-mono text-xs print:py-2 print:px-2">{c.final}</td>
-                    <td className="py-4 px-6 text-center font-bold font-mono text-base print:py-2 print:px-3 print:text-sm">
+                  <tr key={curso.id} className="hover:bg-slate-50/50 transition-colors print:hover:bg-transparent">
+                    <td className="py-3 px-4 font-semibold text-slate-800 print:py-2 print:px-3">{curso.nombre}</td>
+                    {/* ELIMINADO <td>{curso.docente}</td> */}
+                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.parcial}</td>
+                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.tareas}</td>
+                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.final}</td>
+                    <td className="py-3 px-4 text-center font-bold text-slate-800 font-mono print:py-2 print:px-2">
                       <span className={enRiesgo ? 'text-rose-600 font-bold' : 'text-slate-800'}>
-                        {c.promedio.toFixed(1)}
+                        {curso.promedio.toFixed(1)}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-center print:py-2 print:px-3">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    <td className="py-3 px-4 text-center print:py-2 print:px-2">
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         enRiesgo
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                          : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                       }`}>
-                        {enRiesgo ? (
-                          <>
-                            <AlertCircle className="w-3.5 h-3.5" /> En Riesgo
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Aprobado
-                          </>
-                        )}
+                        {enRiesgo ? 'En Riesgo' : 'Aprobado'}
                       </span>
                     </td>
                   </tr>

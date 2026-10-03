@@ -372,7 +372,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold whitespace-nowrap">
-                      {ciclo.cantidadAlumnos ?? ciclo.CantidadAlumnos ?? ciclo.TotalAlumnos ?? ciclo.alumnos ?? 0} inscritos
+                      {ciclo.TotalAlumnos ?? ciclo.totalAlumnos ?? ciclo.cantidadAlumnos ?? ciclo.CantidadAlumnos ?? ciclo.alumnos ?? 0} inscritos
                     </span>
                   </div>
                   {/* NOMBRE */}
