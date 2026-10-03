@@ -18,9 +18,9 @@ https://acadesys-web-frontend.vercel.app/
 
 AcadeSys integra diferentes módulos para alumnos y personal administrativo:
 
+- Vitrina pública de ciclos académicos (consulta sin necesidad de iniciar sesión).
 - Autenticación y gestión de usuarios.
-- Matrícula de estudiantes.
-- Checkout y simulación de pago.
+- Matrícula autónoma mediante checkout con pago simulado.
 - Gestión académica.
 - Simulacros y calificaciones.
 - Ranking de estudiantes.
@@ -67,13 +67,14 @@ La interfaz incluye:
 
 El sistema incorpora un flujo de inscripción y pago que permite:
 
-- Registrar los datos del estudiante.
+- Registrar los datos del estudiante (nombre, apellido y correo electrónico).
 - Validar la información ingresada.
 - Seleccionar el ciclo correspondiente.
 - Simular la validación del método de pago.
 - Mostrar estados de carga durante la operación.
 - Procesar la matrícula mediante la API.
 - Informar visualmente sobre operaciones exitosas o errores.
+- Generar automáticamente las credenciales de acceso del estudiante y enviarlas por correo electrónico.
 
 ---
 
@@ -227,7 +228,7 @@ Este flujo permite mantener estable la rama principal, revisar los cambios antes
 
 # Equipo de Desarrollo
 
-AcadeSys es desarrollado colaborativamente por un equipo dividido entre las áreas de Frontend y Backend.
+AcadeSys es desarrollado colaborativamente por un equipo dividido entre las áreas de Frontend, Backend y Base de Datos.
 
 ## Frontend
 
@@ -250,17 +251,23 @@ Principales actividades:
 - Actualización optimista de interfaces.
 - Trabajo mediante ramas y Pull Requests.
 
-### Luis
-
-**Frontend Developer**
-
-Participación en el desarrollo e integración del frontend de AcadeSys.
-
 ### Dante
 
 **Frontend Developer**
 
-Participación en el desarrollo de las interfaces y componentes frontend de AcadeSys.
+Encargado del diseño de la vitrina pública de ciclos (la página de inicio tipo tienda virtual, al estilo de una academia preuniversitaria), donde cualquier visitante puede consultar los ciclos aperturados, sus turnos, horarios y cursos sin necesidad de iniciar sesión.
+
+Principales actividades:
+
+- Maquetado de la página principal como catálogo de ciclos.
+- Diseño del formulario de inscripción/checkout (datos básicos: nombre, apellido y correo).
+- Maquetado del flujo de pago simulado (confirmación visual tipo "Pagar con Yape").
+
+### Luis
+
+**Frontend Developer**
+
+Creador y mantenedor original del repositorio de frontend de AcadeSys. Participación en el desarrollo e integración de la interfaz, junto con el diseño de la vitrina de ciclos y el modal de pago simulado.
 
 ---
 
@@ -270,13 +277,36 @@ Participación en el desarrollo de las interfaces y componentes frontend de Acad
 
 **Backend Developer**
 
-Participación en el desarrollo de los servicios y lógica backend utilizados por AcadeSys.
+Arquitecto principal del backend de AcadeSys. Encargado de la lógica de autenticación, matrícula y pagos, así como de liderar la reestructuración del proyecto hacia un modelo de academia preuniversitaria con flujo de inscripción autónomo (tipo e-commerce educativo).
 
-### Gabriel
+Principales actividades:
 
-**Backend Developer**
+- Diseño e implementación de la autenticación basada en JWT.
+- Endpoint público de consulta de ciclos (`GET /api/ciclos/publicos`).
+- Endpoint de checkout de matrícula (`POST /api/matriculas/checkout`): registra al alumno, lo matricula en el ciclo elegido y genera sus credenciales de acceso.
+- Generación automática de código de usuario y contraseña temporal.
+- Envío de correos de bienvenida con las credenciales del alumno (Nodemailer).
+- Middleware de cierre de periodo/actas para bloquear la edición de notas tras sellar una evaluación.
+- Integración del Tutor Pedagógico IA con la API de Gemini.
+- Diseño de la arquitectura para la futura integración de una pasarela de pagos real (MercadoPago / Culqi, mediante webhooks) como evolución del pago simulado actual.
 
-Participación en el desarrollo de los servicios y lógica backend utilizados por AcadeSys.
+---
+
+## Base de Datos
+
+### Gabriel (Toris)
+
+**Database Administrator**
+
+Encargado del diseño y mantenimiento de la base de datos del proyecto en MySQL (Aiven), además de mantener actualizadas las Historias de Usuario del proyecto conforme evoluciona el alcance del producto.
+
+Principales actividades:
+
+- Modelado de las tablas de ciclos, matrículas y pagos.
+- Limpieza y ajuste del modelo de datos conforme a la reestructuración del proyecto (de un enfoque multi-academia a una única academia preuniversitaria).
+- Carga de datos de prueba (ciclos San Marcos, UNI, entre otros).
+- Creación directa de la cuenta maestra de Administrador en la base de datos.
+- Actualización de las Historias de Usuario del proyecto.
 
 ---
 
@@ -305,6 +335,8 @@ Los integrantes trabajan sobre sus responsabilidades utilizando ramas independie
 
 AcadeSys se encuentra en desarrollo activo.
 
+El proyecto fue reestructurado durante su desarrollo: partiendo de un modelo inicial más genérico, el equipo lo enfocó hacia la plataforma oficial de una academia preuniversitaria (al estilo de una academia como ADUNI), priorizando un flujo de inscripción autónomo con pago simulado, de cara a mostrar un avance funcional y orientado al usuario final. El Tutor Pedagógico IA quedó temporalmente en pausa durante esta etapa, para concentrar el esfuerzo del equipo en que el flujo principal de matrícula funcione de punta a punta.
+
 Actualmente cuenta con diferentes módulos académicos y administrativos integrados entre el frontend y los servicios proporcionados por el backend.
 
 ---
@@ -330,13 +362,16 @@ AcadeSys fue desarrollado como proyecto académico aplicando conceptos relaciona
 ### Frontend
 
 - Yan
-- Luis
 - Dante
+- Luis
 
 ### Backend
 
 - Morgan
-- Gabriel
+
+### Base de Datos
+
+- Gabriel (Toris)
 
 ---
 
