@@ -430,70 +430,119 @@ export async function obtenerPagosPorCiclo(idCiclo = 1) {
 }
 
 /**
- * HU-04: Consolidado de monitoreo académico y financiero para el Tutor de Aula
+ * HU-04: Actualiza el estado de un pago.
+ * Backend: PUT /api/pagos/:id/estado
+ * Estados permitidos: Pagado | Moroso
+ */
+export async function actualizarEstadoPago(idPago, estado) {
+  if (!idPago) {
+    throw new Error('No se proporcionó el IdPago.');
+  }
+
+  if (!['Pagado', 'Moroso'].includes(estado)) {
+    throw new Error('El estado del pago debe ser "Pagado" o "Moroso".');
+  }
+
+  const response = await fetchWithAuth(`/api/pagos/${idPago}/estado`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      Estado: estado
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+
+    throw new Error(
+      errorData.error ||
+      errorData.message ||
+      errorData.mensaje ||
+      `Error HTTP: ${response.status}`
+    );
+  }
+
+  return await response.json().catch(() => ({
+    ok: true,
+    IdPago: idPago,
+    Estado: estado
+  }));
+}
+
+/**
+ * HU-04: Consolidado de monitoreo académico y financiero
+ * para el Tutor de Aula.
  */
 export async function obtenerMonitoreoTutores(idCiclo = 1) {
   try {
-    const response = await fetchWithAuth(`/api/tutores/monitoreo?idCiclo=${idCiclo}`);
-    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+    const response = await fetchWithAuth(
+      `/api/tutores/monitoreo?idCiclo=${idCiclo}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP: ${response.status}`);
+    }
+
     return await response.json();
   } catch (error) {
-    console.warn("Fallo al consultar monitoreo de tutores en backend, usando semáforo mock:", error);
+    console.warn(
+      "Fallo al consultar monitoreo de tutores en backend, usando semáforo mock:",
+      error
+    );
+
     return [
-      { 
-        idAlumno: 101, 
-        codigoUsuario: 'SEMSM-Q6265', 
-        alumno: 'Luis Fernando Tóccas', 
-        ciclo: 'Semestral San Marcos', 
-        puntajeSimulacro: 15.8, 
-        estadoPago: 'Al día', 
-        montoPendiente: 0.00, 
-        ultimoPago: '2026-09-02' 
+      {
+        idAlumno: 101,
+        codigoUsuario: 'SEMSM-Q6265',
+        alumno: 'Luis Fernando Tóccas',
+        ciclo: 'Semestral San Marcos',
+        puntajeSimulacro: 15.8,
+        estadoPago: 'Al día',
+        montoPendiente: 0.00,
+        ultimoPago: '2026-09-02'
       },
-      { 
-        idAlumno: 102, 
-        codigoUsuario: 'SEMSM-Q6266', 
-        alumno: 'Carlos Andrés Benítez', 
-        ciclo: 'Semestral San Marcos', 
-        puntajeSimulacro: 13.5, 
-        estadoPago: 'Moroso', 
-        montoPendiente: 350.00, 
-        ultimoPago: '2026-08-15' 
+      {
+        idAlumno: 102,
+        codigoUsuario: 'SEMSM-Q6266',
+        alumno: 'Carlos Andrés Benítez',
+        ciclo: 'Semestral San Marcos',
+        puntajeSimulacro: 13.5,
+        estadoPago: 'Moroso',
+        montoPendiente: 350.00,
+        ultimoPago: '2026-08-15'
       },
-      { 
-        idAlumno: 103, 
-        codigoUsuario: 'SEMSM-Q6267', 
-        alumno: 'Valeria Quispe Ruiz', 
-        ciclo: 'Semestral San Marcos', 
-        puntajeSimulacro: 18.2, 
-        estadoPago: 'Al día', 
-        montoPendiente: 0.00, 
-        ultimoPago: '2026-09-05' 
+      {
+        idAlumno: 103,
+        codigoUsuario: 'SEMSM-Q6267',
+        alumno: 'Valeria Quispe Ruiz',
+        ciclo: 'Semestral San Marcos',
+        puntajeSimulacro: 18.2,
+        estadoPago: 'Al día',
+        montoPendiente: 0.00,
+        ultimoPago: '2026-09-05'
       },
-      { 
-        idAlumno: 104, 
-        codigoUsuario: 'SEMSM-Q6268', 
-        alumno: 'Diego Martín Salazar', 
-        ciclo: 'Semestral San Marcos', 
-        puntajeSimulacro: 10.0, 
-        estadoPago: 'Moroso', 
-        montoPendiente: 350.00, 
-        ultimoPago: '2026-08-10' 
+      {
+        idAlumno: 104,
+        codigoUsuario: 'SEMSM-Q6268',
+        alumno: 'Diego Martín Salazar',
+        ciclo: 'Semestral San Marcos',
+        puntajeSimulacro: 10.0,
+        estadoPago: 'Moroso',
+        montoPendiente: 350.00,
+        ultimoPago: '2026-08-10'
       },
-      { 
-        idAlumno: 105, 
-        codigoUsuario: 'SEMSM-Q6269', 
-        alumno: 'Camila Sofía Paredes', 
-        ciclo: 'Semestral San Marcos', 
-        puntajeSimulacro: 14.0, 
-        estadoPago: 'Al día', 
-        montoPendiente: 0.00, 
-        ultimoPago: '2026-09-01' 
+      {
+        idAlumno: 105,
+        codigoUsuario: 'SEMSM-Q6269',
+        alumno: 'Camila Sofía Paredes',
+        ciclo: 'Semestral San Marcos',
+        puntajeSimulacro: 14.0,
+        estadoPago: 'Al día',
+        montoPendiente: 0.00,
+        ultimoPago: '2026-09-01'
       }
     ];
   }
 }
-
 // ==========================================
 // HU-03: MÓDULO DE MENÚS Y PERMISOS
 // ==========================================
