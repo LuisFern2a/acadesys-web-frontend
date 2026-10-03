@@ -22,51 +22,51 @@ const ESTUDIANTES_DEMO = [
     id: 1,
     nombre: 'Luis Fernando Tóccas',
     codigo: 'SEMSM-Q6265',
-    aula: 'Aula 101 - Semestral San Marcos',
+    aula: 'Ciclo San Marcos',
     puestoRanking: 3,
-    totalAlumnos: 36,
-    promedioGeneral: 15.8,
+    totalAlumnos: 120,
+    promedioGeneral: 615,
     cursosCriticos: 1,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.3, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
+      { id: 1, nombre: 'Habilidad Verbal', simulacro1: 150, simulacro2: 180, simulacro3: 160, promedio: 163, estado: 'Óptimo' },
+      { id: 2, nombre: 'Habilidad Lógico-Matemática', simulacro1: 140, simulacro2: 170, simulacro3: 190, promedio: 167, estado: 'Óptimo' },
+      { id: 3, nombre: 'Aritmética y Álgebra', simulacro1: 90, simulacro2: 110, simulacro3: 100, promedio: 100, estado: 'Regular' },
+      { id: 4, nombre: 'Física y Química', simulacro1: 50, simulacro2: 60, simulacro3: 55, promedio: 55, estado: 'En Riesgo' },
+      { id: 5, nombre: 'Historia del Perú y Universal', simulacro1: 120, simulacro2: 130, simulacro3: 140, promedio: 130, estado: 'Óptimo' }
     ]
   },
   {
     id: 2,
     nombre: 'Valeria Sofía Ramos',
     codigo: 'SEMSM-Q6267',
-    aula: 'Aula 101 - Semestral San Marcos',
+    aula: 'Ciclo San Marcos',
     puestoRanking: 1,
-    totalAlumnos: 36,
-    promedioGeneral: 18.6,
+    totalAlumnos: 120,
+    promedioGeneral: 845,
     cursosCriticos: 0,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 19, tareas: 20, final: 18, promedio: 19.0, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 20, tareas: 19, final: 19, promedio: 19.3, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 18, tareas: 18, final: 17, promedio: 17.7, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 17, tareas: 18, final: 18, promedio: 17.7, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 19, tareas: 20, final: 19, promedio: 19.3, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
+      { id: 1, nombre: 'Habilidad Verbal', simulacro1: 190, simulacro2: 200, simulacro3: 195, promedio: 195, estado: 'Óptimo' },
+      { id: 2, nombre: 'Habilidad Lógico-Matemática', simulacro1: 200, simulacro2: 195, simulacro3: 210, promedio: 202, estado: 'Óptimo' },
+      { id: 3, nombre: 'Aritmética y Álgebra', simulacro1: 180, simulacro2: 190, simulacro3: 175, promedio: 182, estado: 'Óptimo' },
+      { id: 4, nombre: 'Física y Química', simulacro1: 130, simulacro2: 140, simulacro3: 135, promedio: 135, estado: 'Óptimo' },
+      { id: 5, nombre: 'Historia del Perú y Universal', simulacro1: 125, simulacro2: 130, simulacro3: 140, promedio: 132, estado: 'Óptimo' }
     ]
   },
   {
     id: 3,
     nombre: 'Mateo Sebastián Quispe',
     codigo: 'SEMSM-Q6268',
-    aula: 'Aula 101 - Semestral San Marcos',
-    puestoRanking: 28,
-    totalAlumnos: 36,
-    promedioGeneral: 11.2,
+    aula: 'Ciclo San Marcos',
+    puestoRanking: 96,
+    totalAlumnos: 120,
+    promedioGeneral: 340,
     cursosCriticos: 3,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 11, tareas: 12, final: 10, promedio: 11.0, materialPdf: 'Silabo_Algebra_Bimestre2.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 14, tareas: 13, final: 12, promedio: 13.0, materialPdf: 'Guia_Ejercicios_RM_Semana8.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 10, tareas: 11, final: 9, promedio: 10.0, materialPdf: 'Formulario_Geometria_Espacio.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 8, tareas: 10, final: 9, promedio: 9.0, materialPdf: 'Problemas_Resueltos_Cinematica.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 13, tareas: 14, final: 12, promedio: 13.0, materialPdf: 'Tabla_Compuestos_Organicos.pdf', pesoMb: '1.8 MB' }
+      { id: 1, nombre: 'Habilidad Verbal', simulacro1: 80, simulacro2: 90, simulacro3: 85, promedio: 85, estado: 'En Riesgo' },
+      { id: 2, nombre: 'Habilidad Lógico-Matemática', simulacro1: 60, simulacro2: 70, simulacro3: 65, promedio: 65, estado: 'En Riesgo' },
+      { id: 3, nombre: 'Aritmética y Álgebra', simulacro1: 50, simulacro2: 60, simulacro3: 55, promedio: 55, estado: 'En Riesgo' },
+      { id: 4, nombre: 'Física y Química', simulacro1: 45, simulacro2: 40, simulacro3: 50, promedio: 45, estado: 'En Riesgo' },
+      { id: 5, nombre: 'Historia del Perú y Universal', simulacro1: 90, simulacro2: 85, simulacro3: 95, promedio: 90, estado: 'Regular' }
     ]
   }
 ];
@@ -77,7 +77,6 @@ export default function App() {
   const [loadingSession, setLoadingSession] = useState(true);
   const [hijos, setHijos] = useState(ESTUDIANTES_DEMO);
   const [idHijoSeleccionado, setIdHijoSeleccionado] = useState(1);
-
 
   useEffect(() => {
     obtenerHijosMock()
@@ -176,8 +175,7 @@ export default function App() {
 
           {activeTab === 'tutor-dashboard' && (
             <TutorDashboardPage setActiveTab={setActiveTab} />
-       )}
-
+          )}
 
           {/* HU-01: Matrícula Ágil */}
           {activeTab === 'matriculas' && (esAdmin || esTutor) && (
@@ -225,21 +223,21 @@ export default function App() {
           )}
 
           {/* Módulo Académico */}
-{(
-  activeTab === 'academico' ||
-  activeTab === 'academico-ciclos' ||
-  activeTab === 'academico-turnos'
-) && esStaff && (
-  <AcademicoPage
-    vistaInicial={
-      activeTab === 'academico-ciclos'
-        ? 'ciclos'
-        : activeTab === 'academico-turnos'
-          ? 'turnos'
-          : 'asignaciones'
-    }
-  />
-)}
+          {(
+            activeTab === 'academico' ||
+            activeTab === 'academico-ciclos' ||
+            activeTab === 'academico-turnos'
+          ) && esStaff && (
+            <AcademicoPage
+              vistaInicial={
+                activeTab === 'academico-ciclos'
+                  ? 'ciclos'
+                  : activeTab === 'academico-turnos'
+                    ? 'turnos'
+                    : 'asignaciones'
+              }
+            />
+          )}
 
           {/* Administración y RBAC */}
           {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}

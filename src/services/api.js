@@ -48,10 +48,10 @@ export async function fetchWithAuth(endpoint, options = {}) {
   });
 
   if (response.status === 401 || response.status === 403) {
-  console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
-  cerrarSesion();
-  throw new Error("Sesión no autorizada o expirada.");
-}
+    console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
+    cerrarSesion();
+    throw new Error("Sesión no autorizada o expirada.");
+  }
 
   return response;
 }
@@ -543,6 +543,7 @@ export async function obtenerMonitoreoTutores(idCiclo = 1) {
     ];
   }
 }
+
 // ==========================================
 // HU-03: MÓDULO DE MENÚS Y PERMISOS
 // ==========================================
@@ -934,19 +935,19 @@ const MOCK_ESTUDIANTES = [
   {
     id: 1,
     nombre: 'Luis Fernando Tóccas',
-    gradoCorto: 'Semestral SM',
+    gradoCorto: 'Ciclo San Marcos',
     codigo: 'SEMSM-Q6265',
-    aula: 'Aula 101 - Semestral San Marcos',
+    aula: 'Ciclo San Marcos',
     puestoRanking: 3,
-    totalAlumnos: 36,
-    promedioGeneral: 15.8,
+    totalAlumnos: 120,
+    promedioGeneral: 615,
     cursosCriticos: 1,
     cursos: [
-      { id: 1, nombre: 'Álgebra Superior', docente: 'Prof. Carlos Mendoza', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Algebra_Semana4_Polinomios.pdf', pesoMb: '1.4 MB' },
-      { id: 2, nombre: 'Razonamiento Matemático', docente: 'Prof. Dante Quispe', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'RM_DECO_PlanteoEcuaciones.pdf', pesoMb: '2.1 MB' },
-      { id: 3, nombre: 'Geometría del Espacio', docente: 'Prof. Juan David Peralta', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Geometria_Poliedros_Regulares.pdf', pesoMb: '980 KB' },
-      { id: 4, nombre: 'Física y Cinemática', docente: 'Prof. María Flores', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Fisica_Cinematica_Vectorial.pdf', pesoMb: '3.5 MB' },
-      { id: 5, nombre: 'Química Orgánica', docente: 'Prof. Rosaura Benítez', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Quimica_Hidrocarburos.pdf', pesoMb: '1.8 MB' }
+      { id: 1, nombre: 'Habilidad Verbal', simulacro1: 150, simulacro2: 180, simulacro3: 160, promedio: 163, estado: 'Óptimo' },
+      { id: 2, nombre: 'Habilidad Lógico-Matemática', simulacro1: 140, simulacro2: 170, simulacro3: 190, promedio: 167, estado: 'Óptimo' },
+      { id: 3, nombre: 'Aritmética y Álgebra', simulacro1: 90, simulacro2: 110, simulacro3: 100, promedio: 100, estado: 'Regular' },
+      { id: 4, nombre: 'Física y Química', simulacro1: 50, simulacro2: 60, simulacro3: 55, promedio: 55, estado: 'En Riesgo' },
+      { id: 5, nombre: 'Historia del Perú y Universal', simulacro1: 120, simulacro2: 130, simulacro3: 140, promedio: 130, estado: 'Óptimo' }
     ]
   }
 ];

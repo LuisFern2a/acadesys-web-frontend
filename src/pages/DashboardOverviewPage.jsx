@@ -10,7 +10,8 @@ import {
   ArrowDownRight,
   School,
   Clock,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 export default function DashboardOverviewPage({ setActiveTab, user }) {
@@ -63,7 +64,11 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
     { ciclo: 'Ciclo Repaso UNI', promedio: 16.5, aprobados: 97 }
   ];
 
-  const esAlumno = user?.rol?.toLowerCase() === 'alumno' || user?.rol?.toLowerCase() === 'estudiante';
+  // Doble verificación: por idPerfil (4 = Alumno) y por rol (texto)
+  const esAlumno =
+    Number(user?.idPerfil) === 4 ||
+    user?.rol?.toLowerCase() === 'alumno' ||
+    user?.rol?.toLowerCase() === 'estudiante';
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">
@@ -199,14 +204,15 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
                 Revisar Boletas y Ranking
               </button>
 
-              {/* AQUÍ ESTÁ EL TRUCO: Solo se muestra si NO es alumno */}
-              {!esAlumno && (
+              {/* Solo muestra "Asignar Carga Docente" si el usuario NO es un alumno (IdPerfil 4) */}
+              {Number(user?.idPerfil) !== 4 && user?.rol?.toLowerCase() !== 'alumno' && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('academico')}
                   className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
                 >
                   Asignar Carga Docente
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>

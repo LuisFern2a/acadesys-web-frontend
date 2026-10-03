@@ -372,7 +372,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold whitespace-nowrap">
-                      {ciclo.TotalAlumnos || 0} inscritos
+                      {ciclo.TotalAlumnos !== undefined ? ciclo.TotalAlumnos : 0} inscritos
                     </span>
                   </div>
                   {/* NOMBRE */}
@@ -381,34 +381,34 @@ export default function LandingPage({ onLoginSuccess }) {
                   </h3>
                   {/* INFORMACIÓN */}
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                    <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
                       <span>
                         <strong className="text-white">Turno:</strong>{' '}
-                        {ciclo.Turno || 'Por confirmar'}
+                        {ciclo.Turno || 'Por definir'}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                    </p>
+                    <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
                       <span>
                         <strong className="text-white">Horario:</strong>{' '}
-                        {ciclo.Horario || 'Por confirmar'}
+                        {ciclo.Horario || 'Por definir'}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                    </p>
+                    <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                       <span>
                         <strong className="text-white">Alumnos:</strong>{' '}
-                        {ciclo.TotalAlumnos || 0}
+                        {ciclo.TotalAlumnos !== undefined ? ciclo.TotalAlumnos : 0}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                    </p>
+                    <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>
                         <strong className="text-white">Modalidad:</strong>{' '}
                         Preuniversitaria
                       </span>
-                    </div>
+                    </p>
                   </div>
                   {/* BOTÓN PRINCIPAL */}
                   <button

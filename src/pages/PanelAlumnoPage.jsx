@@ -52,13 +52,6 @@ export default function PanelAlumnoPage() {
       setErrorCarga('');
 
       try {
-        /*
-         * Por ahora se mantienen los IDs utilizados originalmente
-         * por el proyecto.
-         *
-         * No se inventan propiedades de sesión hasta conocer
-         * exactamente qué identificadores entrega el login.
-         */
         const [resMateriales, resNotas] = await Promise.all([
           obtenerMaterialesAlumno(1),
           obtenerNotasSimulacroAlumno(101)
@@ -93,7 +86,7 @@ export default function PanelAlumnoPage() {
   const obtenerEstiloNota = (puntaje) => {
     const nota = Number(puntaje);
 
-    if (nota < 13) {
+    if (nota < 500) {
       return {
         texto: 'Por mejorar',
         textoColor: 'text-red-400',
@@ -240,54 +233,44 @@ export default function PanelAlumnoPage() {
           {reporteNotas && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-              {/* PROMEDIO */}
+              {/* PROMEDIO EN SIMULACROS (puntaje preuniversitario) */}
               <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                     Promedio en Simulacros
                   </span>
 
-                  <span
-                    className={`text-3xl font-black font-mono ${
-                      promedioGeneral < 13
-                        ? 'text-red-400'
-                        : 'text-emerald-400'
-                    }`}
-                  >
-                    {promedioGeneral.toFixed(1)} / 20.0
-                  </span>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-black text-emerald-400 font-mono">
+                      {promedioGeneral.toFixed(0)}
+                    </span>
+                    <span className="text-sm font-medium text-slate-500 mb-1">
+                      pts
+                    </span>
+                  </div>
 
                   <span className="text-[11px] text-slate-500 block mt-1">
                     Ciclo: {reporteNotas.ciclo}
                   </span>
                 </div>
 
-                <div
-                  className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${
-                    promedioGeneral < 13
-                      ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                      : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  }`}
-                >
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                   <TrendingUp className="w-6 h-6" />
                 </div>
               </div>
 
-              {/* RANKING */}
+              {/* RANKING (limpio, sin "de X alumnos") */}
               <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                     Puesto en el Ranking
                   </span>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-black text-indigo-400 font-mono">
-                      #{reporteNotas.puestoRanking ?? '-'}
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-black text-slate-100 font-mono">
+                      Puesto #{reporteNotas.puestoRanking ?? 1}
                     </span>
-
-                    <span className="text-xs text-slate-400">
-                      de {reporteNotas.totalAlumnos ?? 0} alumnos
-                    </span>
+                    {/* Lo dejamos limpio, sin "de X alumnos" */}
                   </div>
 
                   <span className="text-[11px] text-slate-500 block mt-1">
@@ -300,7 +283,7 @@ export default function PanelAlumnoPage() {
                 </div>
               </div>
 
-              {/* SIMULACROS */}
+              {/* SIMULACROS RENDIDOS */}
               <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
@@ -381,15 +364,17 @@ export default function PanelAlumnoPage() {
                             Puntaje
                           </span>
 
-                          <span
-                            className={`text-3xl font-black font-mono ${estilo.textoColor}`}
-                          >
-                            {puntaje.toFixed(1)}
-                          </span>
+                          <div className="flex items-end gap-1.5">
+                            <span
+                              className={`text-3xl font-black font-mono ${estilo.textoColor}`}
+                            >
+                              {puntaje.toFixed(0)}
+                            </span>
 
-                          <span className="text-xs text-slate-500 ml-1">
-                            / 20
-                          </span>
+                            <span className="text-xs text-slate-500 mb-1">
+                              pts
+                            </span>
+                          </div>
                         </div>
 
                         <div className="text-right">

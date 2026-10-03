@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Award, 
   TrendingUp, 
@@ -116,6 +116,7 @@ export default function CalificacionesPage({
           </p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-black text-slate-800">Puesto #{estudianteActivo?.puestoRanking || 1}</span>
+            {/* Lo dejamos limpio, solo el puesto */}
           </div>
         </div>
 
