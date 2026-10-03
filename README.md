@@ -294,7 +294,7 @@ Principales actividades:
 
 ## Base de Datos
 
-### Gabriel (Toris)
+### Gabriel 
 
 **Database Administrator**
 
@@ -371,7 +371,7 @@ AcadeSys fue desarrollado como proyecto académico aplicando conceptos relaciona
 
 ### Base de Datos
 
-- Gabriel (Toris)
+- Gabriel 
 
 ---
 
