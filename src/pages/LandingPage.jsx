@@ -181,7 +181,8 @@ export default function LandingPage({ onLoginSuccess }) {
         nombres: checkoutData.nombres.trim(),
         apellidos: checkoutData.apellidos.trim(),
         correo: checkoutData.correo.trim(),
-        monto: 1.0
+        monto: 1.0,
+        prefijoCiclo: cicloSeleccionado?.prefijo || null
       };
       await procesarCheckoutMatricula(payload);
       await Swal.fire({
@@ -255,7 +256,9 @@ export default function LandingPage({ onLoginSuccess }) {
       if (rolEsperado) {
         const nombreEsperado = (MAPA_ROLES[rolEsperado] || '').toLowerCase();
         const coincideId = idPerfilRecibido === rolEsperado;
-        const coincideNombre = rolRecibidoTexto.includes(nombreEsperado);
+        const coincideNombre = rolEsperado === '1'
+          ? (rolRecibidoTexto.includes('administrador') || rolRecibidoTexto.includes('recursos humanos') || rolRecibidoTexto === 'rrhh')
+          : rolRecibidoTexto.includes(nombreEsperado);
         // El administrador (ID 1) siempre tiene permiso de entrar si lo requiere
         if (!coincideId && !coincideNombre) {
           const perfilCuenta = data.rol || data.perfil || data.NombrePerfil || 'Usuario';
@@ -267,13 +270,20 @@ export default function LandingPage({ onLoginSuccess }) {
       // Captura de datos de branding multi-tenant (res.data.academia)
       const academia = data.academia || {};
       const sessionUser = {
+        idUsuario: data.idUsuario || data.user?.idUsuario || data.user?.id || null,
+        IdUsuario: data.idUsuario || data.user?.idUsuario || data.user?.id || null,
         nombre: data.usuario || data.nombres || data.nombre || inputUser,
+        NombreCompleto: data.usuario || data.nombres || data.nombre || inputUser,
         rol: data.rol || data.perfil || data.NombrePerfil || 'Administrador',
         token: data.token || data.jwt || data.accessToken,
+        codigoUsuario: data.codigoUsuario || data.user?.codigoUsuario || inputUser,
+        correo: data.correo || data.user?.correo || '',
+        dni: data.dni || data.user?.dni || '',
         idAcademia: data.idAcademia || academia.idAcademia || academia.id || 1,
         colorTema: academia.colorTema || data.colorTema || '#2563eb',
         logoUrl: academia.logoUrl || data.logoUrl || null,
-        nombreAcademia: academia.nombreAcademia || data.nombreAcademia || 'AcadeSys'
+        nombreAcademia: academia.nombreAcademia || data.nombreAcademia || 'AcadeSys',
+        ciclo: data.matricula || null
       };
       if (!sessionUser.token) {
         throw new Error('El servidor no devolvió un token de sesión válido.');
@@ -360,7 +370,7 @@ export default function LandingPage({ onLoginSuccess }) {
           ) : ciclos.length === 0 ? (
             <p className="text-center text-slate-500 text-sm">No hay ciclos disponibles por el momento.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
               {ciclos.map((ciclo) => (
                 <div
                   key={ciclo.idCiclo ?? ciclo.id}
@@ -372,7 +382,7 @@ export default function LandingPage({ onLoginSuccess }) {
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold whitespace-nowrap">
-                      {ciclo.TotalAlumnos !== undefined ? ciclo.TotalAlumnos : 0} inscritos
+                      {ciclo.totalAlumnos ?? 0} inscritos
                     </span>
                   </div>
                   {/* NOMBRE */}
@@ -385,28 +395,35 @@ export default function LandingPage({ onLoginSuccess }) {
                       <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
                       <span>
                         <strong className="text-white">Turno:</strong>{' '}
-                        {ciclo.Turno || 'Por definir'}
+                        {ciclo.turno || 'Mañana'}
                       </span>
                     </p>
                     <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
                       <span>
                         <strong className="text-white">Horario:</strong>{' '}
-                        {ciclo.Horario || 'Por definir'}
+                        {ciclo.horario || '08:00 - 13:00'}
                       </span>
                     </p>
                     <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                       <span>
                         <strong className="text-white">Alumnos:</strong>{' '}
-                        {ciclo.TotalAlumnos !== undefined ? ciclo.TotalAlumnos : 0}
+                        {ciclo.totalAlumnos ?? 0}
                       </span>
                     </p>
                     <p className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>
-                        <strong className="text-white">Modalidad:</strong>{' '}
-                        Preuniversitaria
+                        <strong className="text-white">Objetivo:</strong>{' '}
+                        {ciclo.universidadObjetivo || 'Preuniversitario'}
+                      </span>
+                    </p>
+                    <p className="flex items-center gap-1.5 text-sm text-slate-300">
+                      <Calendar className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>
+                        <strong className="text-white">Días:</strong>{' '}
+                        {ciclo.diasClase || 'Según programación'}
                       </span>
                     </p>
                   </div>

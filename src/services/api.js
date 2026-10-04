@@ -47,10 +47,12 @@ export async function fetchWithAuth(endpoint, options = {}) {
     headers
   });
 
-  if (response.status === 401 || response.status === 403) {
-    console.warn(`[Auth] Sesión expirada o no autorizada (${response.status}). Redirigiendo...`);
+  if (response.status === 401) {
+    console.warn('[Auth] Sesión expirada. Cerrando sesión.');
     cerrarSesion();
-    throw new Error("Sesión no autorizada o expirada.");
+    const error = new Error('Sesión no autorizada o expirada.');
+    error.status = 401;
+    throw error;
   }
 
   return response;
@@ -269,14 +271,12 @@ export async function eliminarPerfil(idPerfil) {
 // ==========================================
 
 export async function obtenerUsuarios() {
-  try {
-    const response = await fetchWithAuth(`/api/usuarios`);
-    if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.warn("Fallo al obtener usuarios, usando mock:", error);
-    return [...mockUsuarios];
+  const response = await fetchWithAuth(`/api/usuarios`);
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
+  return await response.json();
 }
 
 export async function crearUsuario(datosUsuario) {
@@ -285,6 +285,7 @@ export async function crearUsuario(datosUsuario) {
     : Number(datosUsuario.idPerfil || datosUsuario.IdPerfil || 1);
 
   const payload = {
+    CodigoUsuario: String(datosUsuario.nombreUsuario || datosUsuario.codigoUsuario || '').trim(),
     DNI: String(datosUsuario.dni || '').trim().slice(0, 8),
     Nombres: datosUsuario.nombre || '',
     ApellidoPaterno: datosUsuario.apellido || '',
@@ -1096,30 +1097,52 @@ export async function obtenerNotasSimulacroAlumno(idEstudiante = 101) {
 
 // Tarea 1: GET /api/ciclos/publicos
 export async function obtenerCiclosPublicos() {
-  try {
-    const response = await fetch(`${API_URL}/api/ciclos/publicos`);
-    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
-    const data = await response.json();
-    const lista = Array.isArray(data) ? data : (data.data || data.ciclos || []);
+  const response = await fetch(`${API_URL}/api/ciclos/publicos`);
+  const data = await response.json().catch(() => ({}));
 
-    return lista.map((c) => ({
-      idCiclo: c.IdCiclo ?? c.idCiclo ?? c.id,
-      nombre: c.Nombre ?? c.nombre,
-      turno: c.Turno ?? c.turno ?? null,
-      cantidadAlumnos: c.TotalAlumnos ?? c.cantidadAlumnos ?? 0,
-      prefijo: c.PrefijoCodigo ?? null,
-      fechaInicio: c.FechaInicio ?? null,
-      fechaFin: c.FechaFin ?? null,
-      precio: 1.0
-    }));
-  } catch (error) {
-    console.warn("Fallo al obtener ciclos públicos, usando fallback:", error);
-    return [
-      { idCiclo: 1, nombre: 'Semestral San Marcos', turno: 'Mañana', cantidadAlumnos: 36, precio: 1.00 },
-      { idCiclo: 2, nombre: 'Anual UNI', turno: 'Mañana', cantidadAlumnos: 28, precio: 1.00 },
-      { idCiclo: 3, nombre: 'Repaso Villarreal', turno: 'Tarde', cantidadAlumnos: 22, precio: 1.00 }
-    ];
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
+
+  const lista = Array.isArray(data) ? data : (data.data || data.ciclos || []);
+
+  return lista.map((c) => ({
+    idCiclo: c.IdCiclo ?? c.idCiclo ?? c.id,
+    nombre: c.Nombre ?? c.nombre,
+    turno: c.Turno ?? c.turno ?? '',
+    horario: c.Horario ?? c.horario ?? '',
+    diasClase: c.DiasClase ?? c.diasClase ?? '',
+    universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? '',
+    totalAlumnos: Number(c.TotalAlumnos ?? c.totalAlumnos ?? c.cantidadAlumnos ?? 0),
+    totalCursos: Number(c.TotalCursos ?? c.totalCursos ?? 0),
+    capacidad: Number(c.Capacidad ?? c.capacidad ?? 0),
+    prefijo: c.PrefijoCodigo ?? c.prefijo ?? null,
+    fechaInicio: c.FechaInicio ?? c.fechaInicio ?? null,
+    fechaFin: c.FechaFin ?? c.fechaFin ?? null,
+    precio: Number(c.Precio ?? c.precio ?? 1)
+  }));
+}
+
+export async function obtenerCursosCiclo(idCiclo) {
+  const response = await fetch(`${API_URL}/api/ciclos/${idCiclo}/cursos`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  const lista = Array.isArray(data) ? data : (data.data || data.cursos || []);
+  return lista.map((c) => ({
+    idCurso: c.IdCurso ?? c.idCurso ?? c.id,
+    nombre: c.Nombre ?? c.nombre,
+    codigo: c.Codigo ?? c.codigo ?? '',
+    descripcion: c.Descripcion ?? c.descripcion ?? '',
+    universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? ''
+  }));
 }
 
 // Tarea 2: POST /api/matriculas/checkout
@@ -1129,7 +1152,7 @@ export async function procesarCheckoutMatricula(payload) {
     Nombres: payload.nombres,
     Apellidos: payload.apellidos,
     Correo: payload.correo,
-    // camelCase por si acaso
+    PrefijoCiclo: payload.prefijoCiclo || payload.prefijo || null,
     idCiclo: payload.idCiclo,
     nombres: payload.nombres,
     apellidos: payload.apellidos,
@@ -1144,21 +1167,74 @@ export async function procesarCheckoutMatricula(payload) {
   });
 
   const data = await response.json().catch(() => ({}));
-  console.log('[checkout]', response.status, data);
 
   if (!response.ok) {
     const error = new Error(
       data.message ||
       data.error ||
       data.mensaje ||
-      'Error al procesar el pago e inscripción'
+      'Error al procesar la inscripción'
     );
-
-    // Conservamos el código HTTP para que la interfaz pueda distinguir
-    // errores de validación (400), servidor (500), etc.
     error.status = response.status;
     error.data = data;
+    throw error;
+  }
 
+  return data;
+}
+
+export async function obtenerMiIntranetAlumno() {
+  const response = await fetchWithAuth('/api/alumno/me');
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+export async function obtenerMaterialesAdmin(idCiclo) {
+  const query = idCiclo ? `?idCiclo=${encodeURIComponent(idCiclo)}` : '';
+  const response = await fetchWithAuth(`/api/materiales/admin${query}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return Array.isArray(data) ? data : (data.data || []);
+}
+
+export async function subirMaterialPDF(payload) {
+  const response = await fetchWithAuth('/api/materiales', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+export async function eliminarMaterial(idMaterial) {
+  const response = await fetchWithAuth(`/api/materiales/${idMaterial}`, {
+    method: 'DELETE'
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
     throw error;
   }
 

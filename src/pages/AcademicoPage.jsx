@@ -26,7 +26,8 @@ import {
   eliminarCurso,
   obtenerAsignacionesDocente, 
   crearAsignacionDocente,
-  eliminarAsignacionDocente
+  eliminarAsignacionDocente,
+  obtenerCiclosPublicos
 } from '../services/api';
 
 export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
@@ -148,26 +149,42 @@ const [turnos, setTurnos] = useState([]);
   });
 
   useEffect(() => {
-  setCiclos(ciclosBase);
+  setCiclos([]);
   setTurnos(turnosBase);
   cargarDatos();
 }, []);
 
   const cargarDatos = async () => {
     try {
-      const [dataAulas, dataCursos, dataAsig] = await Promise.all([
+      const [dataAulas, dataCursos, dataAsig, dataCiclos] = await Promise.all([
         obtenerAulas ? obtenerAulas().catch(() => null) : null,
         obtenerCursos ? obtenerCursos().catch(() => null) : null,
-        obtenerAsignacionesDocente ? obtenerAsignacionesDocente().catch(() => null) : null
+        obtenerAsignacionesDocente ? obtenerAsignacionesDocente().catch(() => null) : null,
+        obtenerCiclosPublicos().catch(() => null)
       ]);
 
       const listaAulas = (dataAulas && dataAulas.length > 0) ? dataAulas : aulasBase;
       const listaCursos = (dataCursos && dataCursos.length > 0) ? dataCursos : cursosBase;
       const listaAsig = (dataAsig && dataAsig.length > 0) ? dataAsig : asignacionesBase;
+      const listaCiclos = Array.isArray(dataCiclos) && dataCiclos.length > 0
+        ? dataCiclos.map((c) => ({
+            idCiclo: c.idCiclo,
+            nombre: c.nombre,
+            turno: c.turno,
+            horario: c.horario,
+            alumnos: c.totalAlumnos,
+            capacidad: c.capacidad,
+            cursos: c.totalCursos,
+            estado: 'Activo',
+            universidadObjetivo: c.universidadObjetivo,
+            diasClase: c.diasClase
+          }))
+        : [];
 
       setAulas(listaAulas);
       setCursos(listaCursos);
       setAsignaciones(listaAsig);
+      setCiclos(listaCiclos);
 
       if (listaCursos.length > 0 && listaAulas.length > 0) {
         setFormAsig({
@@ -182,6 +199,7 @@ const [turnos, setTurnos] = useState([]);
       setAulas(aulasBase);
       setCursos(cursosBase);
       setAsignaciones(asignacionesBase);
+      setCiclos([]);
     }
   };
 
