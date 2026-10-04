@@ -81,11 +81,6 @@ export default function UsuariosPage() {
         const data = await obtenerUsuarios();
         const lista = Array.isArray(data) ? data : data?.data || [];
 
-        if (lista.length === 0) {
-          setUsuarios(usuariosRespaldo);
-          return;
-        }
-
         const mapaUsuarios = new Map();
         lista.forEach((u) => {
           const dni = String(u.dni || u.DNI || u.Dni || '').trim();
@@ -125,11 +120,11 @@ export default function UsuariosPage() {
 
         setUsuarios(Array.from(mapaUsuarios.values()));
       } else {
-        setUsuarios(usuariosRespaldo);
+        throw new Error('No está disponible el servicio de usuarios.');
       }
     } catch (error) {
-      console.warn('Usando nómina local de usuarios:', error);
-      setUsuarios(usuariosRespaldo);
+      console.warn('No fue posible cargar la nómina desde el backend:', error);
+      setUsuarios([]);
     } finally {
       setLoadingUsuarios(false);
     }
@@ -338,8 +333,15 @@ export default function UsuariosPage() {
           return itemId === id ? { ...item, ...payloadUsuario } : item;
         }));
       } else {
-        const nuevo = { ...payloadUsuario, idUsuario: Date.now() };
-        if (typeof crearUsuario === 'function') await crearUsuario(payloadUsuario);
+        const respuesta = typeof crearUsuario === 'function'
+          ? await crearUsuario(payloadUsuario)
+          : null;
+        const nuevo = {
+          ...payloadUsuario,
+          idUsuario: respuesta?.id || respuesta?.idUsuario || Date.now(),
+          IdUsuario: respuesta?.id || respuesta?.idUsuario || Date.now(),
+          CodigoUsuario: respuesta?.codigoUsuario || respuesta?.CodigoUsuario || ''
+        };
         setUsuarios(prev => [nuevo, ...prev]);
       }
       setIsModalOpen(false);
