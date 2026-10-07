@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   BookOpen,
   FileText,
@@ -88,7 +88,7 @@ export default function AdminMaterialesPage() {
     setError('');
 
     if (!idCiclo || !idCurso || !titulo.trim() || !archivo) {
-      setError('Selecciona el ciclo, curso, título y un archivo PDF.');
+      setError('Selecciona el ciclo, curso, t├¡tulo y un archivo PDF.');
       return;
     }
 
@@ -129,7 +129,7 @@ export default function AdminMaterialesPage() {
   };
 
   const handleEliminar = async (material) => {
-    if (!window.confirm(`¿Eliminar el material "${material.titulo}"?`)) return;
+    if (!window.confirm(`┬┐Eliminar el material "${material.titulo}"?`)) return;
     try {
       await eliminarMaterial(material.idMaterial);
       setMateriales((prev) => prev.filter((m) => m.idMaterial !== material.idMaterial));
@@ -155,7 +155,7 @@ export default function AdminMaterialesPage() {
             <p className="text-blue-300 text-[10px] font-bold uppercase tracking-[0.16em]">Administración</p>
             <h1 className="text-3xl font-black mt-1">Materiales Académicos</h1>
             <p className="text-sm text-slate-500 mt-2">
-              Publica PDFs de apoyo y asígnalos al ciclo y curso correcto. El alumno solo verá los materiales de su ciclo.
+              Publica PDFs de apoyo y asígnalos al ciclo y curso correcto. El alumno solo ver├í los materiales de su ciclo.
             </p>
           </div>
           <button
@@ -264,7 +264,7 @@ export default function AdminMaterialesPage() {
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Materiales del ciclo</p>
-                <h2 className="text-xl font-black text-white mt-1">{ciclos.find((c) => String(c.idCiclo) === String(idCiclo))?.nombre || '—'}</h2>
+                <h2 className="text-xl font-black text-white mt-1">{ciclos.find((c) => String(c.idCiclo) === String(idCiclo))?.nombre || '-'}</h2>
               </div>
               <BookOpen className="w-5 h-5 text-blue-400" />
             </div>
@@ -283,7 +283,7 @@ export default function AdminMaterialesPage() {
                       <p className="text-[10px] uppercase tracking-wider font-bold text-blue-300">{material.curso || 'Curso'}</p>
                       <h3 className="text-sm font-black text-white mt-1 truncate">{material.titulo}</h3>
                       <p className="text-xs text-slate-500 mt-1">{material.descripcion || 'Sin descripción'}</p>
-                      <p className="text-[10px] text-slate-600 mt-2">{material.nombreArchivo || 'PDF'} · {String(material.fechaPublicacion || '').slice(0, 10)}</p>
+                      <p className="text-[10px] text-slate-600 mt-2">{material.nombreArchivo || 'PDF'} ┬À {String(material.fechaPublicacion || '').slice(0, 10)}</p>
                     </div>
 
                     <div className="flex items-center gap-2">

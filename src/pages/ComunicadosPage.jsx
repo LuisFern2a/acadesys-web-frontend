@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  Megaphone, 
-  Plus, 
-  CheckCircle2, 
-  Calendar, 
-  Clock, 
-  Search, 
-  UserCheck, 
-  AlertTriangle, 
-  Users, 
-  X 
+import {
+  Bell,
+  Megaphone,
+  Plus,
+  CheckCircle2,
+  Calendar,
+  Clock,
+  Search,
+  UserCheck,
+  AlertTriangle,
+  Users,
+  X
 } from 'lucide-react';
-import { 
-  obtenerComunicados, 
-  crearComunicado, 
-  confirmarLecturaComunicado 
+import {
+  obtenerComunicados,
+  crearComunicado,
+  confirmarLecturaComunicado
 } from '../services/api';
 
 export default function ComunicadosPage({ user }) {
@@ -68,7 +68,7 @@ export default function ComunicadosPage({ user }) {
     } catch (err) {
       console.warn('Servidor sin endpoint de confirmación, actualizando vista localmente:', err);
     }
-    setComunicados(prev => 
+    setComunicados(prev =>
       prev.map(c => c.id === id ? { ...c, confirmado: true, leido: true } : c)
     );
   };
@@ -120,16 +120,16 @@ export default function ComunicadosPage({ user }) {
     }
   };
 
-  const normalizarTexto = (txt = '') => 
+  const normalizarTexto = (txt = '') =>
     txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
   const comunicadosFiltrados = comunicados.filter(c => {
     const catNorm = normalizarTexto(c.categoria);
     const filtroNorm = normalizarTexto(filtroCategoria);
     const coincideCat = filtroCategoria === 'todos' || catNorm === filtroNorm;
-    
+
     const termino = busqueda.toLowerCase();
-    const coincideTexto = (c.titulo || '').toLowerCase().includes(termino) || 
+    const coincideTexto = (c.titulo || '').toLowerCase().includes(termino) ||
                           (c.contenido || '').toLowerCase().includes(termino);
     return coincideCat && coincideTexto;
   });
@@ -160,9 +160,9 @@ export default function ComunicadosPage({ user }) {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Agenda y Comunicados Oficiales</h1>
-            <p className="text-slate-500 text-sm mt-0.5">
-              Notificaciones institucionales, circulares pedagógicas y acuerdos directivos
-            </p>
+            <p className="text-slate-600 text-sm mt-0.5">
+  Notificaciones institucionales, circulares pedagógicas y acuerdos directivos
+</p>
           </div>
         </div>
 
@@ -186,7 +186,7 @@ export default function ComunicadosPage({ user }) {
             placeholder="Buscar por título o contenido..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+            className="w-full text-sm text-slate-800 placeholder-slate-400 pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
           />
         </div>
 
@@ -210,42 +210,53 @@ export default function ComunicadosPage({ user }) {
 
       {/* LISTA DE COMUNICADOS */}
       {cargando ? (
-        <div className="py-12 text-center text-xs text-slate-400">
-          Cargando avisos de la institución...
-        </div>
+  <div className="py-12 text-center text-sm text-slate-600">
+    Cargando avisos de la institución...
+  </div>
       ) : comunicadosFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
-          <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-          <p className="text-sm font-semibold text-slate-700">No se encontraron comunicados</p>
-          <p className="text-xs text-slate-400 mt-1">No hay avisos para el criterio seleccionado.</p>
-        </div>
-      ) : (
+  <div className="bg-white rounded-2xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
+
+    <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+      <Bell className="w-7 h-7 text-indigo-500" />
+    </div>
+
+    <p className="text-base font-bold text-slate-800">
+      No hay comunicados disponibles
+    </p>
+
+    <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
+      Cuando la institución publique un nuevo aviso,
+      comunicado o circular, aparecerá automáticamente en este espacio.
+    </p>
+
+  </div>
+) : (
         <div className="space-y-4">
           {comunicadosFiltrados.map((item) => {
             const esUrgente = item.prioridad === 'alta';
 
             return (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 className={`bg-white rounded-2xl border p-6 shadow-sm transition hover:shadow-md ${
-                  esUrgente 
-                    ? 'border-l-4 border-l-rose-500 border-rose-200 bg-rose-50/15' 
+                  esUrgente
+                    ? 'border-l-4 border-l-rose-500 border-rose-200 bg-rose-50/15'
                     : 'border-slate-200/90'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getBadgeCategoria(item.categoria)}`}>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getBadgeCategoria(item.categoria)}`}>
                       {item.categoria}
                     </span>
                     {esUrgente && (
-                      <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-sm">
+                      <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-sm">
                         <AlertTriangle className="w-3 h-3" /> Prioridad Alta
                       </span>
                     )}
-                    <span className="text-xs font-semibold text-slate-500">
-                      Dirigido a: <strong className="text-slate-800">{item.dirigidoA}</strong>
-                    </span>
+                   <span className="text-sm font-semibold text-slate-600">
+  Dirigido a: <strong className="text-slate-800">{item.dirigidoA}</strong>
+</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
@@ -267,8 +278,8 @@ export default function ComunicadosPage({ user }) {
                 </p>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
                       {(item.autor || 'DA').slice(0, 2).toUpperCase()}
                     </span>
                     <span>Emitido por: <strong className="text-slate-700">{item.autor}</strong></span>
