@@ -48,20 +48,9 @@ const [turnos, setTurnos] = useState([]);
   const [editandoId, setEditandoId] = useState(null);
 
   // Datos base de respaldo institucional
-  const aulasBase = [
-    { idAula: 1, nombre: 'Aula 101 - Ciencias', nivel: 'Preuniversitario', capacidad: 35 },
-    { idAula: 2, nombre: 'Aula 102 - Letras', nivel: 'Preuniversitario', capacidad: 30 },
-    { idAula: 3, nombre: '5to Grado B - Selección', nivel: 'Secundaria', capacidad: 32 },
-    { idAula: 4, nombre: '3er Grado A', nivel: 'Primaria', capacidad: 28 }
-  ];
+  const aulasBase = [];
 
-  const cursosBase = [
-    { idCurso: 1, nombre: 'Álgebra Superior', codigo: 'MAT-ALG', descripcion: 'Ecuaciones polinómicas, matrices y determinantes' },
-    { idCurso: 2, nombre: 'Física Clásica', codigo: 'CTA-FIS', descripcion: 'Cinemática vectorial, dinámica y trabajo mecánico' },
-    { idCurso: 3, nombre: 'Razonamiento Matemático', codigo: 'MAT-RM', descripcion: 'Lógica inductiva-deductiva y problemas de optimización' },
-    { idCurso: 4, nombre: 'Geometría del Espacio', codigo: 'MAT-GEO', descripcion: 'Poliedros regulares, prismas y sólidos de revolución' },
-    { idCurso: 5, nombre: 'Química Orgánica', codigo: 'CTA-QUI', descripcion: 'Hidrocarburos, grupos funcionales y reacciones orgánicas' }
-  ];
+  const cursosBase = [];
 
     const ciclosBase = [
     {
@@ -164,7 +153,7 @@ const [turnos, setTurnos] = useState([]);
       ]);
 
       const listaAulas = (dataAulas && dataAulas.length > 0) ? dataAulas : aulasBase;
-      const listaCursos = (dataCursos && dataCursos.length > 0) ? dataCursos : cursosBase;
+      const listaCursos = Array.isArray(dataCursos) ? dataCursos : [];
       const listaAsig = (dataAsig && dataAsig.length > 0) ? dataAsig : asignacionesBase;
       const listaCiclos = Array.isArray(dataCiclos) && dataCiclos.length > 0
         ? dataCiclos.map((c) => ({
@@ -197,7 +186,7 @@ const [turnos, setTurnos] = useState([]);
     } catch (err) {
       console.warn('Cargando datos locales de contingencia:', err);
       setAulas(aulasBase);
-      setCursos(cursosBase);
+      setCursos([]);
       setAsignaciones(asignacionesBase);
       setCiclos([]);
     }

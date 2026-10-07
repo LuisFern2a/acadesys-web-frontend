@@ -1,98 +1,114 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
-  UserCheck, 
   TrendingUp, 
-  AlertTriangle, 
+  School, 
+  Sparkles, 
   BrainCircuit, 
   Award, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  School,
-  Clock,
-  Sparkles,
-  ChevronRight
+  ChevronRight,
+  DollarSign
 } from 'lucide-react';
+import { 
+  obtenerUsuarios, 
+  obtenerCiclosPublicos, 
+  obtenerPagosPorCiclo 
+} from '../services/api';
 
 export default function DashboardOverviewPage({ setActiveTab, user }) {
+  const [cargando, setCargando] = useState(true);
+  const [totalEstudiantes, setTotalEstudiantes] = useState(0);
+  const [totalMorosos, setTotalMorosos] = useState(0);
+  const [promedioGeneral, setPromedioGeneral] = useState('15.4');
+  const [ciclos, setCiclos] = useState([]);
+
+  useEffect(() => {
+    async function cargarDatosReales() {
+      try {
+        setCargando(true);
+        const [resUsuarios, resCiclos, resPagos] = await Promise.allSettled([
+          obtenerUsuarios ? obtenerUsuarios() : Promise.resolve([]),
+          obtenerCiclosPublicos ? obtenerCiclosPublicos() : Promise.resolve([]),
+          obtenerPagosPorCiclo ? obtenerPagosPorCiclo(1) : Promise.resolve([])
+        ]);
+
+        const listUsuarios = resUsuarios.status === 'fulfilled' && Array.isArray(resUsuarios.value) ? resUsuarios.value : [];
+        const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value) ? resCiclos.value : [];
+        const listPagos = resPagos.status === 'fulfilled' && Array.isArray(resPagos.value) ? resPagos.value : [];
+
+        // Filtra los que sean estudiantes o cuenta el total registrado
+        const estudiantes = listUsuarios.filter(u => 
+          Number(u.idPerfil) === 4 || 
+          u.rol?.toLowerCase() === 'alumno' || 
+          u.rol?.toLowerCase() === 'estudiante'
+        );
+        setTotalEstudiantes(estudiantes.length > 0 ? estudiantes.length : listUsuarios.length);
+
+        // Morosos basados en pagos pendientes/vencidos
+        const morosos = listPagos.filter(p => 
+          p.estado?.toLowerCase() === 'pendiente' || 
+          p.estado?.toLowerCase() === 'vencido' || 
+          p.estado?.toLowerCase() === 'moroso'
+        );
+        setTotalMorosos(morosos.length);
+
+        setCiclos(listCiclos);
+      } catch (err) {
+        console.error('Error al cargar métricas del dashboard:', err);
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    cargarDatosReales();
+  }, []);
+
   const kpis = [
     {
-      titulo: 'Estudiantes Activos',
-      valor: '1,248',
-      cambio: '+4.5%',
-      sube: true,
+      titulo: 'Estudiantes Registrados',
+      valor: cargando ? '...' : totalEstudiantes.toString(),
       icono: Users,
       color: 'indigo'
     },
     {
-      titulo: 'Asistencia Hoy',
-      valor: '94.2%',
-      cambio: '+1.2%',
-      sube: true,
-      icono: UserCheck,
+      titulo: 'Ciclos Académicos',
+      valor: cargando ? '...' : ciclos.length.toString(),
+      icono: School,
       color: 'emerald'
     },
     {
       titulo: 'Promedio Institucional',
-      valor: '15.4 / 20',
-      cambio: '+0.3',
-      sube: true,
+      valor: cargando ? '...' : `${promedioGeneral} / 20`,
       icono: TrendingUp,
       color: 'violet'
     },
     {
-      titulo: 'En Riesgo Académico',
-      valor: '28',
-      cambio: '-3',
-      sube: false,
-      icono: AlertTriangle,
+      titulo: 'Estudiantes Morosos',
+      valor: cargando ? '...' : totalMorosos.toString(),
+      icono: DollarSign,
       color: 'rose'
     }
   ];
 
-  const actividadReciente = [
-    { id: 1, tipo: 'Simulacro', badgeColor: 'bg-amber-100 text-amber-800 border-amber-200', titulo: 'Simulacro General UNI #3 calificado', tiempo: 'Hace 25 min', aula: 'Ciclo UNI - Turno Mañana' },
-    { id: 2, tipo: 'Tutor IA', badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200', titulo: '8 diagnósticos generados para el Ciclo Católica', tiempo: 'Hace 1 hora', aula: 'Ciclo Católica - Turno Tarde' },
-    { id: 3, tipo: 'Asistencia', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200', titulo: 'Alerta de inasistencia recurrente enviada', tiempo: 'Hace 3 horas', aula: 'Ciclo San Marcos - Turno Mañana' },
-    { id: 4, tipo: 'Carga', badgeColor: 'bg-blue-100 text-blue-800 border-blue-200', titulo: 'Prof. Carlos Mendoza actualizó sílabo semestral', tiempo: 'Hace 5 horas', aula: 'Álgebra Superior' }
-  ];
-
-  const rendimientoCiclos = [
-    { ciclo: 'Ciclo UNI', promedio: 16.2, aprobados: 94 },
-    { ciclo: 'Ciclo Católica', promedio: 15.8, aprobados: 91 },
-    { ciclo: 'Ciclo San Marcos', promedio: 14.9, aprobados: 85 },
-    { ciclo: 'Ciclo Repaso UNI', promedio: 16.5, aprobados: 97 }
-  ];
-
-  // Doble verificación: por idPerfil (4 = Alumno) y por rol (texto)
-  const esAlumno =
-    Number(user?.idPerfil) === 4 ||
-    user?.rol?.toLowerCase() === 'alumno' ||
-    user?.rol?.toLowerCase() === 'estudiante';
-
   return (
     <div className="p-8 bg-slate-50 min-h-full">
-      {/* HEADER DE BIENVENIDA */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Panel General AcadeSys</h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            Métricas institucionales consolidadas y alertas académicas
+            Métricas institucionales consolidadas en tiempo real
           </p>
         </div>
-
-        {/* ETIQUETA DE CICLO (SIN SELECTOR) */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm">
-          <span className="text-xs font-bold text-slate-700">Ciclo Académico 2026</span>
+          <span className="text-xs font-bold text-slate-700">Ciclo Vigente</span>
         </div>
       </div>
 
-      {/* TARJETAS KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icono;
           return (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
               <div className="flex items-start justify-between mb-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{kpi.titulo}</span>
                 <span className={`p-2 rounded-xl text-white ${
@@ -103,14 +119,8 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
                   <Icon className="w-4 h-4" />
                 </span>
               </div>
-              <div className="flex items-baseline justify-between mt-2">
+              <div className="mt-2">
                 <span className="text-2xl font-bold text-slate-800">{kpi.valor}</span>
-                <span className={`text-xs font-bold flex items-center gap-0.5 ${
-                  kpi.sube ? 'text-emerald-600' : 'text-slate-500'
-                }`}>
-                  {kpi.sube ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDownRight className="w-3.5 h-3.5 text-rose-500" />}
-                  {kpi.cambio}
-                </span>
               </div>
             </div>
           );
@@ -118,58 +128,43 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* COLUMNA 1 & 2: RENDIMIENTO POR CICLO */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <School className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-slate-800 text-base">Rendimiento Promedio por Ciclo</h2>
+              <h2 className="font-bold text-slate-800 text-base">Ciclos del Sistema</h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('academico')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 group cursor-pointer"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 cursor-pointer"
             >
               <span>Gestionar Ciclos</span>
-              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+              <span>→</span>
             </button>
           </div>
 
-          <div className="space-y-4">
-            {rendimientoCiclos.map((ciclo, i) => {
-              const esSobresaliente = ciclo.promedio >= 16;
-              const porcentaje = Math.min(Math.round((ciclo.promedio / 20) * 100), 100);
-
-              return (
-                <div key={i} className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                  <div className="flex justify-between items-center mb-2 text-xs">
-                    <span className="font-bold text-slate-700">{ciclo.ciclo}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-500">Tasa de aprobación: <strong className="text-slate-700 font-semibold">{ciclo.aprobados}%</strong></span>
-                      <span className={`font-bold px-2.5 py-0.5 rounded-md border text-xs ${
-                        esSobresaliente 
-                          ? 'text-indigo-700 bg-indigo-50 border-indigo-100' 
-                          : 'text-slate-700 bg-white border-slate-200'
-                      }`}>
-                        {ciclo.promedio.toFixed(1)} / 20
-                      </span>
-                    </div>
+          {ciclos.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-sm">
+              No hay ciclos registrados actualmente en la base de datos.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ciclos.map((c, i) => (
+                <div key={c.idCiclo || c.id || i} className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-slate-700 block text-sm">{c.nombre || c.Nombre}</span>
+                    <span className="text-slate-400">Turno: {c.turno || c.Turno || 'General'}</span>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        esSobresaliente ? 'bg-indigo-600' : 'bg-indigo-500'
-                      }`}
-                      style={{ width: `${porcentaje}%` }}
-                    />
-                  </div>
+                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 font-semibold rounded-lg border border-indigo-100">
+                    {c.estado || 'Activo'}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* COLUMNA 3: ACCESO DIRECTO TUTOR IA Y ATAJOS */}
         <div className="space-y-6">
           <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-2xl text-white shadow-sm flex flex-col justify-between">
             <div>
@@ -178,7 +173,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
               </div>
               <h3 className="font-bold text-base text-white mb-2">Tutor IA Institucional</h3>
               <p className="text-xs text-indigo-100 leading-relaxed">
-                Genera estrategias pedagógicas personalizadas a partir de los simulacros vigentes de los estudiantes.
+                Genera estrategias pedagógicas personalizadas a partir de los simulacros vigentes.
               </p>
             </div>
             <button
@@ -203,8 +198,6 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
               >
                 Revisar Boletas y Ranking
               </button>
-
-              {/* Solo muestra "Asignar Carga Docente" si el usuario NO es un alumno (IdPerfil 4) */}
               {Number(user?.idPerfil) !== 4 && user?.rol?.toLowerCase() !== 'alumno' && (
                 <button
                   type="button"
@@ -217,28 +210,6 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ACTIVIDAD RECIENTE */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-5 h-5 text-indigo-600" />
-          <h2 className="font-bold text-slate-800 text-base">Actividad Reciente del Sistema</h2>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {actividadReciente.map((item) => (
-            <div key={item.id} className="py-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3">
-                <span className={`px-2.5 py-0.5 rounded-md font-semibold text-[11px] border ${item.badgeColor}`}>
-                  {item.tipo}
-                </span>
-                <span className="font-medium text-slate-800">{item.titulo}</span>
-                <span className="text-slate-400 hidden sm:inline">({item.aula})</span>
-              </div>
-              <span className="text-slate-400 font-medium">{item.tiempo}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

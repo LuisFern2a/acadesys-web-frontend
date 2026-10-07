@@ -27,20 +27,9 @@ export default function AsistenciaPage() {
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
 
   // Datos de respaldo institucional si el backend no retorna lista
-  const alumnosPorDefecto = [
-    { idAlumno: 1, nombre: 'Luis Fernando Tóccas', horaLlegada: '07:50 AM', estado: 'presente' },
-    { idAlumno: 2, nombre: 'Carlos Andrés Benítez', horaLlegada: '07:52 AM', estado: 'presente' },
-    { idAlumno: 3, nombre: 'Valeria Quispe Ruiz', horaLlegada: '07:48 AM', estado: 'presente' },
-    { idAlumno: 4, nombre: 'Diego Martín Salazar', horaLlegada: '07:55 AM', estado: 'presente' },
-    { idAlumno: 5, nombre: 'Camila Sofía Paredes', horaLlegada: '--', estado: 'justificado' }
-  ];
+  const alumnosPorDefecto = [];
 
-  const aulasPorDefecto = [
-    { idAula: '1', nombre: 'Aula 101 - Ciencias', nivel: 'Preuniversitario' },
-    { idAula: '2', nombre: 'Aula 102 - Letras', nivel: 'Preuniversitario' },
-    { idAula: '3', nombre: '5to Grado B - Selección', nivel: 'Secundaria' },
-    { idAula: '4', nombre: '3er Grado A', nivel: 'Primaria' }
-  ];
+  const aulasPorDefecto = [];
 
   useEffect(() => {
     cargarAulas();
@@ -62,12 +51,12 @@ export default function AsistenciaPage() {
         setAulas(dataAulas);
         setAulaSeleccionada(String(dataAulas[0].idAula));
       } else {
-        setAulas(aulasPorDefecto);
+        setAulas([]);
         setAulaSeleccionada('1');
       }
     } catch (err) {
       console.warn('Error cargando aulas desde API, usando respaldo institucional:', err);
-      setAulas(aulasPorDefecto);
+      setAulas([]);
       setAulaSeleccionada('1');
     }
   };
@@ -83,11 +72,11 @@ export default function AsistenciaPage() {
       if (data && data.length > 0) {
         setAlumnos(data);
       } else {
-        setAlumnos(alumnosPorDefecto);
+        setAlumnos([]);
       }
     } catch (err) {
       console.warn('Error cargando asistencia desde API, usando nómina base:', err);
-      setAlumnos(alumnosPorDefecto);
+      setAlumnos([]);
     } finally {
       setCargando(false);
     }
