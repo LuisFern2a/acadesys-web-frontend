@@ -125,46 +125,15 @@ let mockUsuarios = [
   { IdUsuario: 3, dni: '75849201', CodigoUsuario: 'SEMSM-Q6265', NombreCompleto: 'Luis Fernando Tóccas', Correo: 'ltoccas@acadesys.edu', Perfil: 'Alumno', EstadoRegistro: 1 }
 ];
 
-let mockAulas = [
-  { idAula: 1, nombre: 'Aula 101 - Semestral San Marcos', nivel: 'Preuniversitario', capacidad: 40, estado: 'Activo' },
-  { idAula: 2, nombre: 'Aula 102 - Anual UNI', nivel: 'Preuniversitario', capacidad: 35, estado: 'Activo' },
-  { idAula: 3, nombre: 'Aula 103 - Repaso Villarreal', nivel: 'Preuniversitario', capacidad: 30, estado: 'Activo' },
-  { idAula: 4, nombre: 'Aula 104 - Ciclo Cero', nivel: 'Preuniversitario', capacidad: 38, estado: 'Activo' }
-];
+let mockAulas = [];
 
-let mockCursos = [
-  { idCurso: 1, nombre: 'Álgebra Superior', codigo: 'MAT-ALG', descripcion: 'Polinomios, matrices y funciones' },
-  { idCurso: 2, nombre: 'Geometría Plana', codigo: 'MAT-GEO', descripcion: 'Trigonometría y geometría del espacio' },
-  { idCurso: 3, nombre: 'Física Clásica', codigo: 'CIEN-FIS', descripcion: 'Mecánica, dinámica y cinemática vectorial' },
-  { idCurso: 4, nombre: 'Razonamiento Matemático', codigo: 'MAT-RM', descripcion: 'Lógica proposicional, inductiva y problemas DECO' },
-  { idCurso: 5, nombre: 'Química Orgánica', codigo: 'CIEN-QUI', descripcion: 'Termodinámica y enlaces moleculares' }
-];
+let mockCursos = [];
 
-let mockAsignaciones = [
-  { idAsignacion: 1, docente: 'Carlos Mendoza', curso: 'Álgebra Superior', aula: 'Aula 101 - Semestral San Marcos', horas: 6 },
-  { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Semestral San Marcos', horas: 4 },
-  { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Anual UNI', horas: 5 }
-];
+let mockAsignaciones = [];
 
-let mockAsistencias = {
-  '1-2026-09-14': [
-    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:50 AM' },
-    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'presente', horaLlegada: '07:52 AM' },
-    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:48 AM' },
-    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'presente', horaLlegada: '07:55 AM' },
-    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
-  ]
-};
+let mockAsistencias = {};
 
-let mockNotasDocente = {
-  '1-1-simulacro-1': [
-    { idAlumno: 101, codigo: 'SEMSM-Q6265', nombre: 'Luis Fernando Tóccas', parcial: 16, tareas: 18, final: 15 },
-    { idAlumno: 102, codigo: 'SEMSM-Q6266', nombre: 'Carlos Andrés Benítez', parcial: 14, tareas: 15, final: 13 },
-    { idAlumno: 103, codigo: 'SEMSM-Q6267', nombre: 'Valeria Quispe Ruiz', parcial: 18, tareas: 19, final: 17 },
-    { idAlumno: 104, codigo: 'SEMSM-Q6268', nombre: 'Diego Martín Salazar', parcial: 9, tareas: 11, final: 10 },
-    { idAlumno: 105, codigo: 'SEMSM-Q6269', nombre: 'Camila Sofía Paredes', parcial: 13, tareas: 14, final: 14 }
-  ]
-};
+let mockNotasDocente = {};
 
 let mockComunicados = [
   {
@@ -766,30 +735,13 @@ export async function eliminarAsignacionDocente(idAsignacion) {
 // ==========================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
-  const claveStorage = `acadesys_asist_${idAula}_${fecha}`;
-  const guardado = localStorage.getItem(claveStorage);
-  if (guardado) {
-    try {
-      return JSON.parse(guardado);
-    } catch (e) {
-      console.warn("Error parseando asistencia local:", e);
-    }
+  try {
+    const data = await fetchWithAuth(`/asistencias?idAula=${idAula}&fecha=${fecha}`);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn('Fallo al obtener asistencia de la API:', error);
+    return [];
   }
-
-  const clave = `${idAula}-${fecha}`;
-  if (mockAsistencias[clave]) {
-    return [...mockAsistencias[clave]];
-  }
-
-  const listaDefault = [
-    { idAlumno: 101, nombre: 'Luis Fernando Tóccas', estado: 'presente', horaLlegada: '07:50 AM' },
-    { idAlumno: 102, nombre: 'Carlos Andrés Benítez', estado: 'presente', horaLlegada: '07:52 AM' },
-    { idAlumno: 103, nombre: 'Valeria Quispe Ruiz', estado: 'presente', horaLlegada: '07:48 AM' },
-    { idAlumno: 104, nombre: 'Diego Martín Salazar', estado: 'presente', horaLlegada: '07:55 AM' },
-    { idAlumno: 105, nombre: 'Camila Sofía Paredes', estado: 'justificado', horaLlegada: '--' }
-  ];
-  localStorage.setItem(claveStorage, JSON.stringify(listaDefault));
-  return [...listaDefault];
 }
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
