@@ -29,7 +29,6 @@ import {
   eliminarAsignacionDocente,
   obtenerCiclosPublicos
 } from '../services/api';
-
 export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [tabActiva, setTabActiva] = useState(vistaInicial);
   useEffect(() => {
@@ -42,16 +41,12 @@ const [ciclos, setCiclos] = useState([]);
 const [turnos, setTurnos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('todos');
-
   // Modal y modo edición
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
-
   // Datos base de respaldo institucional
   const aulasBase = [];
-
   const cursosBase = [];
-
     const ciclosBase = [
     {
       idCiclo: 1,
@@ -84,7 +79,6 @@ const [turnos, setTurnos] = useState([]);
       estado: 'Próximo'
     }
   ];
-
   const turnosBase = [
     {
       idTurno: 1,
@@ -108,15 +102,11 @@ const [turnos, setTurnos] = useState([]);
       estado: 'Activo'
     }
   ];
-
-
-
   const asignacionesBase = [
     { idAsignacion: 1, docente: 'Carlos Mendoza', curso: 'Álgebra Superior', aula: 'Aula 101 - Ciencias', horas: 6 },
     { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Ciencias', horas: 4 },
     { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Letras', horas: 5 }
   ];
-
   // Formularios
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Secundaria', capacidad: 35 });
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
@@ -129,20 +119,17 @@ const [turnos, setTurnos] = useState([]);
     cursos: 8,
     estado: 'Activo'
   });
-
   const [formTurno, setFormTurno] = useState({
     nombre: '',
     horario: '',
     modalidad: 'Presencial',
     estado: 'Activo'
   });
-
   useEffect(() => {
   setCiclos([]);
   setTurnos(turnosBase);
   cargarDatos();
 }, []);
-
   const cargarDatos = async () => {
     try {
       const [dataAulas, dataCursos, dataAsig, dataCiclos] = await Promise.all([
@@ -151,7 +138,6 @@ const [turnos, setTurnos] = useState([]);
         obtenerAsignacionesDocente ? obtenerAsignacionesDocente().catch(() => null) : null,
         obtenerCiclosPublicos().catch(() => null)
       ]);
-
       const listaAulas = (dataAulas && dataAulas.length > 0) ? dataAulas : aulasBase;
       const listaCursos = Array.isArray(dataCursos) ? dataCursos : [];
       const listaAsig = (dataAsig && dataAsig.length > 0) ? dataAsig : asignacionesBase;
@@ -169,12 +155,10 @@ const [turnos, setTurnos] = useState([]);
             diasClase: c.diasClase
           }))
         : [];
-
       setAulas(listaAulas);
       setCursos(listaCursos);
       setAsignaciones(listaAsig);
       setCiclos(listaCiclos);
-
       if (listaCursos.length > 0 && listaAulas.length > 0) {
         setFormAsig({
           docente: 'Carlos Mendoza',
@@ -191,7 +175,6 @@ const [turnos, setTurnos] = useState([]);
       setCiclos([]);
     }
   };
-
   const abrirCrear = () => {
     setEditandoId(null);
     setFormAula({ nombre: '', nivel: 'Secundaria', capacidad: 35 });
@@ -210,7 +193,6 @@ const [turnos, setTurnos] = useState([]);
       cursos: 8,
       estado: 'Activo'
     });
-
     setFormTurno({
       nombre: '',
       horario: '',
@@ -219,13 +201,11 @@ const [turnos, setTurnos] = useState([]);
     });
     setModalAbierto(true);
   };
-
   const abrirEditarAula = (aula) => {
     setEditandoId(aula.idAula);
     setFormAula({ nombre: aula.nombre, nivel: aula.nivel, capacidad: aula.capacidad });
     setModalAbierto(true);
   };
-
   const abrirEditarCurso = (curso) => {
     setEditandoId(curso.idCurso);
     setFormCurso({ nombre: curso.nombre, codigo: curso.codigo, descripcion: curso.descripcion });
@@ -233,7 +213,6 @@ const [turnos, setTurnos] = useState([]);
   };
   const abrirEditarCiclo = (ciclo) => {
     setEditandoId(ciclo.idCiclo);
-
     setFormCiclo({
       nombre: ciclo.nombre,
       turno: ciclo.turno,
@@ -242,28 +221,40 @@ const [turnos, setTurnos] = useState([]);
       cursos: ciclo.cursos,
       estado: ciclo.estado
     });
-
     setModalAbierto(true);
   };
-
   const abrirEditarTurno = (turno) => {
     setEditandoId(turno.idTurno);
-
     setFormTurno({
       nombre: turno.nombre,
       horario: turno.horario,
       modalidad: turno.modalidad,
       estado: turno.estado
     });
-
     setModalAbierto(true);
   };
+  // Validaciones de formularios administrativos (Yan - mejora frontend)
+  const NOMBRE_MINIMO = 3;
+  const nombreValido = (valor) => {
+    const limpio = String(valor || '').trim();
+    return limpio.length >= NOMBRE_MINIMO && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]+$/.test(limpio);
+  };
+  const codigoCursoValido = (valor) => {
+    const limpio = String(valor || '').trim();
+    return limpio.length >= 2 && /^[A-Z0-9-]+$/.test(limpio);
+  };
+  const formularioActualValido = (() => {
+    if (tabActiva === 'ciclos') return nombreValido(formCiclo.nombre);
+    if (tabActiva === 'cursos') return nombreValido(formCurso.nombre) && codigoCursoValido(formCurso.codigo);
+    if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
+    if (tabActiva === 'asignaciones') return Boolean(formAsig.docente.trim());
+    if (tabActiva === 'turnos') return nombreValido(formTurno.nombre) && Boolean(formTurno.horario.trim());
+    return true;
+  })();
   const handleGuardar = async (e) => {
   e.preventDefault();
-
   if (tabActiva === 'aulas') {
-    if (!formAula.nombre.trim()) return;
-
+    if (!nombreValido(formAula.nombre)) return;
     if (editandoId) {
       try {
         if (actualizarAula) {
@@ -272,7 +263,6 @@ const [turnos, setTurnos] = useState([]);
       } catch (err) {
         console.warn('Actualización local de aula:', err);
       }
-
       setAulas((prev) =>
         prev.map((aula) =>
           aula.idAula === editandoId
@@ -285,7 +275,6 @@ const [turnos, setTurnos] = useState([]);
         ...formAula,
         idAula: Date.now()
       };
-
       try {
         if (crearAula) {
           await crearAula(formAula);
@@ -293,15 +282,12 @@ const [turnos, setTurnos] = useState([]);
       } catch (err) {
         console.warn('Creación local de aula:', err);
       }
-
       setAulas((prev) => [...prev, nueva]);
     }
-
   } else if (tabActiva === 'cursos') {
-    if (!formCurso.nombre.trim() || !formCurso.codigo.trim()) {
+    if (!nombreValido(formCurso.nombre) || !codigoCursoValido(formCurso.codigo)) {
       return;
     }
-
     if (editandoId) {
       try {
         if (actualizarCurso) {
@@ -310,7 +296,6 @@ const [turnos, setTurnos] = useState([]);
       } catch (err) {
         console.warn('Actualización local de curso:', err);
       }
-
       setCursos((prev) =>
         prev.map((curso) =>
           curso.idCurso === editandoId
@@ -323,7 +308,6 @@ const [turnos, setTurnos] = useState([]);
         ...formCurso,
         idCurso: Date.now()
       };
-
       try {
         if (crearCurso) {
           await crearCurso(formCurso);
@@ -331,20 +315,16 @@ const [turnos, setTurnos] = useState([]);
       } catch (err) {
         console.warn('Creación local de curso:', err);
       }
-
       setCursos((prev) => [...prev, nuevo]);
     }
-
   } else if (tabActiva === 'asignaciones') {
     if (!formAsig.docente.trim()) {
       return;
     }
-
     const nueva = {
       ...formAsig,
       idAsignacion: Date.now()
     };
-
     try {
       if (crearAsignacionDocente) {
         await crearAsignacionDocente(formAsig);
@@ -352,14 +332,11 @@ const [turnos, setTurnos] = useState([]);
     } catch (err) {
       console.warn('Creación local de asignación:', err);
     }
-
     setAsignaciones((prev) => [...prev, nueva]);
-
   } else if (tabActiva === 'ciclos') {
-    if (!formCiclo.nombre.trim()) {
+    if (!nombreValido(formCiclo.nombre)) {
       return;
     }
-
     if (editandoId) {
       setCiclos((prev) =>
         prev.map((ciclo) =>
@@ -374,10 +351,8 @@ const [turnos, setTurnos] = useState([]);
         idCiclo: Date.now(),
         alumnos: 0
       };
-
       setCiclos((prev) => [...prev, nuevoCiclo]);
     }
-
   } else if (tabActiva === 'turnos') {
     if (
       !formTurno.nombre.trim() ||
@@ -385,7 +360,6 @@ const [turnos, setTurnos] = useState([]);
     ) {
       return;
     }
-
     if (editandoId) {
       setTurnos((prev) =>
         prev.map((turno) =>
@@ -399,15 +373,12 @@ const [turnos, setTurnos] = useState([]);
         ...formTurno,
         idTurno: Date.now()
       };
-
       setTurnos((prev) => [...prev, nuevoTurno]);
     }
   }
-
   setModalAbierto(false);
   setEditandoId(null);
 };
-
   const handleEliminarAula = async (id, nombre) => {
     if (window.confirm(`¿Estás seguro de eliminar el aula "${nombre}"?`)) {
       try {
@@ -418,7 +389,6 @@ const [turnos, setTurnos] = useState([]);
       setAulas(prev => prev.filter(a => a.idAula !== id));
     }
   };
-
   const handleEliminarCurso = async (id, nombre) => {
     if (window.confirm(`¿Estás seguro de eliminar el curso "${nombre}"?`)) {
       try {
@@ -429,7 +399,6 @@ const [turnos, setTurnos] = useState([]);
       setCursos(prev => prev.filter(c => c.idCurso !== id));
     }
   };
-
     const handleEliminarCiclo = (id, nombre) => {
     if (window.confirm(`¿Eliminar el ciclo "${nombre}"?`)) {
       setCiclos((prev) =>
@@ -437,7 +406,6 @@ const [turnos, setTurnos] = useState([]);
       );
     }
   };
-
   const handleEliminarTurno = (id, nombre) => {
     if (window.confirm(`¿Eliminar el turno "${nombre}"?`)) {
       setTurnos((prev) =>
@@ -445,7 +413,6 @@ const [turnos, setTurnos] = useState([]);
       );
     }
   };
-
   const handleEliminarAsignacion = async (id, docente, curso) => {
     if (window.confirm(`¿Eliminar la carga de "${curso}" asignada a ${docente}?`)) {
       try {
@@ -456,7 +423,6 @@ const [turnos, setTurnos] = useState([]);
       setAsignaciones(prev => prev.filter(a => a.idAsignacion !== id));
     }
   };
-
   // Filtros combinados
   const aulasFiltradas = aulas.filter(a => {
     const coincideTexto = (a.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -464,12 +430,10 @@ const [turnos, setTurnos] = useState([]);
     const coincideNivel = filtroNivel === 'todos' || a.nivel === filtroNivel;
     return coincideTexto && coincideNivel;
   });
-
   const cursosFiltrados = cursos.filter(c =>
     (c.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (c.codigo || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-
   const asignacionesFiltradas = asignaciones.filter(a =>
     (a.docente || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (a.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -485,7 +449,6 @@ const [turnos, setTurnos] = useState([]);
   (turno.horario || '').toLowerCase().includes(busqueda.toLowerCase()) ||
   (turno.modalidad || '').toLowerCase().includes(busqueda.toLowerCase())
 );
-
   return (
     <div className="p-8 bg-slate-50 min-h-full">
       {/* HEADER */}
@@ -503,7 +466,6 @@ const [turnos, setTurnos] = useState([]);
             </div>
           </div>
         </div>
-
         <button
           type="button"
           onClick={abrirCrear}
@@ -517,7 +479,6 @@ const [turnos, setTurnos] = useState([]);
 {tabActiva === 'turnos' && 'Nuevo Turno'}
         </button>
       </div>
-
       {/* PESTAÑAS */}
       <div className="flex items-center gap-2 border-b border-slate-200 mb-6">
         <button
@@ -532,7 +493,6 @@ const [turnos, setTurnos] = useState([]);
   <GraduationCap className="w-4 h-4" />
   Ciclos ({ciclos.length})
 </button>
-
 <button
   type="button"
   onClick={() => setTabActiva('turnos')}
@@ -545,9 +505,6 @@ const [turnos, setTurnos] = useState([]);
   <CalendarClock className="w-4 h-4" />
   Turnos ({turnos.length})
 </button>
-
-
-
         <button
           type="button"
           onClick={() => setTabActiva('asignaciones')}
@@ -560,7 +517,6 @@ const [turnos, setTurnos] = useState([]);
           <UserCheck className="w-4 h-4" />
           Carga Docente ({asignaciones.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('aulas')}
@@ -573,7 +529,6 @@ const [turnos, setTurnos] = useState([]);
           <School className="w-4 h-4" />
           Aulas y Salones ({aulas.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('cursos')}
@@ -587,7 +542,6 @@ const [turnos, setTurnos] = useState([]);
           Cursos Oficiales ({cursos.length})
         </button>
       </div>
-
       {/* FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
@@ -600,7 +554,6 @@ const [turnos, setTurnos] = useState([]);
             className="w-full bg-transparent outline-none text-slate-700 text-xs"
           />
         </div>
-
         {tabActiva === 'aulas' && (
           <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 text-xs">
             <Filter className="w-4 h-4 text-slate-400" />
@@ -618,21 +571,17 @@ const [turnos, setTurnos] = useState([]);
           </div>
         )}
       </div>
-
       {/* CICLOS */}
 {tabActiva === 'ciclos' && (
   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-
     {ciclosFiltrados.length === 0 ? (
       <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
         <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
           <GraduationCap className="w-6 h-6 text-indigo-500" />
         </div>
-
         <p className="text-base font-bold text-slate-800">
           No hay ciclos disponibles
         </p>
-
         <p className="text-sm text-slate-600 mt-1">
           No existen ciclos que coincidan con la búsqueda actual.
         </p>
@@ -644,20 +593,16 @@ const [turnos, setTurnos] = useState([]);
           Number(ciclo.alumnos || 0),
           0
         );
-
         return (
           <div
             key={ciclo.idCiclo}
             className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
           >
             <div className="flex items-start justify-between gap-3">
-
               <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                 <GraduationCap className="w-5 h-5" />
               </div>
-
               <div className="flex items-center gap-1">
-
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     ciclo.estado === 'Activo'
@@ -667,7 +612,6 @@ const [turnos, setTurnos] = useState([]);
                 >
                   {ciclo.estado}
                 </span>
-
                 <button
                   type="button"
                   title="Editar ciclo"
@@ -676,7 +620,6 @@ const [turnos, setTurnos] = useState([]);
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
-
                 <button
                   type="button"
                   title="Eliminar ciclo"
@@ -690,100 +633,75 @@ const [turnos, setTurnos] = useState([]);
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-
               </div>
             </div>
-
             <h3 className="text-lg font-black text-slate-900 mt-4">
               {ciclo.nombre}
             </h3>
-
             <div className="space-y-2.5 mt-4 text-sm text-slate-600">
-
               <div className="flex items-center justify-between">
                 <span>Turno</span>
                 <strong className="text-slate-800">
                   {ciclo.turno}
                 </strong>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Horario</span>
                 <strong className="text-slate-800">
                   {ciclo.horario}
                 </strong>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Alumnos</span>
                 <strong className="text-slate-800">
                   {ciclo.alumnos}
                 </strong>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Vacantes</span>
                 <strong className="text-indigo-600">
                   {vacantes}
                 </strong>
               </div>
-
               <div className="flex items-center justify-between">
                 <span>Cursos</span>
                 <strong className="text-slate-800">
                   {ciclo.cursos}
                 </strong>
               </div>
-
             </div>
           </div>
         );
       })
     )}
-
   </div>
 )}
-
-
-
-
       {/* TURNOS Y HORARIOS */}
 {tabActiva === 'turnos' && (
   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-
     {turnosFiltrados.length === 0 ? (
-
       <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
         <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
           <CalendarClock className="w-6 h-6 text-indigo-500" />
         </div>
-
         <p className="text-base font-bold text-slate-800">
           No hay turnos disponibles
         </p>
-
         <p className="text-sm text-slate-600 mt-1">
           No existen turnos que coincidan con la búsqueda actual.
         </p>
       </div>
-
     ) : (
-
       turnosFiltrados.map((turno) => (
-
         <div
           key={turno.idTurno}
           className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
         >
-
           <div className="flex items-start justify-between">
-
             <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <CalendarClock className="w-5 h-5" />
             </div>
-
             <div className="flex items-center gap-1">
-
               <button
                 type="button"
                 title="Editar turno"
@@ -792,7 +710,6 @@ const [turnos, setTurnos] = useState([]);
               >
                 <Pencil className="w-4 h-4" />
               </button>
-
               <button
                 type="button"
                 title="Eliminar turno"
@@ -806,47 +723,35 @@ const [turnos, setTurnos] = useState([]);
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-
             </div>
           </div>
-
           <h3 className="text-lg font-black text-slate-900 mt-4">
             {turno.nombre}
           </h3>
-
           <p className="text-sm text-slate-600 mt-1">
             {turno.horario}
           </p>
-
           <div className="flex items-center justify-between mt-5">
             <span className="text-xs font-semibold text-slate-600">
               Modalidad
             </span>
-
             <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
               {turno.modalidad}
             </span>
           </div>
-
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
             <span className="text-xs font-semibold text-slate-600">
               Estado
             </span>
-
             <span className="text-xs font-bold text-emerald-600">
               {turno.estado}
             </span>
           </div>
-
         </div>
-
       ))
-
     )}
-
   </div>
 )}
-
       {/* TABLA ASIGNACIONES */}
       {tabActiva === 'asignaciones' && (
         <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-200">
@@ -867,11 +772,9 @@ const [turnos, setTurnos] = useState([]);
   <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
     <UserCheck className="w-6 h-6 text-indigo-500" />
   </div>
-
   <p className="text-base font-bold text-slate-800">
     No hay cargas docentes
   </p>
-
   <p className="text-sm text-slate-600 mt-1">
     No se encontraron asignaciones de docentes con el filtro aplicado.
   </p>
@@ -914,7 +817,6 @@ const [turnos, setTurnos] = useState([]);
           </table>
         </div>
       )}
-
       {/* TARJETAS AULAS */}
       {tabActiva === 'aulas' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -923,11 +825,9 @@ const [turnos, setTurnos] = useState([]);
   <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
     <School className="w-6 h-6 text-indigo-500" />
   </div>
-
   <p className="text-base font-bold text-slate-800">
     No hay aulas registradas
   </p>
-
   <p className="text-sm text-slate-600 mt-1">
     Esta sección todavía no tiene aulas disponibles para mostrar.
   </p>
@@ -962,7 +862,6 @@ const [turnos, setTurnos] = useState([]);
                   <h3 className="font-bold text-slate-800 text-base">{aula.nombre}</h3>
                   <p className="text-xs text-slate-400 mt-0.5">{aula.nivel}</p>
                 </div>
-
                 <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-600 font-medium">
                   <span className="flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-slate-400" /> Capacidad:
@@ -974,7 +873,6 @@ const [turnos, setTurnos] = useState([]);
           )}
         </div>
       )}
-
       {/* TARJETAS CURSOS */}
       {tabActiva === 'cursos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -983,11 +881,9 @@ const [turnos, setTurnos] = useState([]);
   <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
     <BookOpen className="w-6 h-6 text-indigo-500" />
   </div>
-
   <p className="text-base font-bold text-slate-800">
     No hay cursos registrados
   </p>
-
   <p className="text-sm text-slate-600 mt-1">
     No se encontraron cursos que coincidan con la búsqueda.
   </p>
@@ -1022,7 +918,6 @@ const [turnos, setTurnos] = useState([]);
                   <h3 className="font-bold text-slate-800 text-base">{c.nombre}</h3>
                   <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
                 </div>
-
                 <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
                   <span className="text-xs text-slate-400 font-medium">Plan Vigente</span>
                 </div>
@@ -1031,35 +926,26 @@ const [turnos, setTurnos] = useState([]);
           )}
         </div>
       )}
-
       {/* MODAL CREAR / EDITAR */}
 {modalAbierto && (
   <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-
     <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100">
-
       <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-
         <h3 className="text-base font-bold text-slate-800">
           {tabActiva === 'asignaciones' && 'Asignar Docente a Aula'}
-
           {tabActiva === 'aulas' && (
             editandoId ? 'Editar Aula' : 'Registrar Nueva Aula'
           )}
-
           {tabActiva === 'cursos' && (
             editandoId ? 'Editar Curso' : 'Registrar Nuevo Curso'
           )}
-
           {tabActiva === 'ciclos' && (
             editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo'
           )}
-
           {tabActiva === 'turnos' && (
             editandoId ? 'Editar Turno' : 'Registrar Nuevo Turno'
           )}
         </h3>
-
         <button
           type="button"
           onClick={() => setModalAbierto(false)}
@@ -1067,9 +953,7 @@ const [turnos, setTurnos] = useState([]);
         >
           <X className="w-5 h-5" />
         </button>
-
       </div>
-
       <form onSubmit={handleGuardar} className="space-y-4">
                             {tabActiva === 'ciclos' && (
                 <>
@@ -1077,11 +961,8 @@ const [turnos, setTurnos] = useState([]);
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Nombre del Ciclo
                     </label>
-
-                    <input
-                      type="text"
+                    <select
                       required
-                      placeholder="Ej: Ciclo Anual 2026"
                       value={formCiclo.nombre}
                       onChange={(e) =>
                         setFormCiclo({
@@ -1089,16 +970,20 @@ const [turnos, setTurnos] = useState([]);
                           nombre: e.target.value
                         })
                       }
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    />
+                      className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
+                    >
+                      <option value="">Selecciona un tipo de ciclo</option>
+                      <option value="Ciclo Anual">Anual</option>
+                      <option value="Ciclo Semestral">Semestral</option>
+                      <option value="Ciclo Intensivo">Intensivo</option>
+                      <option value="Ciclo Repaso">Repaso</option>
+                    </select>
                   </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Turno
                       </label>
-
                       <select
                         value={formCiclo.turno}
                         onChange={(e) =>
@@ -1114,12 +999,10 @@ const [turnos, setTurnos] = useState([]);
                         <option>Noche</option>
                       </select>
                     </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Horario
                       </label>
-
                       <input
                         type="text"
                         required
@@ -1134,13 +1017,11 @@ const [turnos, setTurnos] = useState([]);
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Capacidad
                       </label>
-
                       <input
                         type="number"
                         min="1"
@@ -1154,12 +1035,10 @@ const [turnos, setTurnos] = useState([]);
                         className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Cantidad de Cursos
                       </label>
-
                       <input
                         type="number"
                         min="1"
@@ -1174,12 +1053,10 @@ const [turnos, setTurnos] = useState([]);
                       />
                     </div>
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Estado
                     </label>
-
                     <select
                       value={formCiclo.estado}
                       onChange={(e) =>
@@ -1203,7 +1080,6 @@ const [turnos, setTurnos] = useState([]);
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Nombre del Turno
                     </label>
-
                     <input
                       type="text"
                       required
@@ -1218,12 +1094,10 @@ const [turnos, setTurnos] = useState([]);
                       className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Horario
                     </label>
-
                     <input
                       type="text"
                       required
@@ -1238,12 +1112,10 @@ const [turnos, setTurnos] = useState([]);
                       className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Modalidad
                     </label>
-
                     <select
                       value={formTurno.modalidad}
                       onChange={(e) =>
@@ -1259,12 +1131,10 @@ const [turnos, setTurnos] = useState([]);
                       <option>Mixta</option>
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Estado
                     </label>
-
                     <select
                       value={formTurno.estado}
                       onChange={(e) =>
@@ -1327,7 +1197,6 @@ const [turnos, setTurnos] = useState([]);
                   </div>
                 </>
               )}
-
               {tabActiva === 'aulas' && (
                 <>
                   <div>
@@ -1366,7 +1235,6 @@ const [turnos, setTurnos] = useState([]);
                   </div>
                 </>
               )}
-
               {tabActiva === 'cursos' && (
                 <>
                   <div>
@@ -1376,6 +1244,8 @@ const [turnos, setTurnos] = useState([]);
                       required
                       placeholder="Ej: Trigonometría Analítica"
                       value={formCurso.nombre}
+                      minLength={NOMBRE_MINIMO}
+                      pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]+"
                       onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })}
                       className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
@@ -1387,6 +1257,8 @@ const [turnos, setTurnos] = useState([]);
                       required
                       placeholder="Ej: MAT-TRI"
                       value={formCurso.codigo}
+                      minLength={2}
+                      pattern="[A-Z0-9-]+"
                       onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })}
                       className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                     />
@@ -1403,7 +1275,6 @@ const [turnos, setTurnos] = useState([]);
                   </div>
                 </>
               )}
-
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1414,7 +1285,12 @@ const [turnos, setTurnos] = useState([]);
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition cursor-pointer"
+                  disabled={!formularioActualValido}
+                  className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${
+                    formularioActualValido
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  }`}
                 >
                   {editandoId ? 'Guardar Cambios' : 'Registrar'}
                 </button>
