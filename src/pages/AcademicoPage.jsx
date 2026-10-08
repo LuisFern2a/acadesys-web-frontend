@@ -848,6 +848,16 @@ const [turnos, setTurnos] = useState([]);
     return '';
   };
 
+  const checklistPublicacion = [
+    { texto: 'Identidad académica completa', ok: !validarPasoCiclo(1) },
+    { texto: 'Nombre válido', ok: !validarPasoCiclo(2) },
+    { texto: 'Fechas, capacidad y precio válidos', ok: !validarPasoCiclo(3) },
+    { texto: 'Oferta académica con cursos', ok: formCiclo.cursosSeleccionados.length > 0 },
+    { texto: 'Turno, horario y días de clase definidos', ok: !validarPasoCiclo(5) }
+  ];
+
+  const puedePublicarCiclo = checklistPublicacion.every((requisito) => requisito.ok);
+
   const siguientePasoCiclo = () => {
     const error = validarPasoCiclo(pasoCiclo);
     if (error) {
@@ -876,6 +886,12 @@ const [turnos, setTurnos] = useState([]);
         setErrorCiclo(error);
         return;
       }
+    }
+
+    if (formCiclo.publicar && !puedePublicarCiclo) {
+      setPasoCiclo(6);
+      setErrorCiclo('No se puede publicar el ciclo mientras existan requisitos críticos pendientes.');
+      return;
     }
 
     const payload = {
@@ -2102,27 +2118,98 @@ const [turnos, setTurnos] = useState([]);
                       <div className="rounded-xl border border-slate-200 p-4">
                         <h4 className="text-sm font-bold text-slate-800 mb-3">Resumen</h4>
                         <div className="space-y-2 text-xs text-slate-600">
-                          <p><b>Ciclo:</b> {formCiclo.nombre}</p><p><b>Universidad:</b> {formCiclo.universidadObjetivo}</p>
-                          <p><b>Fechas:</b> {formCiclo.fechaInicio} → {formCiclo.fechaFin}</p><p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horario}</p>
-                          <p><b>Capacidad:</b> {formCiclo.capacidad}</p><p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
+                          <p><b>Ciclo:</b> {formCiclo.nombre}</p>
+                          <p><b>Universidad:</b> {formCiclo.universidadObjetivo}</p>
+                          <p><b>Fechas:</b> {formCiclo.fechaInicio} → {formCiclo.fechaFin}</p>
+                          <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horario}</p>
+                          <p><b>Capacidad:</b> {formCiclo.capacidad}</p>
+                          <p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
                           <p><b>Cursos seleccionados:</b> {formCiclo.cursosSeleccionados.length}</p>
                         </div>
                       </div>
+
                       <div className="rounded-xl border border-slate-200 p-4">
-                        <h4 className="text-sm font-bold text-slate-800 mb-3">Checklist de publicación</h4>
-                        <div className="space-y-2 text-xs">
-                          {[
-                            ['Identidad académica completa', !validarPasoCiclo(1)],
-                            ['Nombre válido', !validarPasoCiclo(2)],
-                            ['Fechas y capacidad válidas', !validarPasoCiclo(3)],
-                            ['Oferta académica revisada', !validarPasoCiclo(4)],
-                            ['Horario definido', !validarPasoCiclo(5)]
-                          ].map(([texto, ok]) => <div key={texto} className="flex items-center gap-2"><span className={ok ? 'text-emerald-600' : 'text-slate-300'}>{ok ? '●' : '○'}</span><span className={ok ? 'text-slate-700' : 'text-slate-400'}>{texto}</span></div>)}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-800">Checklist de publicación</h4>
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              Todos los requisitos críticos deben estar completos antes de publicar.
+                            </p>
+                          </div>
+                          <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            puedePublicarCiclo
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {puedePublicarCiclo ? 'Listo para publicar' : 'Requisitos pendientes'}
+                          </span>
                         </div>
-                        <label className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-100 p-3 text-xs font-semibold text-slate-700">
-                          <input type="checkbox" checked={formCiclo.publicar} onChange={(e) => setFormCiclo({ ...formCiclo, publicar: e.target.checked })} className="accent-indigo-600" />
-                          Publicar ciclo al guardar
+
+                        <div className="space-y-2">
+                          {checklistPublicacion.map(({ texto, ok }) => (
+                            <div
+                              key={texto}
+                              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                                ok
+                                  ? 'border-emerald-100 bg-emerald-50/60'
+                                  : 'border-amber-100 bg-amber-50/60'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black ${
+                                    ok
+                                      ? 'bg-emerald-600 text-white'
+                                      : 'bg-amber-100 text-amber-700'
+                                  }`}
+                                >
+                                  {ok ? '✓' : '!'}
+                                </span>
+                                <span className={`text-xs font-semibold ${ok ? 'text-slate-700' : 'text-amber-800'}`}>
+                                  {texto}
+                                </span>
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase tracking-wide ${
+                                ok ? 'text-emerald-700' : 'text-amber-700'
+                              }`}>
+                                {ok ? 'Cumple' : 'Pendiente'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <label
+                          className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs font-semibold ${
+                            puedePublicarCiclo
+                              ? 'bg-indigo-50 border-indigo-100 text-slate-700 cursor-pointer'
+                              : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={Boolean(formCiclo.publicar && puedePublicarCiclo)}
+                            disabled={!puedePublicarCiclo || guardandoCiclo}
+                            onChange={(e) => {
+                              setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }));
+                              setErrorCiclo('');
+                            }}
+                            className="accent-indigo-600"
+                          />
+                          <span>
+                            Publicar ciclo al guardar
+                            {!puedePublicarCiclo && (
+                              <span className="block mt-0.5 text-[10px] font-medium text-slate-500">
+                                Completa primero todos los requisitos del checklist.
+                              </span>
+                            )}
+                          </span>
                         </label>
+
+                        {puedePublicarCiclo && !formCiclo.publicar && (
+                          <p className="mt-2 text-[11px] text-slate-500">
+                            El ciclo está completo. Puedes guardarlo sin publicar o activar la publicación.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
