@@ -503,44 +503,86 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
 }
 
 // ==========================================
-// MÓDULO DE CALIFICACIONES Y SIMULACROS (HU-07)
+// MÓDULO DE CALIFICACIONES Y SIMULACROS (HU-07 / P1-09)
 // ==========================================
 
-export async function obtenerNotasPorAulaYCurso(idAula, idCurso, periodo = 'simulacro-1') {
-  const response = await fetchWithAuth(`/api/notas?idAula=${idAula}&idCurso=${idCurso}&periodo=${periodo}`);
+export async function obtenerNotas() {
+  const response = await fetchWithAuth('/api/notas');
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
-  return await response.json();
+
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
-export async function guardarNotasDocente(idAula, idCurso, periodo, listaNotas) {
-  const response = await fetchWithAuth(`/api/notas`, {
-    method: "POST",
-    body: JSON.stringify({ idAula, idCurso, periodo, listaNotas }),
-  });
+export async function obtenerContextoNotas(idCiclo) {
+  if (!idCiclo) throw new Error('Debe seleccionar un ciclo.');
+
+  const response = await fetchWithAuth(
+    `/api/notas/contexto/${encodeURIComponent(idCiclo)}`
+  );
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json();
+  return data;
 }
 
-export async function cerrarSimulacroActa(idAula, idCurso, periodo) {
-  const response = await fetchWithAuth(`/api/notas/cerrar-simulacro`, {
-    method: "PUT",
-    body: JSON.stringify({ idAula, idCurso, periodo }),
-  });
+export async function obtenerMatriculasNotas(idCiclo) {
+  if (!idCiclo) throw new Error('Debe seleccionar un ciclo.');
+
+  const response = await fetchWithAuth(
+    `/api/notas/matriculas/${encodeURIComponent(idCiclo)}`
+  );
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json();
+  return Array.isArray(data) ? data : (data.data || data.matriculas || []);
+}
+
+export async function guardarNotasDocente(idCiclo, notas) {
+  const response = await fetchWithAuth('/api/notas', {
+    method: 'POST',
+    body: JSON.stringify({
+      idCiclo: Number(idCiclo),
+      notas
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+  }
+
+  return data;
+}
+
+export async function actualizarNotaDocente(idEvaluacion, calificacion) {
+  const response = await fetchWithAuth(
+    `/api/notas/${encodeURIComponent(idEvaluacion)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        Calificacion: Number(calificacion)
+      })
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+  }
+
+  return data;
 }
 
 // ==========================================
