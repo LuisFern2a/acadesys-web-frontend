@@ -18,18 +18,15 @@ import {
 
 export default function AsistenciaPage() {
   const [aulas, setAulas] = useState([]);
-  const [aulaSeleccionada, setAulaSeleccionada] = useState('1');
+  const [aulaSeleccionada, setAulaSeleccionada] = useState('');
   const [fechaSeleccionada, setFechaSeleccionada] = useState(
     new Date().toISOString().split('T')[0]
   );
   const [alumnos, setAlumnos] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
-
-  // Datos de respaldo institucional si el backend no retorna lista
-  const alumnosPorDefecto = [];
-
-  const aulasPorDefecto = [];
+  const [mensajeError, setMensajeError] = useState(null);
 
   useEffect(() => {
     cargarAulas();
@@ -43,48 +40,45 @@ export default function AsistenciaPage() {
 
   const cargarAulas = async () => {
     try {
+      setMensajeError(null);
       let dataAulas = null;
       if (obtenerAulas) {
         dataAulas = await obtenerAulas();
       }
-      if (dataAulas && dataAulas.length > 0) {
+      if (Array.isArray(dataAulas) && dataAulas.length > 0) {
         setAulas(dataAulas);
-        setAulaSeleccionada(String(dataAulas[0].idAula));
+        setAulaSeleccionada(String(dataAulas[0].idAula || dataAulas[0].id));
       } else {
         setAulas([]);
-        setAulaSeleccionada('1');
+        setAulaSeleccionada('');
       }
     } catch (err) {
-      console.warn('Error cargando aulas desde API, usando respaldo institucional:', err);
+      console.warn('Error cargando aulas desde la API:', err);
       setAulas([]);
-      setAulaSeleccionada('1');
+      setAulaSeleccionada('');
     }
   };
 
   const cargarAsistencia = async () => {
     setCargando(true);
     setGuardadoExitoso(false);
+    setMensajeError(null);
     try {
       let data = null;
       if (obtenerAsistenciaPorAulaYFecha) {
         data = await obtenerAsistenciaPorAulaYFecha(aulaSeleccionada, fechaSeleccionada);
       }
-      if (data && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         setAlumnos(data);
       } else {
         setAlumnos([]);
       }
     } catch (err) {
-      console.warn('Error cargando asistencia desde API, usando nómina base:', err);
+      console.warn('Error cargando asistencia desde la API:', err);
       setAlumnos([]);
     } finally {
       setCargando(false);
     }
-  };
-
-  const obtenerHoraActual = () => {
-    const ahora = new Date();
-    return ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const cambiarEstadoAlumno = (idAlumno, nuevoEstado) => {
@@ -119,15 +113,24 @@ export default function AsistenciaPage() {
   };
 
   const handleGuardar = async () => {
+    if (!aulaSeleccionada) {
+      alert('Seleccione un aula válida antes de guardar la asistencia.');
+      return;
+    }
+    setGuardando(true);
+    setMensajeError(null);
     try {
       if (guardarAsistencia) {
         await guardarAsistencia(aulaSeleccionada, fechaSeleccionada, alumnos);
       }
+      setGuardadoExitoso(true);
+      setTimeout(() => setGuardadoExitoso(false), 3000);
     } catch (err) {
-      console.warn('Simulando guardado local:', err);
+      console.error('Error al guardar asistencia:', err);
+      setMensajeError('No se pudo guardar la asistencia en el servidor. Intente nuevamente.');
+    } finally {
+      setGuardando(false);
     }
-    setGuardadoExitoso(true);
-    setTimeout(() => setGuardadoExitoso(false), 3000);
   };
 
   const total = alumnos.length;
@@ -136,7 +139,6 @@ export default function AsistenciaPage() {
   const faltas = alumnos.filter(a => a.estado === 'falta').length;
   const justificados = alumnos.filter(a => a.estado === 'justificado').length;
   
-  // Porcentaje con asistencia efectiva y justificada
   const porcentajeAsistencia = total > 0 
     ? (((presentes + tardanzas + justificados) / total) * 100).toFixed(1) 
     : '0.0';
@@ -163,7 +165,8 @@ export default function AsistenciaPage() {
           <button
             type="button"
             onClick={marcarTodosPresentes}
-            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"
+            disabled={alumnos.length === 0}
+            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCheck className="w-4 h-4 text-emerald-600" />
             Marcar Todos Presente
@@ -172,13 +175,21 @@ export default function AsistenciaPage() {
           <button
             type="button"
             onClick={handleGuardar}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"
+            disabled={guardando || alumnos.length === 0}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
-            {guardadoExitoso ? '¡Asistencia Guardada!' : 'Guardar Asistencia'}
+            {guardando ? 'Guardando...' : guardadoExitoso ? '¡Asistencia Guardada!' : 'Guardar Asistencia'}
           </button>
         </div>
       </div>
+
+      {mensajeError && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{mensajeError}</span>
+        </div>
+      )}
 
       {/* FILTROS DE SALÓN Y FECHA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
@@ -193,11 +204,15 @@ export default function AsistenciaPage() {
               onChange={(e) => setAulaSeleccionada(e.target.value)}
               className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
             >
-              {aulas.map((a) => (
-                <option key={a.idAula} value={a.idAula}>
-                  {a.nombre} ({a.nivel})
-                </option>
-              ))}
+              {aulas.length === 0 ? (
+                <option value="">Sin aulas disponibles</option>
+              ) : (
+                aulas.map((a) => (
+                  <option key={a.idAula || a.id} value={a.idAula || a.id}>
+                    {a.nombre || a.Nombre} ({a.nivel || a.Nivel || 'General'})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
@@ -218,7 +233,7 @@ export default function AsistenciaPage() {
         </div>
       </div>
 
-      {/* RESUMEN ESTADÍSTICO (6 TARJETAS COHERENTES) */}
+      {/* RESUMEN ESTADÍSTICO */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-bold uppercase text-slate-400">Total Alumnos</span>
@@ -286,11 +301,11 @@ export default function AsistenciaPage() {
                 </tr>
               ) : (
                 alumnos.map((alumno, idx) => (
-                  <tr key={alumno.idAlumno} className="hover:bg-slate-50/60 transition-colors">
+                  <tr key={alumno.idAlumno || idx} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-3.5 px-6 text-xs text-slate-400 font-mono">{idx + 1}</td>
                     <td className="py-3.5 px-6 font-semibold text-slate-800">{alumno.nombre}</td>
                     <td className="py-3.5 px-4 text-center font-mono text-xs text-slate-500">
-                      {alumno.horaLlegada}
+                      {alumno.horaLlegada || '--'}
                     </td>
                     <td className="py-3.5 px-6">
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
