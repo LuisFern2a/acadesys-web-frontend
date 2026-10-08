@@ -1096,7 +1096,42 @@ export async function obtenerCursosCiclo(idCiclo) {
     universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? ''
   }));
 }
+// Tarea Yan: POST /api/matriculas/verificar
+// Verifica si el correo ya pertenece a un alumno y si puede
+// matricularse en el ciclo seleccionado usando su misma cuenta.
+export async function verificarMatriculaExistente(correo, idCiclo) {
+  const correoNormalizado = String(correo || '').trim().toLowerCase();
+  const cicloNormalizado = Number(idCiclo);
 
+  const response = await fetch(`${API_URL}/api/matriculas/verificar`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      correo: correoNormalizado,
+      idCiclo: cicloNormalizado
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.message ||
+      data.error ||
+      data.mensaje ||
+      'No se pudo verificar el correo del alumno'
+    );
+
+    error.status = response.status;
+    error.data = data;
+
+    throw error;
+  }
+
+  return data;
+}
 // Tarea 2: POST /api/matriculas/checkout
 export async function procesarCheckoutMatricula(payload) {
   const cuerpo = {
@@ -1134,6 +1169,8 @@ export async function procesarCheckoutMatricula(payload) {
 
   return data;
 }
+
+
 
 export async function obtenerMiIntranetAlumno() {
   const response = await fetchWithAuth('/api/alumno/me');
