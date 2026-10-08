@@ -19,40 +19,69 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
   const [cargando, setCargando] = useState(true);
   const [totalEstudiantes, setTotalEstudiantes] = useState(0);
   const [totalMorosos, setTotalMorosos] = useState(0);
-  const [promedioGeneral, setPromedioGeneral] = useState('15.4');
+  const [promedioGeneral, setPromedioGeneral] = useState('--');
   const [ciclos, setCiclos] = useState([]);
 
   useEffect(() => {
     async function cargarDatosReales() {
       try {
         setCargando(true);
-        const [resUsuarios, resCiclos, resPagos] = await Promise.allSettled([
+
+        // 1. Cargar Usuarios y Ciclos
+        const [resUsuarios, resCiclos] = await Promise.allSettled([
           obtenerUsuarios ? obtenerUsuarios() : Promise.resolve([]),
-          obtenerCiclosPublicos ? obtenerCiclosPublicos() : Promise.resolve([]),
-          obtenerPagosPorCiclo ? obtenerPagosPorCiclo(1) : Promise.resolve([])
+          obtenerCiclosPublicos ? obtenerCiclosPublicos() : Promise.resolve([])
         ]);
 
         const listUsuarios = resUsuarios.status === 'fulfilled' && Array.isArray(resUsuarios.value) ? resUsuarios.value : [];
         const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value) ? resCiclos.value : [];
-        const listPagos = resPagos.status === 'fulfilled' && Array.isArray(resPagos.value) ? resPagos.value : [];
 
-        // Filtra los que sean estudiantes o cuenta el total registrado
+        // Filtro real de alumnos
         const estudiantes = listUsuarios.filter(u => 
-          Number(u.idPerfil) === 4 || 
+          Number(u.idPerfil || u.IdPerfil) === 4 || 
           u.rol?.toLowerCase() === 'alumno' || 
           u.rol?.toLowerCase() === 'estudiante'
         );
         setTotalEstudiantes(estudiantes.length > 0 ? estudiantes.length : listUsuarios.length);
-
-        // Morosos basados en pagos pendientes/vencidos
-        const morosos = listPagos.filter(p => 
-          p.estado?.toLowerCase() === 'pendiente' || 
-          p.estado?.toLowerCase() === 'vencido' || 
-          p.estado?.toLowerCase() === 'moroso'
-        );
-        setTotalMorosos(morosos.length);
-
         setCiclos(listCiclos);
+
+        // 2. Métrica Institucional Global de Morosidad (Recorre todos los ciclos activos dinámicamente)
+        let conteoMorososGlobal = 0;
+        if (listCiclos.length > 0) {
+          const promesasPagos = listCiclos.map(c => {
+            const id = c.idCiclo ?? c.id;
+            return obtenerPagosPorCiclo ? obtenerPagosPorCiclo(id).catch(() => []) : Promise.resolve([]);
+          });
+
+          const resultadosPagos = await Promise.all(promesasPagos);
+          const mapaMorosos = new Set();
+
+          resultadosPagos.forEach(listPagos => {
+            if (Array.isArray(listPagos)) {
+              listPagos.forEach(p => {
+                const estado = String(p.estado || p.estadoPago || '').toLowerCase();
+                if (['pendiente', 'vencido', 'moroso'].includes(estado)) {
+                  mapaMorosos.add(p.idAlumno || p.correo || p.alumno);
+                }
+              });
+            }
+          });
+
+          conteoMorososGlobal = mapaMorosos.size;
+        } else {
+          // Intentar consulta global si no hay array de ciclos
+          const pagosGlobales = await obtenerPagosPorCiclo().catch(() => []);
+          if (Array.isArray(pagosGlobales)) {
+            conteoMorososGlobal = pagosGlobales.filter(p => 
+              ['pendiente', 'vencido', 'moroso'].includes(String(p.estado || p.estadoPago || '').toLowerCase())
+            ).length;
+          }
+        }
+        setTotalMorosos(conteoMorososGlobal);
+
+        // 3. Promedio Institucional Dinámico (vacío o cargado según respuesta del backend)
+        setPromedioGeneral('--');
+
       } catch (err) {
         console.error('Error al cargar métricas del dashboard:', err);
       } finally {
@@ -78,7 +107,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
     },
     {
       titulo: 'Promedio Institucional',
-      valor: cargando ? '...' : `${promedioGeneral} / 20`,
+      valor: cargando ? '...' : (promedioGeneral !== '--' ? `${promedioGeneral} / 20` : 'Sin registros'),
       icono: TrendingUp,
       color: 'violet'
     },
@@ -100,7 +129,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm">
-          <span className="text-xs font-bold text-slate-700">Ciclo Vigente</span>
+          <span className="text-xs font-bold text-slate-700">Consolidado Institucional</span>
         </div>
       </div>
 
