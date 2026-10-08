@@ -44,7 +44,12 @@ export default function LandingPage({ onLoginSuccess }) {
   const [cicloSeleccionado, setCicloSeleccionado] = useState(null);
   const [cicloDetalle, setCicloDetalle] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  const [checkoutData, setCheckoutData] = useState({ nombres: '', apellidos: '', correo: '' });
+  const [checkoutData, setCheckoutData] = useState({
+    nombres: '',
+    apellidos: '',
+    correo: ''
+  });
+  const [checkoutErrors, setCheckoutErrors] = useState({});
   const [procesandoPago, setProcesandoPago] = useState(false);
   const [verificandoCorreo, setVerificandoCorreo] = useState(false);
   const [verificacionMatricula, setVerificacionMatricula] = useState(null);
@@ -112,7 +117,12 @@ export default function LandingPage({ onLoginSuccess }) {
 
   const abrirCheckout = (ciclo) => {
     setError(null);
-    setCheckoutData({ nombres: '', apellidos: '', correo: '' });
+    setCheckoutData({
+      nombres: '',
+      apellidos: '',
+      correo: ''
+    });
+    setCheckoutErrors({});
     setVerificacionMatricula(null);
     setVerificandoCorreo(false);
     setCicloSeleccionado(ciclo);
@@ -120,13 +130,62 @@ export default function LandingPage({ onLoginSuccess }) {
 
   const cerrarCheckout = () => {
     if (procesandoPago || verificandoCorreo) return;
+
     setCicloSeleccionado(null);
     setVerificacionMatricula(null);
+    setCheckoutErrors({});
     setError(null);
   };
 
+  const validarCheckout = () => {
+    const errores = {};
+
+    const nombres = checkoutData.nombres.trim();
+    const apellidos = checkoutData.apellidos.trim();
+    const correo = checkoutData.correo.trim().toLowerCase();
+
+    const regexNombre = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'-]+$/;
+    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!nombres) {
+      errores.nombres = 'Ingresa tus nombres.';
+    } else if (nombres.length < 2) {
+      errores.nombres = 'El nombre debe tener al menos 2 caracteres.';
+    } else if (!regexNombre.test(nombres)) {
+      errores.nombres = 'El nombre contiene caracteres no permitidos.';
+    }
+
+    if (!apellidos) {
+      errores.apellidos = 'Ingresa tus apellidos.';
+    } else if (apellidos.length < 2) {
+      errores.apellidos = 'El apellido debe tener al menos 2 caracteres.';
+    } else if (!regexNombre.test(apellidos)) {
+      errores.apellidos = 'El apellido contiene caracteres no permitidos.';
+    }
+
+    if (!correo) {
+      errores.correo = 'Ingresa tu correo electrónico.';
+    } else if (!regexCorreo.test(correo)) {
+      errores.correo = 'Ingresa un correo electrónico válido.';
+    }
+
+    setCheckoutErrors(errores);
+    return Object.keys(errores).length === 0;
+  };
+
   const handleCorreoCheckoutChange = (e) => {
-    setCheckoutData((actual) => ({ ...actual, correo: e.target.value }));
+    const valor = e.target.value;
+
+    setCheckoutData((actual) => ({
+      ...actual,
+      correo: valor
+    }));
+
+    setCheckoutErrors((actual) => ({
+      ...actual,
+      correo: ''
+    }));
+
     setVerificacionMatricula(null);
     setError(null);
   };
@@ -217,7 +276,12 @@ export default function LandingPage({ onLoginSuccess }) {
 
   const handlePagarCheckout = async (e) => {
     e.preventDefault();
+
+    if (procesandoPago || verificandoCorreo) return;
+
     setError(null);
+
+    if (!validarCheckout()) return;
 
     const correoNormalizado = checkoutData.correo.trim().toLowerCase();
     let autorizado =
@@ -764,10 +828,14 @@ export default function LandingPage({ onLoginSuccess }) {
                 { key: 'correo', label: 'Correo', type: 'email', ph: 'correo@ejemplo.com' }
               ].map((f) => (
                 <div key={f.key}>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    {f.label}
+                  </label>
+
                   <input
                     type={f.type}
                     required
+                    disabled={procesandoPago || verificandoCorreo}
                     placeholder={f.ph}
                     value={checkoutData[f.key]}
                     onChange={(e) => {
@@ -775,15 +843,42 @@ export default function LandingPage({ onLoginSuccess }) {
                         handleCorreoCheckoutChange(e);
                         return;
                       }
-                      setCheckoutData({ ...checkoutData, [f.key]: e.target.value });
+
+                      setCheckoutData((actual) => ({
+                        ...actual,
+                        [f.key]: e.target.value
+                      }));
+
+                      setCheckoutErrors((actual) => ({
+                        ...actual,
+                        [f.key]: ''
+                      }));
+
+                      setError(null);
                     }}
                     onBlur={(e) => {
-                      if (f.key === 'correo' && e.target.validity.valid) {
+                      if (
+                        f.key === 'correo' &&
+                        e.target.validity.valid &&
+                        e.target.value.trim()
+                      ) {
                         verificarCorreoParaCheckout(e.target.value);
                       }
                     }}
-                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500 transition"
+                    aria-invalid={Boolean(checkoutErrors[f.key])}
+                    className={`w-full px-4 py-3 bg-slate-800/80 border rounded-2xl text-sm text-white placeholder-slate-400 outline-none transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                      checkoutErrors[f.key]
+                        ? 'border-rose-500 focus:border-rose-500'
+                        : 'border-slate-700 focus:border-blue-500'
+                    }`}
                   />
+
+                  {checkoutErrors[f.key] && (
+                    <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {checkoutErrors[f.key]}
+                    </p>
+                  )}
                 </div>
               ))}
               <button
