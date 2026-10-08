@@ -41,6 +41,7 @@ export default function LandingPage({ onLoginSuccess }) {
   const [loginData, setLoginData] = useState({ usuario: '', password: '' });
   const [ciclos, setCiclos] = useState([]);
   const [loadingCiclos, setLoadingCiclos] = useState(true);
+  const [errorCiclos, setErrorCiclos] = useState(null);
   const [cicloSeleccionado, setCicloSeleccionado] = useState(null);
   const [cicloDetalle, setCicloDetalle] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
@@ -75,20 +76,27 @@ export default function LandingPage({ onLoginSuccess }) {
     setAuthModal(null);
   };
 
-  React.useEffect(() => {
-    async function cargarCiclos() {
-      try {
-        setLoadingCiclos(true);
-        const data = await obtenerCiclosPublicos();
-        setCiclos(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.warn('Error al cargar ciclos públicos:', err);
-      } finally {
-        setLoadingCiclos(false);
-      }
+ React.useEffect(() => {
+  async function cargarCiclos() {
+    try {
+      setLoadingCiclos(true);
+      setErrorCiclos(null);
+
+      const data = await obtenerCiclosPublicos();
+      setCiclos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Error al cargar ciclos públicos:', err);
+      setCiclos([]);
+      setErrorCiclos(
+        err.message || 'No fue posible cargar los ciclos disponibles.'
+      );
+    } finally {
+      setLoadingCiclos(false);
     }
-    cargarCiclos();
-  }, []);
+  }
+
+  cargarCiclos();
+}, []);
 
   const abrirDetalleCiclo = async (ciclo) => {
     const idCiclo = ciclo.idCiclo ?? ciclo.id;
@@ -477,76 +485,202 @@ export default function LandingPage({ onLoginSuccess }) {
           <h2 className="text-2xl sm:text-[28px] font-black text-white mb-2 text-center">Ciclos disponibles</h2>
           <p className="text-slate-400 text-sm text-center mb-8">Elige tu ciclo e inscríbete en minutos</p>
           {loadingCiclos ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+  <div
+    className="w-full max-w-2xl mx-auto p-8 rounded-3xl bg-[#071a38]/80 border border-blue-400/20 text-center shadow-xl"
+    role="status"
+    aria-live="polite"
+  >
+    <Loader2
+      className="w-7 h-7 mx-auto mb-3 text-blue-400 animate-spin"
+      aria-hidden="true"
+    />
+    <h3 className="text-base sm:text-lg font-bold text-white">
+      Cargando ciclos disponibles
+    </h3>
+    <p className="text-sm text-slate-300 mt-2">
+      Estamos consultando la oferta académica.
+    </p>
+  </div>
+) : errorCiclos ? (
+  <div
+    className="w-full max-w-2xl mx-auto p-8 rounded-3xl bg-[#071a38]/80 border border-rose-400/25 text-center shadow-xl"
+    role="alert"
+  >
+    <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-400/20 flex items-center justify-center">
+      <AlertCircle
+        className="w-7 h-7 text-rose-300"
+        aria-hidden="true"
+      />
+    </div>
+
+    <h3 className="text-base sm:text-lg font-bold text-white">
+      No pudimos cargar los ciclos
+    </h3>
+
+    <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+      No fue posible consultar la oferta académica en este momento.
+    </p>
+
+    <p className="text-sm text-rose-200/80 mt-2">
+      {errorCiclos}
+    </p>
+  </div>
+) : ciclos.length === 0 ? (
+  <div
+    className="w-full max-w-2xl mx-auto p-10 rounded-3xl bg-[#071a38]/80 border border-blue-400/20 text-center shadow-xl"
+    role="status"
+  >
+    <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center">
+      <GraduationCap
+        className="w-7 h-7 text-blue-400"
+        aria-hidden="true"
+      />
+    </div>
+
+    <h3 className="text-lg font-bold text-white">
+      Nuevos ciclos se aperturarán pronto
+    </h3>
+
+    <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+      Actualmente no hay ciclos disponibles para matrícula.
+      Vuelve a revisar próximamente para conocer nuevas fechas,
+      turnos y horarios.
+    </p>
+  </div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    {ciclos.map((ciclo) => {
+      const capacidad = Number(ciclo.capacidad || 0);
+      const inscritos = Number(ciclo.totalAlumnos || 0);
+      const vacantes = Math.max(capacidad - inscritos, 0);
+      const cupoCompleto = capacidad > 0 && vacantes <= 0;
+
+      return (
+        <article
+          key={ciclo.idCiclo ?? ciclo.id}
+          className="group p-6 rounded-3xl bg-[#071a38]/90 border border-blue-400/35 backdrop-blur-xl hover:border-sky-400/60 hover:-translate-y-1 transition-all duration-300 flex flex-col shadow-xl shadow-black/20"
+        >
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div
+              className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-300"
+              aria-hidden="true"
+            >
+              <GraduationCap className="w-6 h-6" />
             </div>
-          ) : ciclos.length === 0 ? (
-            <div className="w-full max-w-2xl mx-auto p-10 rounded-3xl bg-[#071a38]/80 border border-blue-400/20 text-center shadow-xl">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-blue-400" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Nuevos ciclos se aperturarán pronto</h3>
-              <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-                Actualmente no hay ciclos disponibles para matrícula. Vuelve a revisar próximamente para conocer nuevas fechas, turnos y horarios.
+
+            <span
+              className={`px-3 py-1 rounded-full border text-xs font-bold whitespace-nowrap ${
+                cupoCompleto
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-200'
+                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+              }`}
+            >
+              {cupoCompleto ? 'Cupo completo' : 'Disponible'}
+            </span>
+          </div>
+
+          <h3 className="text-xl font-black text-white mb-2">
+            {ciclo.nombre || 'Ciclo sin nombre'}
+          </h3>
+
+          <p className="text-sm text-slate-300 mb-5">
+            Universidad objetivo:{' '}
+            <span className="font-semibold text-white">
+              {ciclo.universidadObjetivo || 'Por confirmar'}
+            </span>
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="rounded-2xl bg-slate-900/60 border border-slate-700 p-3">
+              <p className="text-xs font-semibold text-slate-400">
+                Inscritos
+              </p>
+              <p className="text-base font-bold text-white mt-1">
+                {inscritos}
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {ciclos.map((ciclo) => (
-                <div
-                  key={ciclo.idCiclo ?? ciclo.id}
-                  onClick={() => abrirDetalleCiclo(ciclo)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      abrirDetalleCiclo(ciclo);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  className="group p-6 rounded-3xl bg-[#071a38]/90 border border-blue-400/35 backdrop-blur-xl hover:border-sky-400/60 hover:-translate-y-1 transition-all duration-300 flex flex-col shadow-xl shadow-black/20 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-5">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-300">
-                      <GraduationCap className="w-6 h-6" />
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold whitespace-nowrap">
-                      {ciclo.cantidadAlumnos ?? ciclo.totalAlumnos ?? 0} inscritos
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-5">{ciclo.nombre}</h3>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
-                      <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
-                      <span><strong className="text-white">Turno:</strong> {ciclo.turno || 'Por confirmar'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
-                      <Clock className="w-4 h-4 text-blue-400 shrink-0" />
-                      <span><strong className="text-white">Horario:</strong> {ciclo.horario || 'Horario por confirmar'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
-                      <Users className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span><strong className="text-white">Alumnos:</strong> {ciclo.cantidadAlumnos ?? ciclo.totalAlumnos ?? 0}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
-                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span><strong className="text-white">Modalidad:</strong> {ciclo.modalidad || 'Preuniversitaria'}</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      abrirCheckout(ciclo);
-                    }}
-                    className="mt-auto w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/30 transition-all group-hover:scale-[1.01]"
-                  >
-                    Inscríbete aquí
-                  </button>
-                </div>
-              ))}
+
+            <div className="rounded-2xl bg-slate-900/60 border border-slate-700 p-3">
+              <p className="text-xs font-semibold text-slate-400">
+                Vacantes
+              </p>
+              <p className="text-base font-bold text-white mt-1">
+                {capacidad > 0 ? vacantes : 'Por confirmar'}
+              </p>
             </div>
-          )}
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3 text-sm text-slate-300">
+              <Clock
+                className="w-4 h-4 text-indigo-300 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                <strong className="text-white">Turno:</strong>{' '}
+                {ciclo.turno || 'Por confirmar'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm text-slate-300">
+              <Calendar
+                className="w-4 h-4 text-blue-300 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                <strong className="text-white">Horario:</strong>{' '}
+                {ciclo.horario || 'Por confirmar'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm text-slate-300">
+              <BookOpen
+                className="w-4 h-4 text-cyan-300 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                <strong className="text-white">Cursos:</strong>{' '}
+                {ciclo.totalCursos}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm text-slate-300">
+              <Users
+                className="w-4 h-4 text-cyan-300 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                <strong className="text-white">Días:</strong>{' '}
+                {ciclo.diasClase || 'Por confirmar'}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-auto flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => abrirDetalleCiclo(ciclo)}
+              className="flex-1 py-3 rounded-2xl border border-slate-600 text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[#071a38] text-sm font-bold transition"
+              aria-label={`Ver detalle del ciclo ${ciclo.nombre || ''}`}
+            >
+              Ver detalle
+            </button>
+
+            <button
+              type="button"
+              onClick={() => abrirCheckout(ciclo)}
+              disabled={cupoCompleto}
+              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#071a38] text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cupoCompleto ? 'Cupo completo' : 'Inscribirme'}
+            </button>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+)}
+
         </section>
 
         {/*PROPUESTA DE VALOR */}
@@ -639,13 +773,19 @@ export default function LandingPage({ onLoginSuccess }) {
             )}
             <form onSubmit={handleLoginSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Usuario / correo</label>
+                <label
+  htmlFor="login-usuario"
+  className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
+>
+  Usuario / correo
+</label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     required
                     autoComplete="username"
+                    id="login-usuario"
                     placeholder={rolEsperado === '4' ? 'Código de alumno o correo' : 'Usuario o correo'}
                     value={loginData.usuario}
                     onChange={(e) => setLoginData({ ...loginData, usuario: e.target.value })}
@@ -654,13 +794,19 @@ export default function LandingPage({ onLoginSuccess }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Contraseña</label>
+                <label
+  htmlFor="login-password"
+  className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
+>
+  Contraseña
+</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     autoComplete="current-password"
+                    id="login-password"
                     placeholder="Ingresa tu contraseña"
                     value={loginData.password}
                     onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
@@ -671,6 +817,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -704,7 +851,7 @@ export default function LandingPage({ onLoginSuccess }) {
             <button
               type="button"
               onClick={() => setCicloDetalle(null)}
-              className="absolute top-5 right-5 w-9 h-9 rounded-xl flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-xl transition"
               aria-label="Cerrar detalle del ciclo"
             >
               <X className="w-5 h-5" />
@@ -774,14 +921,23 @@ export default function LandingPage({ onLoginSuccess }) {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl bg-slate-900/70 border border-slate-700 p-5 text-center">
-                  <BookOpen className="w-7 h-7 mx-auto mb-2 text-blue-400" />
-                  <p className="text-sm font-semibold text-white">Programación de cursos</p>
-                  <p className="text-sm text-slate-300 mt-1">
-                    Este ciclo tiene <strong className="text-white">{cicloDetalle.cantidadCursos ?? 0}</strong> cursos programados.
-                  </p>
-                  <p className="text-xs text-slate-400 mt-2">Los nombres de cursos y docentes aparecerán aquí cuando el servicio público entregue ese detalle.</p>
-                </div>
+                <div
+  className="rounded-2xl bg-slate-900/70 border border-slate-700 p-6 text-center"
+  role="status"
+>
+  <BookOpen
+    className="w-7 h-7 mx-auto mb-3 text-blue-300"
+    aria-hidden="true"
+  />
+
+  <p className="text-sm font-semibold text-white">
+    Aún no hay cursos disponibles para mostrar
+  </p>
+
+  <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+    La programación académica de este ciclo todavía no está disponible en la consulta pública.
+  </p>
+</div>
               )}
             </div>
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -828,13 +984,17 @@ export default function LandingPage({ onLoginSuccess }) {
                 { key: 'correo', label: 'Correo', type: 'email', ph: 'correo@ejemplo.com' }
               ].map((f) => (
                 <div key={f.key}>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  <label
+                    htmlFor={`checkout-${f.key}`}
+                    className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5"
+                  >
                     {f.label}
                   </label>
 
                   <input
                     type={f.type}
                     required
+                    id={`checkout-${f.key}`}
                     disabled={procesandoPago || verificandoCorreo}
                     placeholder={f.ph}
                     value={checkoutData[f.key]}
