@@ -828,3 +828,135 @@ export async function eliminarMaterial(idMaterial) {
 
   return data;
 }
+// ==========================================
+// P1-04: ADMINISTRACIÓN Y APERTURA DE CICLOS
+// ==========================================
+
+function crearErrorApiCiclo(data, status, mensajeDefecto) {
+  const error = new Error(
+    data?.message ||
+    data?.error ||
+    data?.mensaje ||
+    mensajeDefecto
+  );
+  error.status = status;
+  error.data = data;
+  return error;
+}
+
+export async function obtenerCiclosAdmin() {
+  const response = await fetchWithAuth('/api/admin/ciclos');
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudieron obtener los ciclos'
+    );
+  }
+
+  return Array.isArray(data) ? data : (data.data || data.ciclos || []);
+}
+
+export async function obtenerDetalleCicloAdmin(idCiclo) {
+  if (!idCiclo) throw new Error('Debe indicar un ciclo.');
+
+  const response = await fetchWithAuth(
+    `/api/admin/ciclos/${encodeURIComponent(idCiclo)}`
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudo obtener el detalle del ciclo'
+    );
+  }
+
+  return data;
+}
+
+export async function crearCicloAdmin(datosCiclo) {
+  const payload = {
+    nombre: String(datosCiclo.nombre || '').trim(),
+    universidadObjetivo: String(datosCiclo.universidadObjetivo || '').trim(),
+    turno: String(datosCiclo.turno || '').trim(),
+    horario: String(datosCiclo.horario || '').trim(),
+    fechaInicio: datosCiclo.fechaInicio || null,
+    fechaFin: datosCiclo.fechaFin || null,
+    capacidad: Number(datosCiclo.capacidad),
+    precio: Number(datosCiclo.precio),
+    diasClase: String(datosCiclo.diasClase || '').trim(),
+    prefijoCodigo: String(datosCiclo.prefijoCodigo || '').trim(),
+    publicar: Boolean(datosCiclo.publicar)
+  };
+
+  const response = await fetchWithAuth('/api/admin/ciclos', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudo crear el ciclo'
+    );
+  }
+
+  return data;
+}
+
+export async function actualizarCicloAdmin(idCiclo, datosCiclo) {
+  if (!idCiclo) {
+    throw new Error('Debe indicar el ciclo que desea actualizar.');
+  }
+
+  const response = await fetchWithAuth(
+    `/api/admin/ciclos/${encodeURIComponent(idCiclo)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(datosCiclo)
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudo actualizar el ciclo'
+    );
+  }
+
+  return data;
+}
+
+export async function eliminarCicloAdmin(idCiclo) {
+  if (!idCiclo) throw new Error('Debe indicar un ciclo.');
+
+  const response = await fetchWithAuth(
+    `/api/admin/ciclos/${encodeURIComponent(idCiclo)}`,
+    {
+      method: 'DELETE'
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudo desactivar el ciclo'
+    );
+  }
+
+  return data;
+}
