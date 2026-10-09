@@ -1,60 +1,31 @@
-
 import React, { useState, useEffect } from 'react';
-
 import {
-
   Layers,
-
   School,
-
   BookOpen,
-
   UserCheck,
-
   Plus,
-
   Search,
-
   Clock,
-
   CalendarClock,
-
   X,
-
   Users,
-
   Pencil,
-
   Trash2,
-
   Filter,
-
   GraduationCap
-
 } from 'lucide-react';
-
 import {
-
   obtenerAulas,
-
   crearAula,
-
   actualizarAula,
-
   eliminarAula,
-
   obtenerCursos,
-
   crearCurso,
-
   actualizarCurso,
-
   eliminarCurso,
-
   obtenerAsignacionesDocente,
-
   crearAsignacionDocente,
-
   eliminarAsignacionDocente,
   obtenerUsuarios,
   obtenerCiclosPublicos,
@@ -63,6 +34,7 @@ import {
   actualizarCicloAdmin,
   eliminarCicloAdmin
 } from '../services/api';
+
 function CampoCiclo({ label, children }) {
   return (
     <label className="block">
@@ -75,50 +47,34 @@ function CampoCiclo({ label, children }) {
 }
 
 export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
-
   const [tabActiva, setTabActiva] = useState(vistaInicial);
 
   useEffect(() => {
-
-  setTabActiva(vistaInicial);
-
-}, [vistaInicial]);
+    setTabActiva(vistaInicial);
+  }, [vistaInicial]);
 
   const [aulas, setAulas] = useState([]);
-
-const [cursos, setCursos] = useState([]);
-
-const [asignaciones, setAsignaciones] = useState([]);
-
-const [ciclos, setCiclos] = useState([]);
-
-const [turnos, setTurnos] = useState([]);
-
+  const [cursos, setCursos] = useState([]);
+  const [asignaciones, setAsignaciones] = useState([]);
+  const [ciclos, setCiclos] = useState([]);
+  const [turnos, setTurnos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [errorDatos, setErrorDatos] = useState('');
-
   const [busqueda, setBusqueda] = useState('');
-
   const [filtroNivel, setFiltroNivel] = useState('todos');
 
   // Modal y modo edición
-
   const [modalAbierto, setModalAbierto] = useState(false);
-
   const [editandoId, setEditandoId] = useState(null);
   const [pasoCiclo, setPasoCiclo] = useState(1);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
 
   // Formularios
-
-  const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Secundaria', capacidad: 35 });
-
+  const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
-
   const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', idAula: '', horas: 4 });
-
-    const [formCiclo, setFormCiclo] = useState({
+  const [formCiclo, setFormCiclo] = useState({
     tipo: 'Anual',
     universidadObjetivo: 'UNMSM',
     modalidad: 'Presencial',
@@ -135,21 +91,15 @@ const [turnos, setTurnos] = useState([]);
     publicar: false,
     cursosSeleccionados: []
   });
-
   const [formTurno, setFormTurno] = useState({
-
     nombre: '',
-
     horario: '',
-
     modalidad: 'Presencial',
-
     estado: 'Activo'
-
   });
 
   useEffect(() => {
-    setTurnos([]); // Turnos aún no cuenta con un endpoint persistente en el backend.
+    setTurnos([]);
     cargarDatos();
   }, []);
 
@@ -180,7 +130,7 @@ const [turnos, setTurnos] = useState([]);
       ...a,
       idAula: Number(a.idAula ?? a.IdAula),
       nombre: a.nombre ?? a.Nombre ?? '',
-      nivel: a.nivel ?? a.Nivel ?? 'General',
+      nivel: a.nivel ?? a.Nivel ?? 'Preuniversitario',
       capacidad: Number(a.capacidad ?? a.Capacidad ?? 35),
     }));
     const listaCursos = (Array.isArray(cursosRaw) ? cursosRaw : []).map((c) => ({
@@ -234,13 +184,9 @@ const [turnos, setTurnos] = useState([]);
   };
 
   const abrirCrear = () => {
-
     setEditandoId(null);
-
-    setFormAula({ nombre: '', nivel: 'Secundaria', capacidad: 35 });
-
+    setFormAula({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
     setFormCurso({ nombre: '', codigo: '', descripcion: '' });
-
     setFormAsig({
       idUsuario: String(usuarios[0]?.IdUsuario ?? usuarios[0]?.idUsuario ?? ''),
       idCiclo: String(ciclos[0]?.idCiclo ?? ''),
@@ -267,41 +213,29 @@ const [turnos, setTurnos] = useState([]);
     });
     setPasoCiclo(1);
     setErrorCiclo('');
-
     setFormTurno({
-
       nombre: '',
-
       horario: '',
-
       modalidad: 'Presencial',
-
       estado: 'Activo'
-
     });
-
     setModalAbierto(true);
-
   };
 
   const abrirEditarAula = (aula) => {
-
     setEditandoId(aula.idAula ?? aula.IdAula);
-
-    setFormAula({ nombre: aula.nombre ?? aula.Nombre, nivel: aula.nivel ?? aula.Nivel ?? 'General', capacidad: Number(aula.capacidad ?? aula.Capacidad ?? 35) });
-
+    setFormAula({
+      nombre: aula.nombre ?? aula.Nombre,
+      nivel: 'Preuniversitario',
+      capacidad: Number(aula.capacidad ?? aula.Capacidad ?? 35)
+    });
     setModalAbierto(true);
-
   };
 
   const abrirEditarCurso = (curso) => {
-
     setEditandoId(curso.idCurso ?? curso.IdCurso);
-
     setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
-
     setModalAbierto(true);
-
   };
 
   const abrirEditarCiclo = (ciclo) => {
@@ -329,58 +263,34 @@ const [turnos, setTurnos] = useState([]);
   };
 
   const abrirEditarTurno = (turno) => {
-
     setEditandoId(turno.idTurno);
-
     setFormTurno({
-
       nombre: turno.nombre,
-
       horario: turno.horario,
-
       modalidad: turno.modalidad,
-
       estado: turno.estado
-
     });
-
     setModalAbierto(true);
-
   };
-
-  // Validaciones de formularios administrativos (Yan - mejora frontend)
 
   const NOMBRE_MINIMO = 3;
 
   const nombreValido = (valor) => {
-
     const limpio = String(valor || '').trim();
-
     return limpio.length >= NOMBRE_MINIMO && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .'-]+$/.test(limpio);
-
   };
 
   const codigoCursoValido = (valor) => {
-
     const limpio = String(valor || '').trim();
-
     return limpio.length >= 2 && /^[A-Z0-9-]+$/.test(limpio);
-
   };
 
   const formularioActualValido = (() => {
-
-
     if (tabActiva === 'cursos') return nombreValido(formCurso.nombre) && codigoCursoValido(formCurso.codigo);
-
     if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
-
     if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && formAsig.idAula && Number(formAsig.horas) >= 1);
-
     if (tabActiva === 'turnos') return nombreValido(formTurno.nombre) && Boolean(formTurno.horario.trim());
-
     return true;
-
   })();
 
   const handleGuardar = async (e) => {
@@ -572,115 +482,66 @@ const [turnos, setTurnos] = useState([]);
   };
 
   // Filtros combinados
-
   const aulasFiltradas = aulas.filter(a => {
-
     const coincideTexto = (a.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
                           (a.nivel || '').toLowerCase().includes(busqueda.toLowerCase());
-
     const coincideNivel = filtroNivel === 'todos' || a.nivel === filtroNivel;
-
     return coincideTexto && coincideNivel;
-
   });
 
   const cursosFiltrados = cursos.filter(c =>
-
     (c.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
     (c.codigo || '').toLowerCase().includes(busqueda.toLowerCase())
-
   );
 
   const asignacionesFiltradas = asignaciones.filter(a =>
-
     (a.docente || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
     (a.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
     (a.aula || '').toLowerCase().includes(busqueda.toLowerCase())
-
   );
 
   const ciclosFiltrados = ciclos.filter((ciclo) =>
-
-  (ciclo.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
-  (ciclo.turno || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
-  (ciclo.horario || '').toLowerCase().includes(busqueda.toLowerCase())
-
-);
+    (ciclo.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (ciclo.turno || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (ciclo.horario || '').toLowerCase().includes(busqueda.toLowerCase())
+  );
 
   const turnosFiltrados = turnos.filter((turno) =>
-
-  (turno.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
-  (turno.horario || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-
-  (turno.modalidad || '').toLowerCase().includes(busqueda.toLowerCase())
-
-);
+    (turno.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.horario || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.modalidad || '').toLowerCase().includes(busqueda.toLowerCase())
+  );
 
   return (
-
     <div className="p-8 bg-slate-50 min-h-full">
-
       {/* HEADER */}
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-
         <div>
-
           <div className="flex items-center gap-2">
-
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
-
               <Layers className="w-7 h-7" />
-
             </div>
-
             <div>
-
               <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Gestión Académica</h1>
-
               <p className="text-slate-600 text-sm mt-0.5">
-
                 Control de salones, plan de estudios y distribución de carga horaria docente
-
               </p>
-
             </div>
-
           </div>
-
         </div>
 
         <button
-
           type="button"
-
           onClick={abrirCrear}
-
           className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm transition text-xs cursor-pointer"
-
         >
-
           <Plus className="w-4 h-4" />
-
           {tabActiva === 'asignaciones' && 'Nueva Carga Docente'}
-
-{tabActiva === 'aulas' && 'Nueva Aula / Salón'}
-
-{tabActiva === 'cursos' && 'Nuevo Curso'}
-
-{tabActiva === 'ciclos' && 'Nuevo Ciclo'}
-
-{tabActiva === 'turnos' && 'Nuevo Turno'}
-
+          {tabActiva === 'aulas' && 'Nueva Aula / Salón'}
+          {tabActiva === 'cursos' && 'Nuevo Curso'}
+          {tabActiva === 'ciclos' && 'Nuevo Ciclo'}
+          {tabActiva === 'turnos' && 'Nuevo Turno'}
         </button>
-
       </div>
 
       {errorDatos && (
@@ -690,958 +551,347 @@ const [turnos, setTurnos] = useState([]);
       )}
 
       {/* PESTAÑAS */}
-
       <div className="flex items-center gap-2 border-b border-slate-200 mb-6">
-
         <button
-
-  type="button"
-
-  onClick={() => setTabActiva('ciclos')}
-
-  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-
-    tabActiva === 'ciclos'
-
-      ? 'border-indigo-600 text-indigo-600'
-
-      : 'border-transparent text-slate-600 hover:text-slate-800'
-
-  }`}
-
->
-
-  <GraduationCap className="w-4 h-4" />
-
-  Ciclos ({ciclos.length})
-
-</button>
-
-<button
-
-  type="button"
-
-  onClick={() => setTabActiva('turnos')}
-
-  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-
-    tabActiva === 'turnos'
-
-      ? 'border-indigo-600 text-indigo-600'
-
-      : 'border-transparent text-slate-600 hover:text-slate-800'
-
-  }`}
-
->
-
-  <CalendarClock className="w-4 h-4" />
-
-  Turnos ({turnos.length})
-
-</button>
-
-        <button
-
           type="button"
+          onClick={() => setTabActiva('ciclos')}
+          className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tabActiva === 'ciclos'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          Ciclos ({ciclos.length})
+        </button>
 
+        <button
+          type="button"
+          onClick={() => setTabActiva('turnos')}
+          className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tabActiva === 'turnos'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          <CalendarClock className="w-4 h-4" />
+          Turnos ({turnos.length})
+        </button>
+
+        <button
+          type="button"
           onClick={() => setTabActiva('asignaciones')}
-
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-
             tabActiva === 'asignaciones'
-
               ? 'border-indigo-600 text-indigo-600'
-
               : 'border-transparent text-slate-600 hover:text-slate-800'
-
           }`}
-
         >
-
           <UserCheck className="w-4 h-4" />
-
           Carga Docente ({asignaciones.length})
-
         </button>
 
         <button
-
           type="button"
-
           onClick={() => setTabActiva('aulas')}
-
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-
             tabActiva === 'aulas'
-
               ? 'border-indigo-600 text-indigo-600'
-
               : 'border-transparent text-slate-600 hover:text-slate-800'
-
           }`}
-
         >
-
           <School className="w-4 h-4" />
-
           Aulas y Salones ({aulas.length})
-
         </button>
 
         <button
-
           type="button"
-
           onClick={() => setTabActiva('cursos')}
-
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-
             tabActiva === 'cursos'
-
               ? 'border-indigo-600 text-indigo-600'
-
               : 'border-transparent text-slate-600 hover:text-slate-800'
-
           }`}
-
         >
-
           <BookOpen className="w-4 h-4" />
-
           Cursos Oficiales ({cursos.length})
-
         </button>
-
       </div>
 
       {/* FILTROS Y BÚSQUEDA */}
-
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-
         <div className="flex-1 bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-
           <Search className="w-4 h-4 text-slate-400" />
-
           <input
-
             type="text"
-
             placeholder="Buscar por curso, docente, código o nivel..."
-
             value={busqueda}
-
             onChange={(e) => setBusqueda(e.target.value)}
-
             className="w-full bg-transparent outline-none text-slate-700 text-xs"
-
           />
-
         </div>
 
         {tabActiva === 'aulas' && (
-
           <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 text-xs">
-
             <Filter className="w-4 h-4 text-slate-400" />
-
             <span className="font-semibold text-slate-600">Nivel:</span>
-
             <select
-
               value={filtroNivel}
-
               onChange={(e) => setFiltroNivel(e.target.value)}
-
               className="bg-transparent font-medium text-slate-700 outline-none cursor-pointer"
-
             >
-
               <option value="todos">Todos los niveles</option>
-
-              <option value="Primaria">Primaria</option>
-
-              <option value="Secundaria">Secundaria</option>
-
               <option value="Preuniversitario">Preuniversitario</option>
-
             </select>
-
           </div>
-
         )}
-
       </div>
 
       {/* CICLOS */}
-
-{tabActiva === 'ciclos' && (
-
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-
-    {ciclosFiltrados.length === 0 ? (
-
-      <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
-
-        <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-
-          <GraduationCap className="w-6 h-6 text-indigo-500" />
-
+      {tabActiva === 'ciclos' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {ciclosFiltrados.length === 0 ? (
+            <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
+              <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-indigo-500" />
+              </div>
+              <p className="text-base font-bold text-slate-800">No hay ciclos disponibles</p>
+              <p className="text-sm text-slate-600 mt-1">No existen ciclos que coincidan con la búsqueda actual.</p>
+            </div>
+          ) : (
+            ciclosFiltrados.map((ciclo) => {
+              const vacantes = Math.max(Number(ciclo.capacidad || 0) - Number(ciclo.alumnos || 0), 0);
+              return (
+                <div key={ciclo.idCiclo} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${ciclo.estado === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                        {ciclo.estado}
+                      </span>
+                      <button type="button" title="Editar ciclo" onClick={() => abrirEditarCiclo(ciclo)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" title="Eliminar ciclo" onClick={() => handleEliminarCiclo(ciclo.idCiclo, ciclo.nombre)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 mt-4">{ciclo.nombre}</h3>
+                  <div className="space-y-2.5 mt-4 text-sm text-slate-600">
+                    <div className="flex items-center justify-between"><span>Turno</span><strong className="text-slate-800">{ciclo.turno}</strong></div>
+                    <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-800">{ciclo.horario}</strong></div>
+                    <div className="flex items-center justify-between"><span>Alumnos</span><strong className="text-slate-800">{ciclo.alumnos}</strong></div>
+                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-indigo-600">{vacantes}</strong></div>
+                    <div className="flex items-center justify-between"><span>Cursos</span><strong className="text-slate-800">{ciclo.cursos}</strong></div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
-
-        <p className="text-base font-bold text-slate-800">
-
-          No hay ciclos disponibles
-
-        </p>
-
-        <p className="text-sm text-slate-600 mt-1">
-
-          No existen ciclos que coincidan con la búsqueda actual.
-
-        </p>
-
-      </div>
-
-    ) : (
-
-      ciclosFiltrados.map((ciclo) => {
-
-        const vacantes = Math.max(
-
-          Number(ciclo.capacidad || 0) -
-
-          Number(ciclo.alumnos || 0),
-
-          0
-
-        );
-
-        return (
-
-          <div
-
-            key={ciclo.idCiclo}
-
-            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
-
-          >
-
-            <div className="flex items-start justify-between gap-3">
-
-              <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-
-                <GraduationCap className="w-5 h-5" />
-
-              </div>
-
-              <div className="flex items-center gap-1">
-
-                <span
-
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-
-                    ciclo.estado === 'Activo'
-
-                      ? 'bg-emerald-50 text-emerald-700'
-
-                      : 'bg-amber-50 text-amber-700'
-
-                  }`}
-
-                >
-
-                  {ciclo.estado}
-
-                </span>
-
-                <button
-
-                  type="button"
-
-                  title="Editar ciclo"
-
-                  onClick={() => abrirEditarCiclo(ciclo)}
-
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-
-                >
-
-                  <Pencil className="w-4 h-4" />
-
-                </button>
-
-                <button
-
-                  type="button"
-
-                  title="Eliminar ciclo"
-
-                  onClick={() =>
-
-                    handleEliminarCiclo(
-
-                      ciclo.idCiclo,
-
-                      ciclo.nombre
-
-                    )
-
-                  }
-
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-
-                >
-
-                  <Trash2 className="w-4 h-4" />
-
-                </button>
-
-              </div>
-
-            </div>
-
-            <h3 className="text-lg font-black text-slate-900 mt-4">
-
-              {ciclo.nombre}
-
-            </h3>
-
-            <div className="space-y-2.5 mt-4 text-sm text-slate-600">
-
-              <div className="flex items-center justify-between">
-
-                <span>Turno</span>
-
-                <strong className="text-slate-800">
-
-                  {ciclo.turno}
-
-                </strong>
-
-              </div>
-
-              <div className="flex items-center justify-between">
-
-                <span>Horario</span>
-
-                <strong className="text-slate-800">
-
-                  {ciclo.horario}
-
-                </strong>
-
-              </div>
-
-              <div className="flex items-center justify-between">
-
-                <span>Alumnos</span>
-
-                <strong className="text-slate-800">
-
-                  {ciclo.alumnos}
-
-                </strong>
-
-              </div>
-
-              <div className="flex items-center justify-between">
-
-                <span>Vacantes</span>
-
-                <strong className="text-indigo-600">
-
-                  {vacantes}
-
-                </strong>
-
-              </div>
-
-              <div className="flex items-center justify-between">
-
-                <span>Cursos</span>
-
-                <strong className="text-slate-800">
-
-                  {ciclo.cursos}
-
-                </strong>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        );
-
-      })
-
-    )}
-
-  </div>
-
-)}
+      )}
 
       {/* TURNOS Y HORARIOS */}
-
-{tabActiva === 'turnos' && (
-
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-
-    {turnosFiltrados.length === 0 ? (
-
-      <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
-
-        <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-
-          <CalendarClock className="w-6 h-6 text-indigo-500" />
-
-        </div>
-
-        <p className="text-base font-bold text-slate-800">
-
-          No hay turnos disponibles
-
-        </p>
-
-        <p className="text-sm text-slate-600 mt-1">
-
-          No existen turnos que coincidan con la búsqueda actual.
-
-        </p>
-
-      </div>
-
-    ) : (
-
-      turnosFiltrados.map((turno) => (
-
-        <div
-
-          key={turno.idTurno}
-
-          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
-
-        >
-
-          <div className="flex items-start justify-between">
-
-            <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-
-              <CalendarClock className="w-5 h-5" />
-
+      {tabActiva === 'turnos' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {turnosFiltrados.length === 0 ? (
+            <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
+              <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <CalendarClock className="w-6 h-6 text-indigo-500" />
+              </div>
+              <p className="text-base font-bold text-slate-800">No hay turnos disponibles</p>
+              <p className="text-sm text-slate-600 mt-1">No existen turnos que coincidan con la búsqueda actual.</p>
             </div>
-
-            <div className="flex items-center gap-1">
-
-              <button
-
-                type="button"
-
-                title="Editar turno"
-
-                onClick={() => abrirEditarTurno(turno)}
-
-                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-
-              >
-
-                <Pencil className="w-4 h-4" />
-
-              </button>
-
-              <button
-
-                type="button"
-
-                title="Eliminar turno"
-
-                onClick={() =>
-
-                  handleEliminarTurno(
-
-                    turno.idTurno,
-
-                    turno.nombre
-
-                  )
-
-                }
-
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-
-              >
-
-                <Trash2 className="w-4 h-4" />
-
-              </button>
-
-            </div>
-
-          </div>
-
-          <h3 className="text-lg font-black text-slate-900 mt-4">
-
-            {turno.nombre}
-
-          </h3>
-
-          <p className="text-sm text-slate-600 mt-1">
-
-            {turno.horario}
-
-          </p>
-
-          <div className="flex items-center justify-between mt-5">
-
-            <span className="text-xs font-semibold text-slate-600">
-
-              Modalidad
-
-            </span>
-
-            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
-
-              {turno.modalidad}
-
-            </span>
-
-          </div>
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-
-            <span className="text-xs font-semibold text-slate-600">
-
-              Estado
-
-            </span>
-
-            <span className="text-xs font-bold text-emerald-600">
-
-              {turno.estado}
-
-            </span>
-
-          </div>
-
+          ) : (
+            turnosFiltrados.map((turno) => (
+              <div key={turno.idTurno} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+                <div className="flex items-start justify-between">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <CalendarClock className="w-5 h-5" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" title="Editar turno" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button type="button" title="Eliminar turno" onClick={() => handleEliminarTurno(turno.idTurno, turno.nombre)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 mt-4">{turno.nombre}</h3>
+                <p className="text-sm text-slate-600 mt-1">{turno.horario}</p>
+                <div className="flex items-center justify-between mt-5">
+                  <span className="text-xs font-semibold text-slate-600">Modalidad</span>
+                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">{turno.modalidad}</span>
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <span className="text-xs font-semibold text-slate-600">Estado</span>
+                  <span className="text-xs font-bold text-emerald-600">{turno.estado}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-
-      ))
-
-    )}
-
-  </div>
-
-)}
+      )}
 
       {/* TABLA ASIGNACIONES */}
-
       {tabActiva === 'asignaciones' && (
-
         <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-200">
-
           <table className="w-full text-left border-collapse">
-
             <thead>
-
               <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase">
-
                 <th className="py-4 px-6">Docente Titular</th>
-
                 <th className="py-4 px-6">Asignatura</th>
-
                 <th className="py-4 px-6">Aula Asignada</th>
-
                 <th className="py-4 px-6">Carga Semanal</th>
-
                 <th className="py-4 px-6 text-center">Acciones</th>
-
               </tr>
-
             </thead>
-
             <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-
               {asignacionesFiltradas.length === 0 ? (
-
                 <tr>
-
                   <td colSpan={5} className="py-12 text-center">
-
-  <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-
-    <UserCheck className="w-6 h-6 text-indigo-500" />
-
-  </div>
-
-  <p className="text-base font-bold text-slate-800">
-
-    No hay cargas docentes
-
-  </p>
-
-  <p className="text-sm text-slate-600 mt-1">
-
-    No se encontraron asignaciones de docentes con el filtro aplicado.
-
-  </p>
-
-</td>
-
+                    <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                      <UserCheck className="w-6 h-6 text-indigo-500" />
+                    </div>
+                    <p className="text-base font-bold text-slate-800">No hay cargas docentes</p>
+                    <p className="text-sm text-slate-600 mt-1">No se encontraron asignaciones de docentes con el filtro aplicado.</p>
+                  </td>
                 </tr>
-
               ) : (
-
                 asignacionesFiltradas.map((asig) => (
-
                   <tr key={asig.idAsignacion} className="hover:bg-slate-50/50 transition-colors">
-
                     <td className="py-4 px-6 font-semibold text-slate-800 flex items-center gap-3">
-
                       <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-100">
-
                         {(asig.docente || 'DC').slice(0, 2).toUpperCase()}
-
                       </div>
-
                       {asig.docente}
-
                     </td>
-
                     <td className="py-4 px-6">
-
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-
                         {asig.curso}
-
                       </span>
-
                     </td>
-
                     <td className="py-4 px-6 text-slate-700">{asig.aula}</td>
-
                     <td className="py-4 px-6 text-xs text-slate-600 font-medium">
-
                       <span className="inline-flex items-center gap-1.5">
-
                         <Clock className="w-3.5 h-3.5 text-slate-400" /> {asig.horas} horas lectivas
-
                       </span>
-
                     </td>
-
                     <td className="py-4 px-6 text-center">
-
-                      <button
-
-                        type="button"
-
-                        title="Eliminar asignación"
-
-                        onClick={() => handleEliminarAsignacion(asig.idAsignacion, asig.docente, asig.curso)}
-
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-
-                      >
-
+                      <button type="button" title="Eliminar asignación" onClick={() => handleEliminarAsignacion(asig.idAsignacion, asig.docente, asig.curso)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
                         <Trash2 className="w-4 h-4" />
-
                       </button>
-
                     </td>
-
                   </tr>
-
                 ))
-
               )}
-
             </tbody>
-
           </table>
-
         </div>
-
       )}
 
       {/* TARJETAS AULAS */}
-
       {tabActiva === 'aulas' && (
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
           {aulasFiltradas.length === 0 ? (
-
             <div className="col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
-
-  <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-
-    <School className="w-6 h-6 text-indigo-500" />
-
-  </div>
-
-  <p className="text-base font-bold text-slate-800">
-
-    No hay aulas registradas
-
-  </p>
-
-  <p className="text-sm text-slate-600 mt-1">
-
-    Esta sección todavía no tiene aulas disponibles para mostrar.
-
-  </p>
-
-</div>
-
-          ) : (
-
-            aulasFiltradas.map((aula) => (
-
-              <div key={aula.idAula} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-
-                <div>
-
-                  <div className="flex items-start justify-between mb-3">
-
-                    <span className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-
-                      <School className="w-5 h-5" />
-
-                    </span>
-
-                    <div className="flex items-center gap-1">
-
-                      <button
-
-                        type="button"
-
-                        title="Editar Aula"
-
-                        onClick={() => abrirEditarAula(aula)}
-
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-
-                      >
-
-                        <Pencil className="w-4 h-4" />
-
-                      </button>
-
-                      <button
-
-                        type="button"
-
-                        title="Eliminar Aula"
-
-                        onClick={() => handleEliminarAula(aula.idAula, aula.nombre)}
-
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-
-                      >
-
-                        <Trash2 className="w-4 h-4" />
-
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                  <h3 className="font-bold text-slate-800 text-base">{aula.nombre}</h3>
-
-                  <p className="text-xs text-slate-400 mt-0.5">{aula.nivel}</p>
-
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-600 font-medium">
-
-                  <span className="flex items-center gap-1">
-
-                    <Users className="w-3.5 h-3.5 text-slate-400" /> Capacidad:
-
-                  </span>
-
-                  <span className="font-semibold text-slate-700">{aula.capacidad} vacantes</span>
-
-                </div>
-
+              <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <School className="w-6 h-6 text-indigo-500" />
               </div>
-
+              <p className="text-base font-bold text-slate-800">No hay aulas registradas</p>
+              <p className="text-sm text-slate-600 mt-1">Esta sección todavía no tiene aulas disponibles para mostrar.</p>
+            </div>
+          ) : (
+            aulasFiltradas.map((aula) => (
+              <div key={aula.idAula} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                      <School className="w-5 h-5" />
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button type="button" title="Editar Aula" onClick={() => abrirEditarAula(aula)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" title="Eliminar Aula" onClick={() => handleEliminarAula(aula.idAula, aula.nombre)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base">{aula.nombre}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{aula.nivel}</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-600 font-medium">
+                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-400" /> Capacidad:</span>
+                  <span className="font-semibold text-slate-700">{aula.capacidad} vacantes</span>
+                </div>
+              </div>
             ))
-
           )}
-
         </div>
-
       )}
 
       {/* TARJETAS CURSOS */}
-
       {tabActiva === 'cursos' && (
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
           {cursosFiltrados.length === 0 ? (
-
             <div className="col-span-3 py-12 text-center bg-white rounded-2xl border border-slate-200">
-
-  <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-
-    <BookOpen className="w-6 h-6 text-indigo-500" />
-
-  </div>
-
-  <p className="text-base font-bold text-slate-800">
-
-    No hay cursos registrados
-
-  </p>
-
-  <p className="text-sm text-slate-600 mt-1">
-
-    No se encontraron cursos que coincidan con la búsqueda.
-
-  </p>
-
-</div>
-
-          ) : (
-
-            cursosFiltrados.map((c) => (
-
-              <div key={c.idCurso} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-
-                <div>
-
-                  <div className="flex items-center justify-between mb-2">
-
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-indigo-600 rounded-md">
-
-                      {c.codigo}
-
-                    </span>
-
-                    <div className="flex items-center gap-1">
-
-                      <button
-
-                        type="button"
-
-                        title="Editar Curso"
-
-                        onClick={() => abrirEditarCurso(c)}
-
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-
-                      >
-
-                        <Pencil className="w-4 h-4" />
-
-                      </button>
-
-                      <button
-
-                        type="button"
-
-                        title="Eliminar Curso"
-
-                        onClick={() => handleEliminarCurso(c.idCurso, c.nombre)}
-
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-
-                      >
-
-                        <Trash2 className="w-4 h-4" />
-
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                  <h3 className="font-bold text-slate-800 text-base">{c.nombre}</h3>
-
-                  <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
-
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-
-                  <span className="text-xs text-slate-400 font-medium">Plan Vigente</span>
-
-                </div>
-
+              <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-indigo-500" />
               </div>
-
+              <p className="text-base font-bold text-slate-800">No hay cursos registrados</p>
+              <p className="text-sm text-slate-600 mt-1">No se encontraron cursos que coincidan con la búsqueda.</p>
+            </div>
+          ) : (
+            cursosFiltrados.map((c) => (
+              <div key={c.idCurso} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-indigo-600 rounded-md">{c.codigo}</span>
+                    <div className="flex items-center gap-1">
+                      <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" title="Eliminar Curso" onClick={() => handleEliminarCurso(c.idCurso, c.nombre)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base">{c.nombre}</h3>
+                  <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                  <span className="text-xs text-slate-400 font-medium">Plan Vigente</span>
+                </div>
+              </div>
             ))
-
           )}
-
         </div>
-
       )}
 
       {/* MODAL CREAR / EDITAR */}
+      {modalAbierto && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`bg-white rounded-2xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-2xl border border-slate-100`}>
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-800">
+                {tabActiva === 'asignaciones' && 'Asignar Docente a Aula'}
+                {tabActiva === 'aulas' && (editandoId ? 'Editar Aula' : 'Registrar Nueva Aula')}
+                {tabActiva === 'cursos' && (editandoId ? 'Editar Curso' : 'Registrar Nuevo Curso')}
+                {tabActiva === 'ciclos' && (editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo')}
+                {tabActiva === 'turnos' && (editandoId ? 'Editar Turno' : 'Registrar Nuevo Turno')}
+              </h3>
+              <button type="button" onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-{modalAbierto && (
-
-  <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-
-    <div className={`bg-white rounded-2xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-2xl border border-slate-100`}>
-
-      <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-
-        <h3 className="text-base font-bold text-slate-800">
-
-          {tabActiva === 'asignaciones' && 'Asignar Docente a Aula'}
-
-          {tabActiva === 'aulas' && (
-
-            editandoId ? 'Editar Aula' : 'Registrar Nueva Aula'
-
-          )}
-
-          {tabActiva === 'cursos' && (
-
-            editandoId ? 'Editar Curso' : 'Registrar Nuevo Curso'
-
-          )}
-
-          {tabActiva === 'ciclos' && (
-
-            editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo'
-
-          )}
-
-          {tabActiva === 'turnos' && (
-
-            editandoId ? 'Editar Turno' : 'Registrar Nuevo Turno'
-
-          )}
-
-        </h3>
-
-        <button
-
-          type="button"
-
-          onClick={() => setModalAbierto(false)}
-
-          className="text-slate-400 hover:text-slate-600 cursor-pointer"
-
-        >
-
-          <X className="w-5 h-5" />
-
-        </button>
-
-      </div>
-
-      <form onSubmit={handleGuardar} className="space-y-4">
-
-                            {tabActiva === 'ciclos' && (
+            <form onSubmit={handleGuardar} className="space-y-4">
+              {tabActiva === 'ciclos' && (
                 <div className="space-y-5">
                   <div className="overflow-x-auto pb-1">
                     <div className="flex min-w-[650px]">
@@ -1649,11 +899,7 @@ const [turnos, setTurnos] = useState([]);
                         const numero = index + 1;
                         return (
                           <div key={nombre} className="flex-1 flex items-center">
-                            <button
-                              type="button"
-                              onClick={() => numero < pasoCiclo && setPasoCiclo(numero)}
-                              className="flex items-center gap-2"
-                            >
+                            <button type="button" onClick={() => numero < pasoCiclo && setPasoCiclo(numero)} className="flex items-center gap-2">
                               <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                                 numero < pasoCiclo ? 'bg-emerald-500 text-white' :
                                 numero === pasoCiclo ? 'bg-indigo-600 text-white' :
@@ -1661,9 +907,7 @@ const [turnos, setTurnos] = useState([]);
                               }`}>
                                 {numero < pasoCiclo ? '✓' : numero}
                               </span>
-                              <span className={`text-[11px] font-semibold ${numero === pasoCiclo ? 'text-indigo-700' : 'text-slate-500'}`}>
-                                {nombre}
-                              </span>
+                              <span className={`text-[11px] font-semibold ${numero === pasoCiclo ? 'text-indigo-700' : 'text-slate-500'}`}>{nombre}</span>
                             </button>
                             {numero < 6 && <div className="h-px bg-slate-200 flex-1 mx-2" />}
                           </div>
@@ -1726,7 +970,7 @@ const [turnos, setTurnos] = useState([]);
                       <p className="text-xs text-slate-500 mb-3">Selecciona los cursos que formarán parte de la oferta académica.</p>
                       {cursos.length === 0 ? (
                         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800">
-                          No hay cursos disponibles. Podrás crear el ciclo base, pero la relación curso-ciclo debe conectarse cuando el backend exponga el endpoint correspondiente.
+                          No hay cursos disponibles.
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
@@ -1743,7 +987,6 @@ const [turnos, setTurnos] = useState([]);
                           })}
                         </div>
                       )}
-                      <p className="text-[11px] text-slate-500 mt-3">La selección se valida visualmente; no se envía a una ruta de backend no confirmada.</p>
                     </div>
                   )}
 
@@ -1757,13 +1000,6 @@ const [turnos, setTurnos] = useState([]);
                         <CampoCiclo label="Días de clase"><input value={formCiclo.diasClase} onChange={(e) => setFormCiclo({ ...formCiclo, diasClase: e.target.value })} className="campo-ciclo" placeholder="Lunes a Viernes" /></CampoCiclo>
                         <CampoCiclo label="Prefijo de código"><input value={formCiclo.prefijoCodigo} onChange={(e) => setFormCiclo({ ...formCiclo, prefijoCodigo: e.target.value.toUpperCase() })} className="campo-ciclo" placeholder="UNMSM" /></CampoCiclo>
                       </div>
-                      <div className="rounded-xl border border-slate-200 overflow-hidden">
-                        <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700">Carga docente disponible para revisión</div>
-                        <div className="max-h-40 overflow-y-auto divide-y divide-slate-100">
-                          {asignaciones.length === 0 ? <p className="p-3 text-xs text-slate-500">No hay asignaciones disponibles.</p> : asignaciones.map((a) => <div key={a.idAsignacion} className="p-3 text-xs flex justify-between gap-3"><span className="font-semibold text-slate-700">{a.docente} · {a.curso}</span><span className="text-slate-500">{a.aula}</span></div>)}
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-slate-500">Los conflictos definitivos de docente, aula y horario deben ser validados por backend.</p>
                     </div>
                   )}
 
@@ -1778,7 +1014,6 @@ const [turnos, setTurnos] = useState([]);
                           <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horario}</p>
                           <p><b>Capacidad:</b> {formCiclo.capacidad}</p>
                           <p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
-                          <p><b>Cursos seleccionados:</b> {formCiclo.cursosSeleccionados.length}</p>
                         </div>
                       </div>
 
@@ -1786,84 +1021,29 @@ const [turnos, setTurnos] = useState([]);
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div>
                             <h4 className="text-sm font-bold text-slate-800">Checklist de publicación</h4>
-                            <p className="text-[11px] text-slate-500 mt-1">
-                              Todos los requisitos críticos deben estar completos antes de publicar.
-                            </p>
                           </div>
-                          <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                            puedePublicarCiclo
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
+                          <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold ${puedePublicarCiclo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
                             {puedePublicarCiclo ? 'Listo para publicar' : 'Requisitos pendientes'}
                           </span>
                         </div>
 
                         <div className="space-y-2">
                           {checklistPublicacion.map(({ texto, ok }) => (
-                            <div
-                              key={texto}
-                              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                                ok
-                                  ? 'border-emerald-100 bg-emerald-50/60'
-                                  : 'border-amber-100 bg-amber-50/60'
-                              }`}
-                            >
+                            <div key={texto} className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${ok ? 'border-emerald-100 bg-emerald-50/60' : 'border-amber-100 bg-amber-50/60'}`}>
                               <div className="flex items-center gap-2">
-                                <span
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black ${
-                                    ok
-                                      ? 'bg-emerald-600 text-white'
-                                      : 'bg-amber-100 text-amber-700'
-                                  }`}
-                                >
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black ${ok ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-700'}`}>
                                   {ok ? '✓' : '!'}
                                 </span>
-                                <span className={`text-xs font-semibold ${ok ? 'text-slate-700' : 'text-amber-800'}`}>
-                                  {texto}
-                                </span>
+                                <span className={`text-xs font-semibold ${ok ? 'text-slate-700' : 'text-amber-800'}`}>{texto}</span>
                               </div>
-                              <span className={`text-[10px] font-bold uppercase tracking-wide ${
-                                ok ? 'text-emerald-700' : 'text-amber-700'
-                              }`}>
-                                {ok ? 'Cumple' : 'Pendiente'}
-                              </span>
                             </div>
                           ))}
                         </div>
 
-                        <label
-                          className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs font-semibold ${
-                            puedePublicarCiclo
-                              ? 'bg-indigo-50 border-indigo-100 text-slate-700 cursor-pointer'
-                              : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={Boolean(formCiclo.publicar && puedePublicarCiclo)}
-                            disabled={!puedePublicarCiclo || guardandoCiclo}
-                            onChange={(e) => {
-                              setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }));
-                              setErrorCiclo('');
-                            }}
-                            className="accent-indigo-600"
-                          />
-                          <span>
-                            Publicar ciclo al guardar
-                            {!puedePublicarCiclo && (
-                              <span className="block mt-0.5 text-[10px] font-medium text-slate-500">
-                                Completa primero todos los requisitos del checklist.
-                              </span>
-                            )}
-                          </span>
+                        <label className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs font-semibold ${puedePublicarCiclo ? 'bg-indigo-50 border-indigo-100 text-slate-700 cursor-pointer' : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                          <input type="checkbox" checked={Boolean(formCiclo.publicar && puedePublicarCiclo)} disabled={!puedePublicarCiclo || guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-indigo-600" />
+                          <span>Publicar ciclo al guardar</span>
                         </label>
-
-                        {puedePublicarCiclo && !formCiclo.publicar && (
-                          <p className="mt-2 text-[11px] text-slate-500">
-                            El ciclo está completo. Puedes guardarlo sin publicar o activar la publicación.
-                          </p>
-                        )}
                       </div>
                     </div>
                   )}
@@ -1884,414 +1064,122 @@ const [turnos, setTurnos] = useState([]);
               )}
 
               {tabActiva === 'turnos' && (
-
                 <>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-
-                      Nombre del Turno
-
-                    </label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: Mañana"
-
-                      value={formTurno.nombre}
-
-                      onChange={(e) =>
-
-                        setFormTurno({
-
-                          ...formTurno,
-
-                          nombre: e.target.value
-
-                        })
-
-                      }
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Turno</label>
+                    <input type="text" required placeholder="Ej: Mañana" value={formTurno.nombre} onChange={(e) => setFormTurno({ ...formTurno, nombre: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-
-                      Horario
-
-                    </label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: 08:00 - 13:00"
-
-                      value={formTurno.horario}
-
-                      onChange={(e) =>
-
-                        setFormTurno({
-
-                          ...formTurno,
-
-                          horario: e.target.value
-
-                        })
-
-                      }
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Horario</label>
+                    <input type="text" required placeholder="Ej: 08:00 - 13:00" value={formTurno.horario} onChange={(e) => setFormTurno({ ...formTurno, horario: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-
-                      Modalidad
-
-                    </label>
-
-                    <select
-
-                      value={formTurno.modalidad}
-
-                      onChange={(e) =>
-
-                        setFormTurno({
-
-                          ...formTurno,
-
-                          modalidad: e.target.value
-
-                        })
-
-                      }
-
-                      className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    >
-
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Modalidad</label>
+                    <select value={formTurno.modalidad} onChange={(e) => setFormTurno({ ...formTurno, modalidad: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option>Presencial</option>
-
                       <option>Virtual</option>
-
                       <option>Mixta</option>
-
                     </select>
-
                   </div>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-
-                      Estado
-
-                    </label>
-
-                    <select
-
-                      value={formTurno.estado}
-
-                      onChange={(e) =>
-
-                        setFormTurno({
-
-                          ...formTurno,
-
-                          estado: e.target.value
-
-                        })
-
-                      }
-
-                      className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    >
-
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Estado</label>
+                    <select value={formTurno.estado} onChange={(e) => setFormTurno({ ...formTurno, estado: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option>Activo</option>
-
                       <option>Inactivo</option>
-
                     </select>
-
                   </div>
-
                 </>
-
               )}
 
               {tabActiva === 'asignaciones' && (
                 <>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Docente</label>
-                    <select required value={formAsig.idUsuario}
-                      onChange={(e) => setFormAsig({ ...formAsig, idUsuario: e.target.value })}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                    <select required value={formAsig.idUsuario} onChange={(e) => setFormAsig({ ...formAsig, idUsuario: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option value="">Selecciona un docente o tutor</option>
                       {usuarios.map((u) => <option key={u.IdUsuario ?? u.idUsuario} value={u.IdUsuario ?? u.idUsuario}>{u.NombreCompleto ?? u.Nombres ?? u.nombre ?? `Usuario ${u.IdUsuario ?? u.idUsuario}`}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Ciclo</label>
-                    <select required value={formAsig.idCiclo}
-                      onChange={(e) => setFormAsig({ ...formAsig, idCiclo: e.target.value })}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                    <select required value={formAsig.idCiclo} onChange={(e) => setFormAsig({ ...formAsig, idCiclo: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option value="">Selecciona un ciclo</option>
                       {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Curso</label>
-                    <select required value={formAsig.idCurso}
-                      onChange={(e) => setFormAsig({ ...formAsig, idCurso: e.target.value })}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                    <select required value={formAsig.idCurso} onChange={(e) => setFormAsig({ ...formAsig, idCurso: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option value="">Selecciona un curso</option>
                       {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Aula destino</label>
-                    <select required value={formAsig.idAula}
-                      onChange={(e) => setFormAsig({ ...formAsig, idAula: e.target.value })}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                    <select required value={formAsig.idAula} onChange={(e) => setFormAsig({ ...formAsig, idAula: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
                       <option value="">Selecciona un aula</option>
                       {aulas.map((a) => <option key={a.idAula} value={a.idAula}>{a.nombre}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Horas semanales</label>
-                    <input required type="number" min="1" max="30" value={formAsig.horas}
-                      onChange={(e) => setFormAsig({ ...formAsig, horas: Number(e.target.value) })}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    <input required type="number" min="1" max="30" value={formAsig.horas} onChange={(e) => setFormAsig({ ...formAsig, horas: Number(e.target.value) })} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                 </>
               )}
 
               {tabActiva === 'aulas' && (
-
                 <>
-
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre / Identificador</label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: Aula 103 - Ciencias UNI"
-
-                      value={formAula.nombre}
-
-                      onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
 
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nivel Educativo</label>
-
-                    <select
-
-                      value={formAula.nivel}
-
-                      onChange={(e) => setFormAula({ ...formAula, nivel: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 bg-white cursor-pointer"
-
-                    >
-
-                      <option value="Primaria">Primaria</option>
-
-                      <option value="Secundaria">Secundaria</option>
-
+                    <select value={formAula.nivel} onChange={(e) => setFormAula({ ...formAula, nivel: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 bg-white cursor-pointer">
                       <option value="Preuniversitario">Preuniversitario</option>
-
                     </select>
-
                   </div>
 
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Capacidad Máxima</label>
-
-                    <input
-
-                      type="number"
-
-                      min="5"
-
-                      max="60"
-
-                      value={formAula.capacidad}
-
-                      onChange={(e) => setFormAula({ ...formAula, capacidad: Number(e.target.value) })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <input type="number" min="5" max="100" value={formAula.capacidad} onChange={(e) => setFormAula({ ...formAula, capacidad: Number(e.target.value) })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                 </>
-
               )}
 
               {tabActiva === 'cursos' && (
-
                 <>
-
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Curso</label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: Trigonometría Analítica"
-
-                      value={formCurso.nombre}
-
-                      minLength={NOMBRE_MINIMO}
-
-                      pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]+"
-
-                      onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Código Único</label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: MAT-TRI"
-
-                      value={formCurso.codigo}
-
-                      minLength={2}
-
-                      pattern="[A-Z0-9-]+"
-
-                      onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                    <input type="text" required placeholder="Ej: MAT-TRI" value={formCurso.codigo} minLength={2} onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                   <div>
-
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Descripción Breve</label>
-
-                    <textarea
-
-                      rows="2"
-
-                      placeholder="Identidades trigonométricas y geometría analítica"
-
-                      value={formCurso.descripcion}
-
-                      onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 resize-none"
-
-                    />
-
+                    <textarea rows="2" placeholder="Identidades trigonométricas y geometría analítica" value={formCurso.descripcion} onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 resize-none" />
                   </div>
-
                 </>
-
               )}
 
               {tabActiva !== 'ciclos' && (
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-
-                <button
-
-                  type="button"
-
-                  onClick={() => setModalAbierto(false)}
-
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-
-                >
-
-                  Cancelar
-
-                </button>
-
-                <button
-
-                  type="submit"
-
-                  disabled={!formularioActualValido}
-
-                  className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${
-
-                    formularioActualValido
-
-                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
-
-                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-
-                  }`}
-
-                >
-
-                  {editandoId ? 'Guardar Cambios' : 'Registrar'}
-
-                </button>
-
-              </div>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setModalAbierto(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={!formularioActualValido} className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${formularioActualValido ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
+                    {editandoId ? 'Guardar Cambios' : 'Registrar'}
+                  </button>
+                </div>
               )}
-
             </form>
-
           </div>
-
         </div>
-
       )}
-
     </div>
-
   );
-
 }
