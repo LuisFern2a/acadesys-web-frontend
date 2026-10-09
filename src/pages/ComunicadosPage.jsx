@@ -9,7 +9,6 @@ import {
   Search,
   UserCheck,
   AlertTriangle,
-  Users,
   X
 } from 'lucide-react';
 import {
@@ -32,8 +31,11 @@ export default function ComunicadosPage({ user }) {
   const [dirigidoA, setDirigidoA] = useState('Todos los Niveles');
   const [contenido, setContenido] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [errorCarga, setErrorCarga] = useState('');
+  const [errorAccion, setErrorAccion] = useState('');
+  const [mensajeExito, setMensajeExito] = useState('');
 
-  const rol = (user?.rol || user?.Perfil || 'Administrador').toLowerCase();
+  const rol = (user?.rol || user?.Perfil || '').toLowerCase();
   const puedePublicar = rol.includes('admin') || rol.includes('docente');
 
   const categoriasFiltro = [
@@ -49,76 +51,116 @@ export default function ComunicadosPage({ user }) {
   }, []);
 
   const cargarLista = async () => {
-    setCargando(true);
-    try {
-      const data = await obtenerComunicados();
-      setComunicados(data || []);
-    } catch (err) {
-      console.error('Error cargando comunicados:', err);
-    } finally {
-      setCargando(false);
+  setCargando(true);
+  setErrorCarga('');
+
+  try {
+    const data = await obtenerComunicados();
+
+    const lista = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data?.comunicados)
+          ? data.comunicados
+          : null;
+
+    if (!lista) {
+      throw new Error(
+        'El servidor devolvió un formato de comunicados no válido.'
+      );
     }
-  };
+
+    setComunicados(lista);
+  } catch (err) {
+    console.error('Error cargando comunicados:', err);
+    setComunicados([]);
+    setErrorCarga(
+      err.message || 'No fue posible cargar los comunicados.'
+    );
+  } finally {
+    setCargando(false);
+  }
+};
 
   const handleConfirmar = async (id) => {
-    try {
-      if (confirmarLecturaComunicado) {
-        await confirmarLecturaComunicado(id);
-      }
-    } catch (err) {
-      console.warn('Servidor sin endpoint de confirmación, actualizando vista localmente:', err);
-    }
-    setComunicados(prev =>
-      prev.map(c => c.id === id ? { ...c, confirmado: true, leido: true } : c)
+  setErrorAccion('');
+  setMensajeExito('');
+
+  try {
+    await confirmarLecturaComunicado(id);
+
+    // Solo actualizamos la interfaz después de que la API responda bien.
+    setComunicados((prev) =>
+      prev.map((comunicado) =>
+        comunicado.id === id
+          ? {
+              ...comunicado,
+              confirmado: true,
+              leido: true
+            }
+          : comunicado
+      )
     );
-  };
+
+    setMensajeExito('La lectura se confirmó correctamente.');
+  } catch (err) {
+    console.error('Error al confirmar la lectura:', err);
+
+    setErrorAccion(
+      err.message || 'No se pudo guardar la confirmación de lectura.'
+    );
+  }
+};
 
   const handleCrear = async (e) => {
-    e.preventDefault();
-    if (!titulo.trim() || !contenido.trim()) return;
-    setGuardando(true);
+  e.preventDefault();
 
-    const autorNombre = user?.nombre || user?.NombreCompleto || 'Dirección Académica';
-    const ahora = new Date();
-    const fechaActual = ahora.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const horaActual = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true });
+  if (guardando) return;
 
-    try {
-      let nuevo = null;
-      if (crearComunicado) {
-        nuevo = await crearComunicado({
-          titulo,
-          categoria,
-          prioridad,
-          dirigidoA,
-          autor: autorNombre,
-          contenido
-        });
-      }
+  if (!titulo.trim() || !contenido.trim()) {
+    setErrorAccion('Completa el título y el contenido del comunicado.');
+    return;
+  }
 
-      const comunicadoListo = nuevo || {
-        id: Date.now(),
-        titulo,
-        categoria,
-        prioridad,
-        dirigidoA,
-        autor: autorNombre,
-        contenido,
-        fecha: fechaActual,
-        hora: horaActual,
-        confirmado: false
-      };
+  setGuardando(true);
+  setErrorAccion('');
+  setMensajeExito('');
 
-      setComunicados(prev => [comunicadoListo, ...prev]);
-      setModalAbierto(false);
-      setTitulo('');
-      setContenido('');
-    } catch (err) {
-      console.error('Error creando comunicado:', err);
-    } finally {
-      setGuardando(false);
-    }
-  };
+  const autorNombre =
+    user?.nombre || user?.NombreCompleto || 'Dirección Académica';
+
+  try {
+    await crearComunicado({
+      titulo: titulo.trim(),
+      categoria,
+      prioridad,
+      dirigidoA: dirigidoA.trim(),
+      autor: autorNombre,
+      contenido: contenido.trim()
+    });
+
+    setModalAbierto(false);
+    setTitulo('');
+    setContenido('');
+    setCategoria('Académico');
+    setPrioridad('media');
+    setDirigidoA('Todos los Niveles');
+
+    setMensajeExito('Comunicado publicado correctamente.');
+
+    // Volvemos a consultar el servidor para mostrar los datos persistidos.
+    await cargarLista();
+  } catch (err) {
+    console.error('Error creando comunicado:', err);
+
+    setErrorAccion(
+      err.message || 'No se pudo publicar el comunicado.'
+    );
+  } finally {
+    setGuardando(false);
+  }
+};
 
   const normalizarTexto = (txt = '') =>
     txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -176,14 +218,38 @@ export default function ComunicadosPage({ user }) {
           </button>
         )}
       </div>
+           {errorAccion && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+        >
+          {errorAccion}
+        </div>
+      )}
+
+      {mensajeExito && (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"
+        >
+          {mensajeExito}
+        </div>
+      )}
+
+
 
       {/* FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <label htmlFor="buscar-comunicados" className="sr-only">
+  Buscar comunicados por título o contenido
+</label>
+
           <input
             type="text"
             placeholder="Buscar por título o contenido..."
+            id="buscar-comunicados"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full text-sm text-slate-800 placeholder-slate-400 pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
@@ -213,8 +279,29 @@ export default function ComunicadosPage({ user }) {
   <div className="py-12 text-center text-sm text-slate-600">
     Cargando avisos de la institución...
   </div>
+      ) : errorCarga ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"
+        >
+          <p className="font-bold text-rose-700">
+            No se pudieron cargar los comunicados
+          </p>
+
+          <p className="mt-2 text-sm text-rose-600">
+            {errorCarga}
+          </p>
+
+          <button
+            type="button"
+            onClick={cargarLista}
+            className="mt-4 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+          >
+            Reintentar
+          </button>
+        </div>
       ) : comunicadosFiltrados.length === 0 ? (
-  <div className="bg-white rounded-2xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
+<div className="bg-white rounded-2xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
 
     <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
       <Bell className="w-7 h-7 text-indigo-500" />
@@ -309,42 +396,63 @@ export default function ComunicadosPage({ user }) {
 
       {/* MODAL NUEVO COMUNICADO */}
       {modalAbierto && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden">
+  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-comunicado"
+      className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden"
+    >
             <div className="bg-slate-900 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Megaphone className="w-5 h-5 text-indigo-400" />
-                <h2 className="font-bold text-base">Redactar Circular Institucional</h2>
+                <h2 className="font-bold text-base" id="titulo-modal-comunicado">
+                  Redactar Circular Institucional
+                </h2>
               </div>
               <button
-                type="button"
-                onClick={() => setModalAbierto(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
-              >
+  type="button"
+  aria-label="Cerrar formulario"
+  onClick={() => setModalAbierto(false)}
+  className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+>
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCrear} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Título del Comunicado</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Simulacro Oficial / Entrega de Boletas"
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
-                />
-              </div>
+  <label
+  htmlFor="comunicado-titulo"
+  className="block text-xs font-semibold text-slate-700 mb-1"
+>
+  Título del comunicado
+</label>
+
+  <input
+    id="comunicado-titulo"
+    type="text"
+    required
+    placeholder="Ej: Simulacro Oficial / Entrega de Boletas"
+    value={titulo}
+    onChange={(e) => setTitulo(e.target.value)}
+    className="w-full text-sm text-slate-900 placeholder-slate-400 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+  />
+</div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
-                  <select
-                    value={categoria}
+                  <label
+  htmlFor="comunicado-categoria"
+  className="block text-xs font-semibold text-slate-700 mb-1"
+>
+  Categoría
+</label>
+<select
+  id="comunicado-categoria"
+  value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer focus:border-indigo-600"
                   >
                     <option value="Académico">Académico</option>
                     <option value="Reunión">Reunión de Padres</option>
@@ -354,11 +462,17 @@ export default function ComunicadosPage({ user }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Prioridad</label>
-                  <select
-                    value={prioridad}
+                  <label
+  htmlFor="comunicado-prioridad"
+  className="block text-xs font-semibold text-slate-700 mb-1"
+>
+  Prioridad
+</label>
+<select
+  id="comunicado-prioridad"
+  value={prioridad}
                     onChange={(e) => setPrioridad(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer focus:border-indigo-600"
                   >
                     <option value="baja">Informativa (Baja)</option>
                     <option value="media">Importante (Media)</option>
@@ -368,25 +482,37 @@ export default function ComunicadosPage({ user }) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Destinatarios</label>
-                <input
-                  type="text"
+                <label
+  htmlFor="comunicado-destinatarios"
+  className="block text-xs font-semibold text-slate-700 mb-1"
+>
+  Destinatarios
+</label>
+<input
+  id="comunicado-destinatarios"
+  type="text"
                   value={dirigidoA}
                   onChange={(e) => setDirigidoA(e.target.value)}
                   placeholder="Ej: Todos los Niveles, 5to de Secundaria - Aula 101 UNI"
-                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+                  className="w-full text-sm text-slate-900 placeholder-slate-400 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Detalle del Comunicado</label>
-                <textarea
-                  required
+                <label
+  htmlFor="comunicado-contenido"
+  className="block text-xs font-semibold text-slate-700 mb-1"
+>
+  Detalle del comunicado
+</label>
+<textarea
+  id="comunicado-contenido"
+  required
                   rows={4}
                   placeholder="Redacta las instrucciones, fechas u orden del día..."
                   value={contenido}
                   onChange={(e) => setContenido(e.target.value)}
-                  className="w-full text-xs p-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 resize-none"
+                  className="w-full text-sm text-slate-900 placeholder-slate-400 p-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 resize-none"
                 />
               </div>
 
