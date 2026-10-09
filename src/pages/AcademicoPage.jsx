@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 import {
@@ -55,6 +56,7 @@ import {
   crearAsignacionDocente,
 
   eliminarAsignacionDocente,
+  obtenerUsuarios,
   obtenerCiclosPublicos,
   obtenerCiclosAdmin,
   crearCicloAdmin,
@@ -92,6 +94,9 @@ const [ciclos, setCiclos] = useState([]);
 
 const [turnos, setTurnos] = useState([]);
 
+  const [usuarios, setUsuarios] = useState([]);
+  const [errorDatos, setErrorDatos] = useState('');
+
   const [busqueda, setBusqueda] = useState('');
 
   const [filtroNivel, setFiltroNivel] = useState('todos');
@@ -105,139 +110,13 @@ const [turnos, setTurnos] = useState([]);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
 
-  // Datos base de respaldo institucional
-
-  const aulasBase = [];
-
-  const cursosBase = [];
-
-    const ciclosBase = [
-
-    {
-
-      idCiclo: 1,
-
-      nombre: 'Ciclo Anual 2026',
-
-      turno: 'Mañana',
-
-      horario: '08:00 - 13:00',
-
-      alumnos: 420,
-
-      capacidad: 500,
-
-      cursos: 12,
-
-      estado: 'Activo'
-
-    },
-
-    {
-
-      idCiclo: 2,
-
-      nombre: 'Ciclo Semestral II',
-
-      turno: 'Tarde',
-
-      horario: '14:00 - 19:00',
-
-      alumnos: 275,
-
-      capacidad: 350,
-
-      cursos: 10,
-
-      estado: 'Activo'
-
-    },
-
-    {
-
-      idCiclo: 3,
-
-      nombre: 'Ciclo Intensivo',
-
-      turno: 'Noche',
-
-      horario: '18:00 - 22:00',
-
-      alumnos: 180,
-
-      capacidad: 250,
-
-      cursos: 8,
-
-      estado: 'Próximo'
-
-    }
-
-  ];
-
-  const turnosBase = [
-
-    {
-
-      idTurno: 1,
-
-      nombre: 'Mañana',
-
-      horario: '08:00 - 13:00',
-
-      modalidad: 'Presencial',
-
-      estado: 'Activo'
-
-    },
-
-    {
-
-      idTurno: 2,
-
-      nombre: 'Tarde',
-
-      horario: '14:00 - 19:00',
-
-      modalidad: 'Presencial',
-
-      estado: 'Activo'
-
-    },
-
-    {
-
-      idTurno: 3,
-
-      nombre: 'Noche',
-
-      horario: '18:00 - 22:00',
-
-      modalidad: 'Presencial',
-
-      estado: 'Activo'
-
-    }
-
-  ];
-
-  const asignacionesBase = [
-
-    { idAsignacion: 1, docente: 'Carlos Mendoza', curso: 'Álgebra Superior', aula: 'Aula 101 - Ciencias', horas: 6 },
-
-    { idAsignacion: 2, docente: 'María Flores', curso: 'Física Clásica', aula: 'Aula 101 - Ciencias', horas: 4 },
-
-    { idAsignacion: 3, docente: 'Dante Quispe', curso: 'Razonamiento Matemático', aula: 'Aula 102 - Letras', horas: 5 }
-
-  ];
-
   // Formularios
 
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Secundaria', capacidad: 35 });
 
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
 
-  const [formAsig, setFormAsig] = useState({ docente: '', curso: '', aula: '', horas: 4 });
+  const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', idAula: '', horas: 4 });
 
     const [formCiclo, setFormCiclo] = useState({
     tipo: 'Anual',
@@ -270,103 +149,88 @@ const [turnos, setTurnos] = useState([]);
   });
 
   useEffect(() => {
-
-  setCiclos([]);
-
-  setTurnos(turnosBase);
-
-  cargarDatos();
-
-}, []);
+    setTurnos([]); // Turnos aún no cuenta con un endpoint persistente en el backend.
+    cargarDatos();
+  }, []);
 
   const cargarDatos = async () => {
+    setErrorDatos('');
+    const [aulasRes, cursosRes, asignacionesRes, ciclosRes, usuariosRes] = await Promise.allSettled([
+      obtenerAulas(),
+      obtenerCursos(),
+      obtenerAsignacionesDocente(),
+      obtenerCiclosAdmin().catch(() => obtenerCiclosPublicos()),
+      obtenerUsuarios(),
+    ]);
 
-    try {
+    const errores = [];
+    const valor = (resultado, nombre) => {
+      if (resultado.status === 'fulfilled') return resultado.value;
+      errores.push(`${nombre}: ${resultado.reason?.message || 'error de conexión'}`);
+      return [];
+    };
 
-      const [dataAulas, dataCursos, dataAsig, dataCiclos] = await Promise.all([
+    const aulasRaw = valor(aulasRes, 'Aulas');
+    const cursosRaw = valor(cursosRes, 'Cursos');
+    const asignacionesRaw = valor(asignacionesRes, 'Asignaciones');
+    const ciclosRaw = valor(ciclosRes, 'Ciclos');
+    const usuariosRaw = valor(usuariosRes, 'Usuarios');
 
-        obtenerAulas ? obtenerAulas().catch(() => null) : null,
+    const listaAulas = (Array.isArray(aulasRaw) ? aulasRaw : []).map((a) => ({
+      ...a,
+      idAula: Number(a.idAula ?? a.IdAula),
+      nombre: a.nombre ?? a.Nombre ?? '',
+      nivel: a.nivel ?? a.Nivel ?? 'General',
+      capacidad: Number(a.capacidad ?? a.Capacidad ?? 35),
+    }));
+    const listaCursos = (Array.isArray(cursosRaw) ? cursosRaw : []).map((c) => ({
+      ...c,
+      idCurso: Number(c.idCurso ?? c.IdCurso),
+      nombre: c.nombre ?? c.Nombre ?? '',
+      codigo: c.codigo ?? c.Codigo ?? '',
+      descripcion: c.descripcion ?? c.Descripcion ?? '',
+    }));
+    const listaCiclos = (Array.isArray(ciclosRaw) ? ciclosRaw : []).map((c) => ({
+      ...c,
+      idCiclo: Number(c.idCiclo ?? c.IdCiclo),
+      nombre: c.nombre ?? c.Nombre ?? '',
+      turno: c.turno ?? c.Turno ?? '',
+      horario: c.horario ?? c.Horario ?? '',
+      capacidad: Number(c.capacidad ?? c.Capacidad ?? 0),
+      universidadObjetivo: c.universidadObjetivo ?? c.UniversidadObjetivo ?? '',
+      diasClase: c.diasClase ?? c.DiasClase ?? '',
+      totalAlumnos: Number(c.totalAlumnos ?? c.TotalAlumnos ?? 0),
+      totalCursos: Number(c.totalCursos ?? c.TotalCursos ?? 0),
+    }));
+    const listaDocentes = (Array.isArray(usuariosRaw) ? usuariosRaw : []).filter((u) => {
+      const perfil = String(u.Perfil ?? u.NombrePerfil ?? u.perfil ?? '').toLowerCase();
+      return perfil.includes('docente') || perfil.includes('tutor');
+    });
 
-        obtenerCursos ? obtenerCursos().catch(() => null) : null,
+    setAulas(listaAulas);
+    setCursos(listaCursos);
+    setAsignaciones(Array.isArray(asignacionesRaw) ? asignacionesRaw : []);
+    setCiclos(listaCiclos);
+    setUsuarios(listaDocentes);
+    setErrorDatos(errores.join(' | '));
 
-        obtenerAsignacionesDocente ? obtenerAsignacionesDocente().catch(() => null) : null,
-
-        obtenerCiclosAdmin().catch(() => obtenerCiclosPublicos().catch(() => null))
-
-      ]);
-
-      const listaAulas = (dataAulas && dataAulas.length > 0) ? dataAulas : aulasBase;
-
-      const listaCursos = Array.isArray(dataCursos) ? dataCursos : [];
-
-      const listaAsig = (dataAsig && dataAsig.length > 0) ? dataAsig : asignacionesBase;
-
-      const listaCiclos = Array.isArray(dataCiclos) && dataCiclos.length > 0
-
-        ? dataCiclos.map((c) => ({
-
-            idCiclo: c.idCiclo,
-
-            nombre: c.nombre,
-
-            turno: c.turno,
-
-            horario: c.horario,
-
-            alumnos: c.totalAlumnos,
-
-            capacidad: c.capacidad,
-
-            cursos: c.totalCursos,
-
-            estado: 'Activo',
-
-            universidadObjetivo: c.universidadObjetivo,
-
-            diasClase: c.diasClase
-
-          }))
-
-        : [];
-
-      setAulas(listaAulas);
-
-      setCursos(listaCursos);
-
-      setAsignaciones(listaAsig);
-
-      setCiclos(listaCiclos);
-
-      if (listaCursos.length > 0 && listaAulas.length > 0) {
-
-        setFormAsig({
-
-          docente: 'Carlos Mendoza',
-
-          curso: listaCursos[0].nombre,
-
-          aula: listaAulas[0].nombre,
-
-          horas: 4
-
-        });
-
-      }
-
-    } catch (err) {
-
-      console.warn('Cargando datos locales de contingencia:', err);
-
-      setAulas(aulasBase);
-
-      setCursos([]);
-
-      setAsignaciones(asignacionesBase);
-
-      setCiclos([]);
-
-    }
-
+    setFormAsig((prev) => {
+      const userId = String(prev.idUsuario || '');
+      const cycleId = String(prev.idCiclo || '');
+      const courseId = String(prev.idCurso || '');
+      const roomId = String(prev.idAula || '');
+      return {
+        ...prev,
+        idUsuario: listaDocentes.some((u) => String(u.IdUsuario ?? u.idUsuario) === userId)
+          ? userId : String(listaDocentes[0]?.IdUsuario ?? listaDocentes[0]?.idUsuario ?? ''),
+        idCiclo: listaCiclos.some((c) => String(c.idCiclo) === cycleId)
+          ? cycleId : String(listaCiclos[0]?.idCiclo ?? ''),
+        idCurso: listaCursos.some((c) => String(c.idCurso) === courseId)
+          ? courseId : String(listaCursos[0]?.idCurso ?? ''),
+        idAula: listaAulas.some((a) => String(a.idAula) === roomId)
+          ? roomId : String(listaAulas[0]?.idAula ?? ''),
+      };
+    });
   };
 
   const abrirCrear = () => {
@@ -378,15 +242,11 @@ const [turnos, setTurnos] = useState([]);
     setFormCurso({ nombre: '', codigo: '', descripcion: '' });
 
     setFormAsig({
-
-      docente: '',
-
-      curso: cursos[0]?.nombre || 'Álgebra Superior',
-
-      aula: aulas[0]?.nombre || 'Aula 101 - Ciencias',
-
-      horas: 4
-
+      idUsuario: String(usuarios[0]?.IdUsuario ?? usuarios[0]?.idUsuario ?? ''),
+      idCiclo: String(ciclos[0]?.idCiclo ?? ''),
+      idCurso: String(cursos[0]?.idCurso ?? ''),
+      idAula: String(aulas[0]?.idAula ?? ''),
+      horas: 4,
     });
     setFormCiclo({
       tipo: 'Anual',
@@ -426,9 +286,9 @@ const [turnos, setTurnos] = useState([]);
 
   const abrirEditarAula = (aula) => {
 
-    setEditandoId(aula.idAula);
+    setEditandoId(aula.idAula ?? aula.IdAula);
 
-    setFormAula({ nombre: aula.nombre, nivel: aula.nivel, capacidad: aula.capacidad });
+    setFormAula({ nombre: aula.nombre ?? aula.Nombre, nivel: aula.nivel ?? aula.Nivel ?? 'General', capacidad: Number(aula.capacidad ?? aula.Capacidad ?? 35) });
 
     setModalAbierto(true);
 
@@ -436,9 +296,9 @@ const [turnos, setTurnos] = useState([]);
 
   const abrirEditarCurso = (curso) => {
 
-    setEditandoId(curso.idCurso);
+    setEditandoId(curso.idCurso ?? curso.IdCurso);
 
-    setFormCurso({ nombre: curso.nombre, codigo: curso.codigo, descripcion: curso.descripcion });
+    setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
 
     setModalAbierto(true);
 
@@ -496,7 +356,7 @@ const [turnos, setTurnos] = useState([]);
 
     const limpio = String(valor || '').trim();
 
-    return limpio.length >= NOMBRE_MINIMO && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ]+$/.test(limpio);
+    return limpio.length >= NOMBRE_MINIMO && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .'-]+$/.test(limpio);
 
   };
 
@@ -515,7 +375,7 @@ const [turnos, setTurnos] = useState([]);
 
     if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
 
-    if (tabActiva === 'asignaciones') return Boolean(formAsig.docente.trim());
+    if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && formAsig.idAula && Number(formAsig.horas) >= 1);
 
     if (tabActiva === 'turnos') return nombreValido(formTurno.nombre) && Boolean(formTurno.horario.trim());
 
@@ -524,259 +384,77 @@ const [turnos, setTurnos] = useState([]);
   })();
 
   const handleGuardar = async (e) => {
-
-  e.preventDefault();
-
-  if (tabActiva === 'aulas') {
-
-    if (!nombreValido(formAula.nombre)) return;
-
-    if (editandoId) {
-
-      try {
-
-        if (actualizarAula) {
-
-          await actualizarAula(editandoId, formAula);
-
-        }
-
-      } catch (err) {
-
-        console.warn('Actualización local de aula:', err);
-
-      }
-
-      setAulas((prev) =>
-
-        prev.map((aula) =>
-
-          aula.idAula === editandoId
-
-            ? { ...aula, ...formAula }
-
-            : aula
-
-        )
-
-      );
-
-    } else {
-
-      const nueva = {
-
-        ...formAula,
-
-        idAula: Date.now()
-
-      };
-
-      try {
-
-        if (crearAula) {
-
-          await crearAula(formAula);
-
-        }
-
-      } catch (err) {
-
-        console.warn('Creación local de aula:', err);
-
-      }
-
-      setAulas((prev) => [...prev, nueva]);
-
-    }
-
-  } else if (tabActiva === 'cursos') {
-
-    if (!nombreValido(formCurso.nombre) || !codigoCursoValido(formCurso.codigo)) {
-
-      return;
-
-    }
-
-    if (editandoId) {
-
-      try {
-
-        if (actualizarCurso) {
-
-          await actualizarCurso(editandoId, formCurso);
-
-        }
-
-      } catch (err) {
-
-        console.warn('Actualización local de curso:', err);
-
-      }
-
-      setCursos((prev) =>
-
-        prev.map((curso) =>
-
-          curso.idCurso === editandoId
-
-            ? { ...curso, ...formCurso }
-
-            : curso
-
-        )
-
-      );
-
-    } else {
-
-      const nuevo = {
-
-        ...formCurso,
-
-        idCurso: Date.now()
-
-      };
-
-      try {
-
-        if (crearCurso) {
-
-          await crearCurso(formCurso);
-
-        }
-
-      } catch (err) {
-
-        console.warn('Creación local de curso:', err);
-
-      }
-
-      setCursos((prev) => [...prev, nuevo]);
-
-    }
-
-  } else if (tabActiva === 'asignaciones') {
-
-    if (!formAsig.docente.trim()) {
-
-      return;
-
-    }
-
-    const nueva = {
-
-      ...formAsig,
-
-      idAsignacion: Date.now()
-
-    };
-
+    e.preventDefault();
+    setErrorDatos('');
     try {
-
-      if (crearAsignacionDocente) {
-
-        await crearAsignacionDocente(formAsig);
-
+      if (tabActiva === 'aulas') {
+        if (!nombreValido(formAula.nombre)) throw new Error('Ingresa un nombre válido para el aula.');
+        if (!Number.isInteger(Number(formAula.capacidad)) || Number(formAula.capacidad) < 1 || Number(formAula.capacidad) > 500) {
+          throw new Error('La capacidad del aula debe estar entre 1 y 500.');
+        }
+        const payload = { ...formAula, nombre: formAula.nombre.trim(), capacidad: Number(formAula.capacidad) };
+        if (editandoId) await actualizarAula(editandoId, payload);
+        else await crearAula(payload);
+      } else if (tabActiva === 'cursos') {
+        if (!nombreValido(formCurso.nombre) || !codigoCursoValido(formCurso.codigo)) {
+          throw new Error('Revisa el nombre y el código del curso.');
+        }
+        const payload = { ...formCurso, nombre: formCurso.nombre.trim(), codigo: formCurso.codigo.trim().toUpperCase() };
+        if (editandoId) await actualizarCurso(editandoId, payload);
+        else await crearCurso(payload);
+      } else if (tabActiva === 'asignaciones') {
+        if (!formularioActualValido) throw new Error('Selecciona un docente, ciclo, curso y aula, e indica las horas semanales.');
+        await crearAsignacionDocente({
+          idUsuario: Number(formAsig.idUsuario),
+          idCiclo: Number(formAsig.idCiclo),
+          idCurso: Number(formAsig.idCurso),
+          idAula: Number(formAsig.idAula),
+          horas: Number(formAsig.horas),
+        });
+      } else if (tabActiva === 'turnos') {
+        throw new Error('El módulo de turnos todavía no está conectado al backend; no se guardó ningún dato.');
+      } else {
+        throw new Error('No hay una operación de guardado disponible para este módulo.');
       }
 
+      await cargarDatos();
+      setModalAbierto(false);
+      setEditandoId(null);
     } catch (err) {
-
-      console.warn('Creación local de asignación:', err);
-
+      window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
     }
-
-    setAsignaciones((prev) => [...prev, nueva]);
-  } else if (tabActiva === 'turnos') {
-
-    if (
-
-      !formTurno.nombre.trim() ||
-
-      !formTurno.horario.trim()
-
-    ) {
-
-      return;
-
-    }
-
-    if (editandoId) {
-
-      setTurnos((prev) =>
-
-        prev.map((turno) =>
-
-          turno.idTurno === editandoId
-
-            ? { ...turno, ...formTurno }
-
-            : turno
-
-        )
-
-      );
-
-    } else {
-
-      const nuevoTurno = {
-
-        ...formTurno,
-
-        idTurno: Date.now()
-
-      };
-
-      setTurnos((prev) => [...prev, nuevoTurno]);
-
-    }
-
-  }
-
-  setModalAbierto(false);
-
-  setEditandoId(null);
-
-};
+  };
 
   const handleEliminarAula = async (id, nombre) => {
-
-    if (window.confirm(`¿Estás seguro de eliminar el aula "${nombre}"?`)) {
-
-      try {
-
-        if (eliminarAula) await eliminarAula(id);
-
-      } catch (err) {
-
-        console.warn('Eliminación local de aula:', err);
-
-      }
-
-      setAulas(prev => prev.filter(a => a.idAula !== id));
-
+    if (!window.confirm(`¿Desactivar el aula "${nombre}"?`)) return;
+    try {
+      await eliminarAula(id);
+      await cargarDatos();
+    } catch (err) {
+      window.alert(err?.message || 'No se pudo desactivar el aula.');
     }
-
   };
 
   const handleEliminarCurso = async (id, nombre) => {
-
-    if (window.confirm(`¿Estás seguro de eliminar el curso "${nombre}"?`)) {
-
-      try {
-
-        if (eliminarCurso) await eliminarCurso(id);
-
-      } catch (err) {
-
-        console.warn('Eliminación local de curso:', err);
-
-      }
-
-      setCursos(prev => prev.filter(c => c.idCurso !== id));
-
+    if (!window.confirm(`¿Desactivar el curso "${nombre}"?`)) return;
+    try {
+      await eliminarCurso(id);
+      await cargarDatos();
+    } catch (err) {
+      window.alert(err?.message || 'No se pudo desactivar el curso.');
     }
-
   };
+
+  const handleEliminarAsignacion = async (id, docente, curso) => {
+    if (!window.confirm(`¿Desactivar la carga de "${curso}" asignada a ${docente}?`)) return;
+    try {
+      await eliminarAsignacionDocente(id);
+      await cargarDatos();
+    } catch (err) {
+      window.alert(err?.message || 'No se pudo desactivar la asignación.');
+    }
+  };
+
   const handleEliminarCiclo = async (id, nombre) => {
     if (!window.confirm(`¿Eliminar el ciclo "${nombre}"?`)) return;
     try {
@@ -787,38 +465,8 @@ const [turnos, setTurnos] = useState([]);
     }
   };
 
-  const handleEliminarTurno = (id, nombre) => {
-
-    if (window.confirm(`¿Eliminar el turno "${nombre}"?`)) {
-
-      setTurnos((prev) =>
-
-        prev.filter((turno) => turno.idTurno !== id)
-
-      );
-
-    }
-
-  };
-
-  const handleEliminarAsignacion = async (id, docente, curso) => {
-
-    if (window.confirm(`¿Eliminar la carga de "${curso}" asignada a ${docente}?`)) {
-
-      try {
-
-        if (eliminarAsignacionDocente) await eliminarAsignacionDocente(id);
-
-      } catch (err) {
-
-        console.warn('Eliminación local de asignación:', err);
-
-      }
-
-      setAsignaciones(prev => prev.filter(a => a.idAsignacion !== id));
-
-    }
-
+  const handleEliminarTurno = () => {
+    window.alert('El módulo de turnos todavía no está conectado al backend.');
   };
 
   const pasosCiclo = ['Identidad', 'Nombre', 'Fechas y capacidad', 'Oferta', 'Horarios', 'Revisión'];
@@ -1034,6 +682,12 @@ const [turnos, setTurnos] = useState([]);
         </button>
 
       </div>
+
+      {errorDatos && (
+        <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+          No todos los datos pudieron cargarse desde el backend: {errorDatos}
+        </div>
+      )}
 
       {/* PESTAÑAS */}
 
@@ -2384,95 +2038,50 @@ const [turnos, setTurnos] = useState([]);
               )}
 
               {tabActiva === 'asignaciones' && (
-
                 <>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Docente</label>
-
-                    <input
-
-                      type="text"
-
-                      required
-
-                      placeholder="Ej: Carlos Mendoza"
-
-                      value={formAsig.docente}
-
-                      onChange={(e) => setFormAsig({ ...formAsig, docente: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Curso</label>
-
-                    <select
-
-                      value={formAsig.curso}
-
-                      onChange={(e) => setFormAsig({ ...formAsig, curso: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 bg-white cursor-pointer"
-
-                    >
-
-                      {cursos.map(c => <option key={c.idCurso} value={c.nombre}>{c.nombre} ({c.codigo})</option>)}
-
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Docente</label>
+                    <select required value={formAsig.idUsuario}
+                      onChange={(e) => setFormAsig({ ...formAsig, idUsuario: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un docente o tutor</option>
+                      {usuarios.map((u) => <option key={u.IdUsuario ?? u.idUsuario} value={u.IdUsuario ?? u.idUsuario}>{u.NombreCompleto ?? u.Nombres ?? u.nombre ?? `Usuario ${u.IdUsuario ?? u.idUsuario}`}</option>)}
                     </select>
-
                   </div>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Aula Destino</label>
-
-                    <select
-
-                      value={formAsig.aula}
-
-                      onChange={(e) => setFormAsig({ ...formAsig, aula: e.target.value })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 bg-white cursor-pointer"
-
-                    >
-
-                      {aulas.map(a => <option key={a.idAula} value={a.nombre}>{a.nombre}</option>)}
-
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Ciclo</label>
+                    <select required value={formAsig.idCiclo}
+                      onChange={(e) => setFormAsig({ ...formAsig, idCiclo: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un ciclo</option>
+                      {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
                     </select>
-
                   </div>
-
                   <div>
-
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Horas Semanales</label>
-
-                    <input
-
-                      type="number"
-
-                      min="1"
-
-                      max="30"
-
-                      value={formAsig.horas}
-
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Curso</label>
+                    <select required value={formAsig.idCurso}
+                      onChange={(e) => setFormAsig({ ...formAsig, idCurso: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un curso</option>
+                      {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Aula destino</label>
+                    <select required value={formAsig.idAula}
+                      onChange={(e) => setFormAsig({ ...formAsig, idAula: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un aula</option>
+                      {aulas.map((a) => <option key={a.idAula} value={a.idAula}>{a.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Horas semanales</label>
+                    <input required type="number" min="1" max="30" value={formAsig.horas}
                       onChange={(e) => setFormAsig({ ...formAsig, horas: Number(e.target.value) })}
-
-                      className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-
-                    />
-
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                 </>
-
               )}
 
               {tabActiva === 'aulas' && (

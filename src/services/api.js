@@ -479,27 +479,62 @@ export async function eliminarAsignacionDocente(idAsignacion) {
 // ==========================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
-  try {
-    const response = await fetchWithAuth(`/asistencias?idAula=${idAula}&fecha=${fecha}`);
-    if (!response.ok) return [];
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.warn('Fallo al obtener asistencia de la API:', error);
-    return [];
+  if (!idAula) {
+    throw new Error('Debe seleccionar un aula válida para consultar la asistencia.');
   }
+  if (!fecha) {
+    throw new Error('Debe seleccionar una fecha para consultar la asistencia.');
+  }
+
+  const params = new URLSearchParams({
+    idAula: String(idAula),
+    fecha: String(fecha)
+  });
+  const response = await fetchWithAuth(`/api/asistencias?${params.toString()}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.error || data.message || data.mensaje || `Error HTTP: ${response.status}`
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.asistencias)) return data.asistencias;
+  return [];
 }
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
-  const response = await fetchWithAuth(`/asistencias`, {
-    method: "POST",
+  if (!idAula) {
+    throw new Error('Debe seleccionar un aula válida antes de guardar la asistencia.');
+  }
+  if (!fecha) {
+    throw new Error('Debe seleccionar una fecha antes de guardar la asistencia.');
+  }
+  if (!Array.isArray(listaAlumnos) || listaAlumnos.length === 0) {
+    throw new Error('No hay alumnos para guardar la asistencia.');
+  }
+
+  const response = await fetchWithAuth('/api/asistencias', {
+    method: 'POST',
     body: JSON.stringify({ idAula, fecha, listaAlumnos })
   });
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    const error = new Error(
+      data.error || data.message || data.mensaje || `Error HTTP: ${response.status}`
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
-  return await response.json();
+
+  return data;
 }
 
 // ==========================================
