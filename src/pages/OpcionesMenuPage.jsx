@@ -36,7 +36,7 @@ export default function OpcionesMenuPage() {
     { IdOpcionMenu: 4, Nombre: 'Comunicados', Ruta: '/comunicados', Descripcion: 'Circulares institucionales y agenda directiva', IdPadre: null },
     { IdOpcionMenu: 5, Nombre: 'Académico', Ruta: '/academico', Descripcion: 'Gestión de salones, cursos y carga horaria docente', IdPadre: null },
     { IdOpcionMenu: 6, Nombre: 'Calificaciones', Ruta: '/calificaciones', Descripcion: 'Boletas individuales y posición en el ranking de aula', IdPadre: null },
-    { IdOpcionMenu: 7, Nombre: 'Tutor IA', Ruta: '/tutor-ia', Descripcion: 'Asistente pedagógico inteligente y refuerzo escolar', IdPadre: null },
+    { IdOpcionMenu: 7, Nombre: 'Tutor IA', Ruta: '/tutor-ia', Descripcion: 'Asistente pedagógico para preparación preuniversitaria', IdPadre: null },
     { IdOpcionMenu: 8, Nombre: 'Perfiles', Ruta: '/perfiles', Descripcion: 'Administración de roles institucionales y privilegios RBAC', IdPadre: null },
     { IdOpcionMenu: 9, Nombre: 'Usuarios', Ruta: '/usuarios', Descripcion: 'Gestión de credenciales, cuentas y control de accesos', IdPadre: null }
   ];

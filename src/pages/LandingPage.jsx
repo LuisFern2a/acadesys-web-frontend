@@ -29,7 +29,7 @@ const MAPA_ROLES = {
   '1': 'Administrador',
   '2': 'Docente',
   '3': 'Tutor de Aula',
-  '4': 'Alumno'
+  '4': 'Estudiante'
 };
 
 export default function LandingPage({ onLoginSuccess }) {
@@ -219,7 +219,7 @@ export default function LandingPage({ onLoginSuccess }) {
         await Swal.fire({
           icon: 'warning',
           title: 'Correo ya registrado',
-          text: resultado.message || 'Este correo ya está registrado y no corresponde a una cuenta de alumno.',
+          text: resultado.message || 'Este correo ya está registrado y no corresponde a una cuenta de estudiante.',
           confirmButtonText: 'Entendido',
           confirmButtonColor: '#2563eb',
           background: '#0a192f',
@@ -249,7 +249,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
       const confirmacion = await Swal.fire({
         icon: 'question',
-        title: 'Alumno encontrado',
+        title: 'Estudiante encontrado',
         text: mensajeConfirmacion,
         showCancelButton: true,
         confirmButtonText: 'Sí, continuar',
@@ -327,7 +327,7 @@ export default function LandingPage({ onLoginSuccess }) {
         icon: 'success',
         title: resultado.esReinscripcion ? '¡Reinscripción exitosa!' : '¡Inscripción exitosa!',
         text: resultado.esReinscripcion
-          ? 'Tu matrícula fue registrada usando tu cuenta existente. Conservas tus accesos habituales.'
+          ? 'Tu matrícula fue registrada usando tu cuenta existente. Revisa tu correo para generar una contraseña temporal nueva y acceder.'
           : 'Revisa tu correo para obtener tus accesos.',
         confirmButtonText: 'Ir al inicio',
         confirmButtonColor: '#2563eb',
@@ -428,14 +428,14 @@ export default function LandingPage({ onLoginSuccess }) {
             onClick={() => openModal('login', 4)}
             className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20"
           >
-            Soy Alumno
+            Soy Estudiante
           </button>
           <button
             type="button"
             onClick={() => openModal('login', 1)}
             className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold transition"
           >
-            Administrador / RRHH
+            Administrador
           </button>
         </div>
       </header>
@@ -758,7 +758,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <p className="text-sm text-slate-400">Ingresa tus credenciales para acceder a tu panel.</p>
               {rolEsperado && (
                 <div className="inline-flex mt-4 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs font-bold text-blue-300">
-                  Acceso para: {rolEsperado === '4' ? 'Alumno' : rolEsperado === '1' ? 'Administrador / RRHH' : MAPA_ROLES[rolEsperado]}
+                  Acceso para: {rolEsperado === '4' ? 'Estudiante' : rolEsperado === '1' ? 'Administrador' : MAPA_ROLES[rolEsperado]}
                 </div>
               )}
             </div>
@@ -786,7 +786,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     required
                     autoComplete="username"
                     id="login-usuario"
-                    placeholder={rolEsperado === '4' ? 'Código de alumno o correo' : 'Usuario o correo'}
+                    placeholder={rolEsperado === '4' ? 'Código de estudiante o correo' : 'Usuario o correo'}
                     value={loginData.usuario}
                     onChange={(e) => setLoginData({ ...loginData, usuario: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"

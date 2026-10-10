@@ -563,7 +563,7 @@ export default function MorosidadPage() {
 
           <input
             type="text"
-            placeholder="Buscar por alumno o código..."
+            placeholder="Buscar por estudiante o código..."
             value={filtroTexto}
             onChange={(e) =>
               setFiltroTexto(

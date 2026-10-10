@@ -90,9 +90,9 @@ export default function CalificacionesPage({
       {/* HEADER DE PANTALLA (OCULTO AL IMPRIMIR) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Calificaciones y Rendimiento</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Rendimiento Académico</h2>
           <p className="text-slate-500 text-sm mt-1">
-            {/* Aquí mostramos el nombre del alumno y el ciclo al que pertenece */}
+            {/* Aquí mostramos el nombre del estudiante y el ciclo al que pertenece */}
             Estudiante: <strong className="text-slate-700">{estudianteActivo?.nombre || user?.nombre || 'Jessenia Patricia'}</strong>
             <span className="mx-2">|</span>
             Ciclo: <strong className="text-indigo-600">{estudianteActivo?.aula || 'Semestral San Marcos'}</strong>
@@ -125,7 +125,7 @@ export default function CalificacionesPage({
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Promedio Ponderado</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Puntaje Promedio</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-slate-800">{promedioGeneralCalculado}</span>
               <span className="text-xs text-slate-500 font-medium">/ 20</span>
@@ -138,7 +138,7 @@ export default function CalificacionesPage({
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Materias en Riesgo</span>
+            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cursos en Riesgo</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-bold text-rose-600">
                 {cursosEnRiesgo.length} {cursosEnRiesgo.length === 1 ? 'Curso' : 'Cursos'}
@@ -153,7 +153,7 @@ export default function CalificacionesPage({
               <Sparkles className="w-4 h-4" /> Tutor IA
             </div>
             <p className="text-xs text-indigo-100 line-clamp-2 mt-1">
-              Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el alumno'}.
+              Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el estudiante'}.
             </p>
           </div>
           <button
@@ -171,7 +171,7 @@ export default function CalificacionesPage({
         <div className="p-5 border-b border-slate-100 flex items-center justify-between print:py-2">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-600 print:text-slate-900" />
-            <h2 className="font-bold text-slate-800 text-base">Boleta Oficial de Asignaturas</h2>
+            <h2 className="font-bold text-slate-800 text-base">Boleta de Rendimiento Académico</h2>
           </div>
           <span className="text-xs text-slate-400 font-medium print:text-slate-600">
             Escala vigesimal (0 - 20) • Ponderación: Parcial (30%) + Simulacros (30%) + Final (40%)
@@ -221,7 +221,7 @@ export default function CalificacionesPage({
             </tbody>
             <tfoot className="hidden print:table-footer-group border-t-2 border-slate-900 text-xs font-bold text-slate-900">
               <tr>
-                <td colSpan={4} className="py-3 px-3 text-right">PROMEDIO PONDERADO GENERAL:</td>
+                <td colSpan={4} className="py-3 px-3 text-right">PUNTAJE PROMEDIO GENERAL:</td>
                 <td className="py-3 px-3 text-center text-sm">{promedioGeneralCalculado} / 20</td>
                 <td className="py-3 px-3 text-center">
                   {Number(promedioGeneralCalculado) >= 13 ? 'APROBADO' : 'OBSERVADO'}
@@ -242,7 +242,7 @@ export default function CalificacionesPage({
         <div className="border-t border-slate-400 pt-2 w-48">
           Firma del Estudiante
           <br />
-          <span className="font-normal text-slate-500">Conformidad de Notas</span>
+          <span className="font-normal text-slate-500">Conformidad de Resultados</span>
         </div>
       </div>
 
