@@ -1,8 +1,8 @@
-// ✅ DEBE LLEVAR "export":
+// âœ… DEBE LLEVAR "export":
 export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
 
 // ==========================================
-// CONTROL DE TOKEN JWT Y SESIÓN
+// CONTROL DE TOKEN JWT Y SESIÃ“N
 // ==========================================
 
 export function guardarToken(token) {
@@ -47,9 +47,9 @@ export async function fetchWithAuth(endpoint, options = {}) {
   });
 
   if (response.status === 401) {
-    console.warn('[Auth] Sesión expirada. Cerrando sesión.');
+    console.warn('[Auth] SesiÃ³n expirada. Cerrando sesiÃ³n.');
     cerrarSesion();
-    const error = new Error('Sesión no autorizada o expirada.');
+    const error = new Error('SesiÃ³n no autorizada o expirada.');
     error.status = 401;
     throw error;
   }
@@ -58,7 +58,7 @@ export async function fetchWithAuth(endpoint, options = {}) {
 }
 
 // ==========================================
-// AUTENTICACIÓN (LOGIN SEGURO EN EL BODY)
+// AUTENTICACIÃ“N (LOGIN SEGURO EN EL BODY)
 // ==========================================
 export async function iniciarSesion(codigoOUsuario, password) {
   const valorLimpio = String(codigoOUsuario).trim();
@@ -76,7 +76,7 @@ export async function iniciarSesion(codigoOUsuario, password) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.error || 'Credenciales inválidas');
+    throw new Error(errorData.message || errorData.error || 'Credenciales invÃ¡lidas');
   }
 
   const data = await response.json();
@@ -94,7 +94,7 @@ export async function iniciarSesion(codigoOUsuario, password) {
 }
 
 // ==========================================
-// MÓDULO DE PERFILES (RBAC)
+// MÃ“DULO DE PERFILES (RBAC)
 // ==========================================
 
 export async function obtenerPerfiles() {
@@ -142,7 +142,7 @@ export async function eliminarPerfil(idPerfil) {
 }
 
 // ==========================================
-// MÓDULO DE USUARIOS (ADMIN, DOCENTES, TUTORES)
+// MÃ“DULO DE USUARIOS (ADMIN, DOCENTES, TUTORES)
 // ==========================================
 
 export async function obtenerUsuarios() {
@@ -207,7 +207,7 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json().catch(() => ({ mensaje: "Actualizado con éxito" }));
+  return await response.json().catch(() => ({ mensaje: "Actualizado con Ã©xito" }));
 }
 
 export async function eliminarUsuario(idUsuario) {
@@ -220,11 +220,11 @@ export async function eliminarUsuario(idUsuario) {
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json().catch(() => ({ mensaje: "Eliminado con éxito" }));
+  return await response.json().catch(() => ({ mensaje: "Eliminado con Ã©xito" }));
 }
 
 // ==========================================
-// HU-01: MATRÍCULA ÁGIL Y GENERACIÓN DE CÓDIGOS
+// HU-01: MATRÃCULA ÃGIL Y GENERACIÃ“N DE CÃ“DIGOS
 // ==========================================
 
 export async function crearMatricula(datosMatricula) {
@@ -244,7 +244,7 @@ export async function crearMatricula(datosMatricula) {
 export const registrarMatriculaAgil = crearMatricula;
 
 // ==========================================
-// HU-04: MÓDULO DE FINANZAS, PAGOS Y MOROSIDAD
+// HU-04: MÃ“DULO DE FINANZAS, PAGOS Y MOROSIDAD
 // ==========================================
 
 export async function obtenerPagosPorCiclo(idCiclo = 1) {
@@ -258,7 +258,7 @@ export async function obtenerPagosPorCiclo(idCiclo = 1) {
 
 export async function actualizarEstadoPago(idPago, estado) {
   if (!idPago) {
-    throw new Error('No se proporcionó el IdPago.');
+    throw new Error('No se proporcionÃ³ el IdPago.');
   }
 
   if (!['Pagado', 'Moroso'].includes(estado)) {
@@ -301,7 +301,7 @@ export async function obtenerMonitoreoTutores(idCiclo = 1) {
 }
 
 // ==========================================
-// HU-03: MÓDULO DE MENÚS Y PERMISOS
+// HU-03: MÃ“DULO DE MENÃšS Y PERMISOS
 // ==========================================
 
 export async function obtenerOpcionesMenu() {
@@ -317,7 +317,7 @@ export async function crearOpcionMenu(datosMenu) {
   const payload = {
     Nombre: datosMenu.nombre,
     UrlMenu: datosMenu.ruta,
-    Descripcion: datosMenu.descripcion || datosMenu.icono || 'Opción de Menú',
+    Descripcion: datosMenu.descripcion || datosMenu.icono || 'OpciÃ³n de MenÃº',
     IdPadre: datosMenu.idPadre ? Number(datosMenu.idPadre) : null,
     EstadoRegistro: 1
   };
@@ -357,7 +357,7 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
 }
 
 // ==========================================
-// MÓDULO ACADÉMICO (AULAS, CURSOS, CARGA)
+// MÃ“DULO ACADÃ‰MICO (AULAS, CURSOS, CARGA)
 // ==========================================
 
 export async function obtenerAulas() {
@@ -475,12 +475,61 @@ export async function eliminarAsignacionDocente(idAsignacion) {
 }
 
 // ==========================================
-// MÓDULO DE ASISTENCIA
+// MÓDULO DE HORARIOS
+// ==========================================
+
+export async function obtenerHorarios(idCiclo = null) {
+  const params = new URLSearchParams();
+  if (idCiclo) params.set('idCiclo', String(idCiclo));
+  const query = params.toString();
+  const response = await fetchWithAuth(`/api/horarios${query ? `?${query}` : ''}`);
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function crearHorario(nuevoHorario) {
+  const response = await fetchWithAuth('/api/horarios', {
+    method: 'POST',
+    body: JSON.stringify(nuevoHorario),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function actualizarHorario(idHorario, horarioActualizado) {
+  const response = await fetchWithAuth(`/api/horarios/${idHorario}`, {
+    method: 'PUT',
+    body: JSON.stringify(horarioActualizado),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
+export async function eliminarHorario(idHorario) {
+  const response = await fetchWithAuth(`/api/horarios/${idHorario}`, { method: 'DELETE' });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
+// ==========================================
+// MÃ“DULO DE ASISTENCIA
 // ==========================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
   if (!idAula) {
-    throw new Error('Debe seleccionar un aula válida para consultar la asistencia.');
+    throw new Error('Debe seleccionar un aula vÃ¡lida para consultar la asistencia.');
   }
   if (!fecha) {
     throw new Error('Debe seleccionar una fecha para consultar la asistencia.');
@@ -510,7 +559,7 @@ export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
   if (!idAula) {
-    throw new Error('Debe seleccionar un aula válida antes de guardar la asistencia.');
+    throw new Error('Debe seleccionar un aula vÃ¡lida antes de guardar la asistencia.');
   }
   if (!fecha) {
     throw new Error('Debe seleccionar una fecha antes de guardar la asistencia.');
@@ -538,7 +587,7 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
 }
 
 // ==========================================
-// MÓDULO DE CALIFICACIONES Y SIMULACROS (HU-07 / P1-09)
+// MÃ“DULO DE CALIFICACIONES Y SIMULACROS (HU-07 / P1-09)
 // ==========================================
 
 export async function obtenerNotas() {
@@ -621,7 +670,7 @@ export async function actualizarNotaDocente(idEvaluacion, calificacion) {
 }
 
 // ==========================================
-// MÓDULO DE COMUNICADOS
+// MÃ“DULO DE COMUNICADOS
 // ==========================================
 
 export async function obtenerComunicados() {
@@ -661,7 +710,7 @@ export async function confirmarLecturaComunicado(id) {
 }
 
 // ==========================================
-// HU-06: TUTOR PEDAGÓGICO IA (GEMINI PREU)
+// HU-06: TUTOR PEDAGÃ“GICO IA (GEMINI PREU)
 // ==========================================
 
 export async function consultarTutorIA(pregunta, contextoPreu = {}) {
@@ -671,7 +720,7 @@ export async function consultarTutorIA(pregunta, contextoPreu = {}) {
         estudiante: contextoPreu.estudiante || 'Alumno AcadeSys',
         codigoUsuario: contextoPreu.codigoUsuario || '',
         universidadObjetivo: contextoPreu.universidadObjetivo || 'UNMSM',
-        carrera: contextoPreu.carrera || 'Ingeniería de Sistemas',
+        carrera: contextoPreu.carrera || 'IngenierÃ­a de Sistemas',
         historialSimulacros: contextoPreu.historialSimulacros || []
       }
     : {
@@ -697,7 +746,7 @@ export async function consultarTutorIA(pregunta, contextoPreu = {}) {
   }
 
   if (data.consejoAdmision) {
-    textoFinal += `\n\n🎯 Tip Admisión: ${data.consejoAdmision}`;
+    textoFinal += `\n\nðŸŽ¯ Tip AdmisiÃ³n: ${data.consejoAdmision}`;
   }
 
   return {
@@ -838,7 +887,7 @@ export async function procesarCheckoutMatricula(payload) {
       data.message ||
       data.error ||
       data.mensaje ||
-      'Error al procesar la inscripción'
+      'Error al procesar la inscripciÃ³n'
     );
     error.status = response.status;
     error.data = data;
@@ -906,7 +955,7 @@ export async function eliminarMaterial(idMaterial) {
   return data;
 }
 // ==========================================
-// P1-04: ADMINISTRACIÓN Y APERTURA DE CICLOS
+// P1-04: ADMINISTRACIÃ“N Y APERTURA DE CICLOS
 // ==========================================
 
 function crearErrorApiCiclo(data, status, mensajeDefecto) {
