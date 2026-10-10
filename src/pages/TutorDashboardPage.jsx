@@ -12,7 +12,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
   // Datos visuales de prueba.
   // Posteriormente pueden reemplazarse por datos reales del backend.
-  const alumnos = [
+  const estudiantes = [
     {
       id: 1,
       nombre: 'Juan Pérez',
@@ -50,19 +50,19 @@ export default function TutorDashboardPage({ setActiveTab }) {
     }
   ];
 
-  const totalAlumnos = alumnos.length;
+  const totalEstudiantes = estudiantes.length;
 
-  const totalPagados = alumnos.filter(
-    alumno => alumno.estadoPago === 'Pagado'
+  const totalPagados = estudiantes.filter(
+    estudiante => estudiante.estadoPago === 'Pagado'
   ).length;
 
-  const totalMorosos = alumnos.filter(
-    alumno => alumno.estadoPago === 'Moroso'
+  const totalMorosos = estudiantes.filter(
+    estudiante => estudiante.estadoPago === 'Moroso'
   ).length;
 
   const promedioGeneral =
-    alumnos.reduce((suma, alumno) => suma + alumno.promedio, 0) /
-    alumnos.length;
+    estudiantes.reduce((suma, estudiante) => suma + estudiante.promedio, 0) /
+    estudiantes.length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-full">
@@ -82,7 +82,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
               </h1>
 
               <p className="text-sm text-slate-500 mt-1">
-                Seguimiento académico y financiero de tus alumnos
+                Seguimiento académico y financiero de tus estudiantes
               </p>
             </div>
           </div>
@@ -108,11 +108,11 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">
-                Alumnos
+                Estudiantes
               </p>
 
               <p className="text-3xl font-bold text-slate-800 mt-2">
-                {totalAlumnos}
+                {totalEstudiantes}
               </p>
 
               <p className="text-xs text-slate-400 mt-1">
@@ -215,7 +215,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
             <div>
               <h2 className="text-lg font-bold text-slate-800">
-                Seguimiento de Alumnos
+                Seguimiento de Estudiantes
               </h2>
 
               <p className="text-sm text-slate-500 mt-1">
@@ -224,7 +224,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
             </div>
 
             <span className="text-xs text-slate-400">
-              {totalAlumnos} alumnos
+              {totalEstudiantes} estudiantes
             </span>
 
           </div>
@@ -240,7 +240,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
               <tr className="bg-slate-50 border-b border-slate-200">
 
                 <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Alumno
+                  Estudiante
                 </th>
 
                 <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -260,10 +260,10 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
             <tbody className="divide-y divide-slate-100">
 
-              {alumnos.map((alumno) => (
+              {estudiantes.map((estudiante) => (
 
                 <tr
-                  key={alumno.id}
+                  key={estudiante.id}
                   className="hover:bg-slate-50 transition"
                 >
 
@@ -272,7 +272,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                     <div className="flex items-center gap-3">
 
                       <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
-                        {alumno.nombre
+                        {estudiante.nombre
                           .split(' ')
                           .map(parte => parte[0])
                           .slice(0, 2)
@@ -280,7 +280,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                       </div>
 
                       <span className="font-semibold text-slate-800 text-sm">
-                        {alumno.nombre}
+                        {estudiante.nombre}
                       </span>
 
                     </div>
@@ -288,21 +288,21 @@ export default function TutorDashboardPage({ setActiveTab }) {
                   </td>
 
                   <td className="px-6 py-4 text-sm text-slate-500">
-                    {alumno.aula}
+                    {estudiante.aula}
                   </td>
 
                   <td className="px-6 py-4">
 
                     <span
                       className={`font-bold text-sm ${
-                        alumno.promedio >= 16
+                        estudiante.promedio >= 16
                           ? 'text-emerald-600'
-                          : alumno.promedio >= 13
+                          : estudiante.promedio >= 13
                             ? 'text-amber-600'
                             : 'text-rose-600'
                       }`}
                     >
-                      {alumno.promedio.toFixed(1)} / 20
+                      {estudiante.promedio.toFixed(1)} / 20
                     </span>
 
                   </td>
@@ -311,12 +311,12 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
                     <span
                       className={
-                        alumno.estadoPago === 'Moroso'
+                        estudiante.estadoPago === 'Moroso'
                           ? 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-white'
                           : 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white'
                       }
                     >
-                      {alumno.estadoPago}
+                      {estudiante.estadoPago}
                     </span>
 
                   </td>

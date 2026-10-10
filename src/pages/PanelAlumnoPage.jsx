@@ -146,7 +146,7 @@ export default function PanelAlumnoPage() {
           </div>
 
           <h1 className="text-3xl font-black text-white tracking-tight">
-            Panel del Alumno y Materiales
+            Panel del Estudiante y Materiales
           </h1>
 
           <p className="text-sm text-slate-400 mt-1">

@@ -162,7 +162,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const header = (
     <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
-        <p className="text-blue-300 text-[10px] font-bold uppercase tracking-[0.16em]">Intranet del alumno</p>
+        <p className="text-blue-300 text-[10px] font-bold uppercase tracking-[0.16em]">Portal del Estudiante</p>
         <h1 className="text-3xl font-black text-white tracking-tight mt-1">{tituloView}</h1>
         <p className="text-sm text-slate-500 mt-2">
           {data?.usuario?.nombreCompleto || user?.nombre || 'Alumno'} · {user?.codigoUsuario || data?.usuario?.codigoUsuario || 'Sin código'}

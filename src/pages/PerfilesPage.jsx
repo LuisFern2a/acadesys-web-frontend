@@ -52,7 +52,7 @@ export default function PerfilesPage() {
     },
     { 
       IdPerfil: 4, 
-      Nombre: 'Alumno', 
+      Nombre: 'Estudiante', 
       Descripcion: 'Consulta de calificaciones personales, agenda escolar e interacción con el Tutor Pedagógico IA.', 
       EstadoRegistro: 1 
     }
