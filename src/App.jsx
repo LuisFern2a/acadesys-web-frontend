@@ -144,11 +144,32 @@ export default function App() {
           }}
         >
           {esAlumno ? (
-            <StudentIntranetPage
-              view={activeTab}
-              setActiveTab={handleTabChange}
-              user={session}
-            />
+            activeTab === 'tutor-ia' ? (
+              <TutorIAPage
+                estudianteActivo={{
+                  id: session?.idUsuario,
+                  codigoUsuario: session?.codigoUsuario,
+                  nombre: session?.nombre,
+                  ciclo: session?.ciclo?.nombre,
+                  universidadObjetivo: session?.ciclo?.universidadObjetivo,
+                  totalAlumnos: session?.ciclo?.totalAlumnos
+                }}
+              />
+            ) : activeTab === 'comunicados' ? (
+              <ComunicadosPage user={session} />
+            ) : (
+              <StudentIntranetPage
+                view={
+                  activeTab === 'dashboard'
+                    ? 'student-home'
+                    : activeTab === 'calificaciones'
+                      ? 'student-notas'
+                      : activeTab
+                }
+                setActiveTab={handleTabChange}
+                user={session}
+              />
+            )
           ) : (
             <>
               {activeTab === 'dashboard' && (

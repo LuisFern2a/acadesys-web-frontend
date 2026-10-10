@@ -282,7 +282,16 @@ export default function DashboardLayout({
     'tutor-ia': 'Asistente de Orientación Preuniversitaria IA',
     usuarios: 'Directorio de Usuarios y Alumnos',
     perfiles: 'Seguridad y Roles RBAC',
-    'menu-options': 'Estructura de Menús'
+    'menu-options': 'Estructura de Menús',
+
+    // Vistas de la intranet del alumno
+    'student-home': 'Inicio del Alumno',
+    'student-ciclo': 'Mi Ciclo',
+    'student-horario': 'Mi Horario',
+    'student-cursos': 'Mis Cursos',
+    'student-notas': 'Calificaciones',
+    'student-materiales': 'Materiales de Estudio',
+    'student-perfil': 'Mi Perfil'
   };
 
   return (
