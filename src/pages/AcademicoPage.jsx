@@ -32,9 +32,12 @@ import {
   obtenerCiclosAdmin,
   crearCicloAdmin,
   actualizarCicloAdmin,
-  eliminarCicloAdmin
+  eliminarCicloAdmin,
+  obtenerHorarios,
+  crearHorario,
+  actualizarHorario,
+  eliminarHorario
 } from '../services/api';
-
 function CampoCiclo({ label, children }) {
   return (
     <label className="block">
@@ -45,14 +48,11 @@ function CampoCiclo({ label, children }) {
     </label>
   );
 }
-
 export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [tabActiva, setTabActiva] = useState(vistaInicial);
-
   useEffect(() => {
     setTabActiva(vistaInicial);
   }, [vistaInicial]);
-
   const [aulas, setAulas] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
@@ -62,14 +62,12 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [errorDatos, setErrorDatos] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('todos');
-
   // Modal y modo edición
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [pasoCiclo, setPasoCiclo] = useState(1);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
-
   // Formularios
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
@@ -85,47 +83,46 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     fechaInicio: '',
     fechaFin: '',
     capacidad: 250,
-    precio: 0,
+    precio: '',
     diasClase: 'Lunes a Viernes',
     prefijoCodigo: '',
     publicar: false,
     cursosSeleccionados: []
   });
   const [formTurno, setFormTurno] = useState({
-    nombre: '',
-    horario: '',
-    modalidad: 'Presencial',
-    estado: 'Activo'
+    idCiclo: '',
+    idCurso: '',
+    diaNumero: 1,
+    diaSemana: 'Lunes',
+    horaInicio: '08:00',
+    horaFin: '09:00',
+    orden: 1
   });
-
   useEffect(() => {
-    setTurnos([]);
     cargarDatos();
   }, []);
-
   const cargarDatos = async () => {
     setErrorDatos('');
-    const [aulasRes, cursosRes, asignacionesRes, ciclosRes, usuariosRes] = await Promise.allSettled([
+    const [aulasRes, cursosRes, asignacionesRes, ciclosRes, usuariosRes, horariosRes] = await Promise.allSettled([
       obtenerAulas(),
       obtenerCursos(),
       obtenerAsignacionesDocente(),
       obtenerCiclosAdmin().catch(() => obtenerCiclosPublicos()),
       obtenerUsuarios(),
+      obtenerHorarios(),
     ]);
-
     const errores = [];
     const valor = (resultado, nombre) => {
       if (resultado.status === 'fulfilled') return resultado.value;
       errores.push(`${nombre}: ${resultado.reason?.message || 'error de conexión'}`);
       return [];
     };
-
     const aulasRaw = valor(aulasRes, 'Aulas');
     const cursosRaw = valor(cursosRes, 'Cursos');
     const asignacionesRaw = valor(asignacionesRes, 'Asignaciones');
     const ciclosRaw = valor(ciclosRes, 'Ciclos');
     const usuariosRaw = valor(usuariosRes, 'Usuarios');
-
+    const horariosRaw = valor(horariosRes, 'Horarios');
     const listaAulas = (Array.isArray(aulasRaw) ? aulasRaw : []).map((a) => ({
       ...a,
       idAula: Number(a.idAula ?? a.IdAula),
@@ -156,14 +153,13 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       const perfil = String(u.Perfil ?? u.NombrePerfil ?? u.perfil ?? '').toLowerCase();
       return perfil.includes('docente') || perfil.includes('tutor');
     });
-
     setAulas(listaAulas);
     setCursos(listaCursos);
     setAsignaciones(Array.isArray(asignacionesRaw) ? asignacionesRaw : []);
     setCiclos(listaCiclos);
     setUsuarios(listaDocentes);
+    setTurnos(Array.isArray(horariosRaw) ? horariosRaw : []);
     setErrorDatos(errores.join(' | '));
-
     setFormAsig((prev) => {
       const userId = String(prev.idUsuario || '');
       const cycleId = String(prev.idCiclo || '');
@@ -182,7 +178,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       };
     });
   };
-
   const abrirCrear = () => {
     setEditandoId(null);
     setFormAula({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
@@ -205,7 +200,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       fechaInicio: '',
       fechaFin: '',
       capacidad: 250,
-      precio: 0,
+      precio: '',
       diasClase: 'Lunes a Viernes',
       prefijoCodigo: '',
       publicar: false,
@@ -214,14 +209,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setPasoCiclo(1);
     setErrorCiclo('');
     setFormTurno({
-      nombre: '',
-      horario: '',
-      modalidad: 'Presencial',
-      estado: 'Activo'
+      idCiclo: String(ciclos[0]?.idCiclo ?? ''),
+      idCurso: String(cursos[0]?.idCurso ?? ''),
+      diaNumero: 1,
+      diaSemana: 'Lunes',
+      horaInicio: '08:00',
+      horaFin: '09:00',
+      orden: 1
     });
     setModalAbierto(true);
   };
-
   const abrirEditarAula = (aula) => {
     setEditandoId(aula.idAula ?? aula.IdAula);
     setFormAula({
@@ -231,13 +228,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     });
     setModalAbierto(true);
   };
-
   const abrirEditarCurso = (curso) => {
     setEditandoId(curso.idCurso ?? curso.IdCurso);
     setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
     setModalAbierto(true);
   };
-
   const abrirEditarCiclo = (ciclo) => {
     setEditandoId(ciclo.idCiclo);
     setFormCiclo({
@@ -261,38 +256,46 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setErrorCiclo('');
     setModalAbierto(true);
   };
-
   const abrirEditarTurno = (turno) => {
-    setEditandoId(turno.idTurno);
+    setEditandoId(turno.idHorario);
     setFormTurno({
-      nombre: turno.nombre,
-      horario: turno.horario,
-      modalidad: turno.modalidad,
-      estado: turno.estado
+      idCiclo: String(turno.idCiclo ?? ''),
+      idCurso: String(turno.idCurso ?? ''),
+      diaNumero: Number(turno.diaNumero ?? 1),
+      diaSemana: turno.diaSemana ?? 'Lunes',
+      horaInicio: String(turno.horaInicio ?? '').slice(0, 5),
+      horaFin: String(turno.horaFin ?? '').slice(0, 5),
+      orden: Number(turno.orden ?? 1)
     });
     setModalAbierto(true);
   };
-
   const NOMBRE_MINIMO = 3;
-
   const nombreValido = (valor) => {
     const limpio = String(valor || '').trim();
     return limpio.length >= NOMBRE_MINIMO && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .'-]+$/.test(limpio);
   };
-
   const codigoCursoValido = (valor) => {
     const limpio = String(valor || '').trim();
     return limpio.length >= 2 && /^[A-Z0-9-]+$/.test(limpio);
   };
-
   const formularioActualValido = (() => {
     if (tabActiva === 'cursos') return nombreValido(formCurso.nombre) && codigoCursoValido(formCurso.codigo);
     if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
     if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && formAsig.idAula && Number(formAsig.horas) >= 1);
-    if (tabActiva === 'turnos') return nombreValido(formTurno.nombre) && Boolean(formTurno.horario.trim());
+    if (tabActiva === 'turnos') return Boolean(
+      formTurno.idCiclo &&
+      formTurno.idCurso &&
+      Number(formTurno.diaNumero) >= 1 &&
+      Number(formTurno.diaNumero) <= 7 &&
+      formTurno.diaSemana &&
+      formTurno.horaInicio &&
+      formTurno.horaFin &&
+      formTurno.horaInicio < formTurno.horaFin &&
+      Number(formTurno.orden) >= 1 &&
+      Number(formTurno.orden) <= 100
+    );
     return true;
   })();
-
   const handleGuardar = async (e) => {
     e.preventDefault();
     setErrorDatos('');
@@ -322,11 +325,21 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           horas: Number(formAsig.horas),
         });
       } else if (tabActiva === 'turnos') {
-        throw new Error('El módulo de turnos todavía no está conectado al backend; no se guardó ningún dato.');
+        if (!formularioActualValido) throw new Error('Completa correctamente todos los datos del horario.');
+        const payload = {
+          idCiclo: Number(formTurno.idCiclo),
+          idCurso: Number(formTurno.idCurso),
+          diaNumero: Number(formTurno.diaNumero),
+          diaSemana: formTurno.diaSemana,
+          horaInicio: formTurno.horaInicio,
+          horaFin: formTurno.horaFin,
+          orden: Number(formTurno.orden)
+        };
+        if (editandoId) await actualizarHorario(editandoId, payload);
+        else await crearHorario(payload);
       } else {
         throw new Error('No hay una operación de guardado disponible para este módulo.');
       }
-
       await cargarDatos();
       setModalAbierto(false);
       setEditandoId(null);
@@ -334,7 +347,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
     }
   };
-
   const handleEliminarAula = async (id, nombre) => {
     if (!window.confirm(`¿Desactivar el aula "${nombre}"?`)) return;
     try {
@@ -344,7 +356,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       window.alert(err?.message || 'No se pudo desactivar el aula.');
     }
   };
-
   const handleEliminarCurso = async (id, nombre) => {
     if (!window.confirm(`¿Desactivar el curso "${nombre}"?`)) return;
     try {
@@ -354,7 +365,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       window.alert(err?.message || 'No se pudo desactivar el curso.');
     }
   };
-
   const handleEliminarAsignacion = async (id, docente, curso) => {
     if (!window.confirm(`¿Desactivar la carga de "${curso}" asignada a ${docente}?`)) return;
     try {
@@ -364,7 +374,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       window.alert(err?.message || 'No se pudo desactivar la asignación.');
     }
   };
-
   const handleEliminarCiclo = async (id, nombre) => {
     if (!window.confirm(`¿Eliminar el ciclo "${nombre}"?`)) return;
     try {
@@ -374,13 +383,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       window.alert(err?.message || 'No se pudo eliminar el ciclo.');
     }
   };
-
-  const handleEliminarTurno = () => {
-    window.alert('El módulo de turnos todavía no está conectado al backend.');
+  const handleEliminarTurno = async (id, descripcion) => {
+    if (!window.confirm(`¿Desactivar el horario "${descripcion}"?`)) return;
+    try {
+      await eliminarHorario(id);
+      await cargarDatos();
+    } catch (err) {
+      window.alert(err?.message || 'No se pudo desactivar el horario.');
+    }
   };
-
   const pasosCiclo = ['Identidad', 'Nombre', 'Fechas y capacidad', 'Oferta', 'Horarios', 'Revisión'];
-
   const validarPasoCiclo = (paso) => {
     if (paso === 1) {
       if (!formCiclo.tipo || !formCiclo.universidadObjetivo || !formCiclo.modalidad || !/^\d{4}$/.test(formCiclo.periodo)) {
@@ -395,7 +407,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       if (!formCiclo.fechaInicio || !formCiclo.fechaFin) return 'Completa las fechas del ciclo.';
       if (new Date(formCiclo.fechaFin) <= new Date(formCiclo.fechaInicio)) return 'La fecha final debe ser posterior a la fecha de inicio.';
       if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 500) return 'La capacidad debe estar entre 1 y 500.';
-      if (Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
+      if (formCiclo.precio === '' || !Number.isFinite(Number(formCiclo.precio)) || Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
     }
     if (paso === 4 && cursos.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
       return 'Selecciona al menos un curso para continuar.';
@@ -405,7 +417,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     }
     return '';
   };
-
   const checklistPublicacion = [
     { texto: 'Identidad académica completa', ok: !validarPasoCiclo(1) },
     { texto: 'Nombre válido', ok: !validarPasoCiclo(2) },
@@ -413,9 +424,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     { texto: 'Oferta académica con cursos', ok: formCiclo.cursosSeleccionados.length > 0 },
     { texto: 'Turno, horario y días de clase definidos', ok: !validarPasoCiclo(5) }
   ];
-
   const puedePublicarCiclo = checklistPublicacion.every((requisito) => requisito.ok);
-
   const siguientePasoCiclo = () => {
     const error = validarPasoCiclo(pasoCiclo);
     if (error) {
@@ -425,7 +434,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setErrorCiclo('');
     setPasoCiclo((prev) => Math.min(prev + 1, 6));
   };
-
   const toggleCursoCiclo = (idCurso) => {
     setFormCiclo((prev) => ({
       ...prev,
@@ -435,7 +443,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     }));
     setErrorCiclo('');
   };
-
   const guardarCiclo = async () => {
     for (let paso = 1; paso <= 5; paso += 1) {
       const error = validarPasoCiclo(paso);
@@ -445,13 +452,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
         return;
       }
     }
-
     if (formCiclo.publicar && !puedePublicarCiclo) {
       setPasoCiclo(6);
       setErrorCiclo('No se puede publicar el ciclo mientras existan requisitos críticos pendientes.');
       return;
     }
-
     const payload = {
       nombre: formCiclo.nombre.trim(),
       universidadObjetivo: formCiclo.universidadObjetivo,
@@ -465,7 +470,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       prefijoCodigo: formCiclo.prefijoCodigo.trim() || formCiclo.universidadObjetivo.slice(0, 4).toUpperCase(),
       publicar: Boolean(formCiclo.publicar)
     };
-
     try {
       setGuardandoCiclo(true);
       setErrorCiclo('');
@@ -480,7 +484,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       setGuardandoCiclo(false);
     }
   };
-
   // Filtros combinados
   const aulasFiltradas = aulas.filter(a => {
     const coincideTexto = (a.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -488,30 +491,27 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     const coincideNivel = filtroNivel === 'todos' || a.nivel === filtroNivel;
     return coincideTexto && coincideNivel;
   });
-
   const cursosFiltrados = cursos.filter(c =>
     (c.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (c.codigo || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-
   const asignacionesFiltradas = asignaciones.filter(a =>
     (a.docente || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (a.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (a.aula || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-
   const ciclosFiltrados = ciclos.filter((ciclo) =>
     (ciclo.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (ciclo.turno || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (ciclo.horario || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-
   const turnosFiltrados = turnos.filter((turno) =>
-    (turno.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.horario || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.modalidad || '').toLowerCase().includes(busqueda.toLowerCase())
+    (turno.ciclo || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.diaSemana || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.horaInicio || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (turno.horaFin || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-
   return (
     <div className="p-8 bg-slate-50 min-h-full">
       {/* HEADER */}
@@ -524,12 +524,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             <div>
               <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Gestión Académica</h1>
               <p className="text-slate-600 text-sm mt-0.5">
-                Control de salones, plan de estudios y distribución de carga horaria docente
+                Gestión de ciclos, aulas, cursos y distribución de carga horaria docente
               </p>
             </div>
           </div>
         </div>
-
         <button
           type="button"
           onClick={abrirCrear}
@@ -537,19 +536,17 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
         >
           <Plus className="w-4 h-4" />
           {tabActiva === 'asignaciones' && 'Nueva Carga Docente'}
-          {tabActiva === 'aulas' && 'Nueva Aula / Salón'}
+          {tabActiva === 'aulas' && 'Nueva Aula'}
           {tabActiva === 'cursos' && 'Nuevo Curso'}
           {tabActiva === 'ciclos' && 'Nuevo Ciclo'}
-          {tabActiva === 'turnos' && 'Nuevo Turno'}
+          {tabActiva === 'turnos' && 'Nuevo Horario'}
         </button>
       </div>
-
       {errorDatos && (
         <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
           No todos los datos pudieron cargarse desde el backend: {errorDatos}
         </div>
       )}
-
       {/* PESTAÑAS */}
       <div className="flex items-center gap-2 border-b border-slate-200 mb-6">
         <button
@@ -564,7 +561,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           <GraduationCap className="w-4 h-4" />
           Ciclos ({ciclos.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('turnos')}
@@ -575,9 +571,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           }`}
         >
           <CalendarClock className="w-4 h-4" />
-          Turnos ({turnos.length})
+          Horarios ({turnos.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('asignaciones')}
@@ -590,7 +585,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           <UserCheck className="w-4 h-4" />
           Carga Docente ({asignaciones.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('aulas')}
@@ -601,9 +595,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           }`}
         >
           <School className="w-4 h-4" />
-          Aulas y Salones ({aulas.length})
+          Aulas ({aulas.length})
         </button>
-
         <button
           type="button"
           onClick={() => setTabActiva('cursos')}
@@ -614,39 +607,36 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          Cursos Oficiales ({cursos.length})
+          Cursos Académicos ({cursos.length})
         </button>
       </div>
-
       {/* FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
           <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por curso, docente, código o nivel..."
+            placeholder="Buscar por curso, docente, código o aula..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full bg-transparent outline-none text-slate-700 text-xs"
           />
         </div>
-
         {tabActiva === 'aulas' && (
           <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 text-xs">
             <Filter className="w-4 h-4 text-slate-400" />
-            <span className="font-semibold text-slate-600">Nivel:</span>
+            <span className="font-semibold text-slate-600">Programa:</span>
             <select
               value={filtroNivel}
               onChange={(e) => setFiltroNivel(e.target.value)}
               className="bg-transparent font-medium text-slate-700 outline-none cursor-pointer"
             >
-              <option value="todos">Todos los niveles</option>
+              <option value="todos">Todos los programas</option>
               <option value="Preuniversitario">Preuniversitario</option>
             </select>
           </div>
         )}
       </div>
-
       {/* CICLOS */}
       {tabActiva === 'ciclos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -683,7 +673,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   <div className="space-y-2.5 mt-4 text-sm text-slate-600">
                     <div className="flex items-center justify-between"><span>Turno</span><strong className="text-slate-800">{ciclo.turno}</strong></div>
                     <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-800">{ciclo.horario}</strong></div>
-                    <div className="flex items-center justify-between"><span>Alumnos</span><strong className="text-slate-800">{ciclo.alumnos}</strong></div>
+                    <div className="flex items-center justify-between"><span>Estudiantes</span><strong className="text-slate-800">{ciclo.alumnos}</strong></div>
                     <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-indigo-600">{vacantes}</strong></div>
                     <div className="flex items-center justify-between"><span>Cursos</span><strong className="text-slate-800">{ciclo.cursos}</strong></div>
                   </div>
@@ -693,7 +683,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           )}
         </div>
       )}
-
       {/* TURNOS Y HORARIOS */}
       {tabActiva === 'turnos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -702,41 +691,37 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
               <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
                 <CalendarClock className="w-6 h-6 text-indigo-500" />
               </div>
-              <p className="text-base font-bold text-slate-800">No hay turnos disponibles</p>
-              <p className="text-sm text-slate-600 mt-1">No existen turnos que coincidan con la búsqueda actual.</p>
+              <p className="text-base font-bold text-slate-800">No hay horarios disponibles</p>
+              <p className="text-sm text-slate-600 mt-1">No existen horarios que coincidan con la búsqueda actual.</p>
             </div>
           ) : (
             turnosFiltrados.map((turno) => (
-              <div key={turno.idTurno} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+              <div key={turno.idHorario} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
                 <div className="flex items-start justify-between">
                   <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                     <CalendarClock className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-1">
-                    <button type="button" title="Editar turno" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition">
+                    <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button type="button" title="Eliminar turno" onClick={() => handleEliminarTurno(turno.idTurno, turno.nombre)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                    <button type="button" title="Eliminar horario" onClick={() => handleEliminarTurno(turno.idHorario, `${turno.curso} - ${turno.diaSemana}`)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mt-4">{turno.nombre}</h3>
-                <p className="text-sm text-slate-600 mt-1">{turno.horario}</p>
-                <div className="flex items-center justify-between mt-5">
-                  <span className="text-xs font-semibold text-slate-600">Modalidad</span>
-                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">{turno.modalidad}</span>
-                </div>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                  <span className="text-xs font-semibold text-slate-600">Estado</span>
-                  <span className="text-xs font-bold text-emerald-600">{turno.estado}</span>
+                <h3 className="text-lg font-black text-slate-900 mt-4">{turno.curso}</h3>
+                <p className="text-sm text-slate-600 mt-1">{turno.ciclo}</p>
+                <div className="space-y-2.5 mt-4 text-sm text-slate-600">
+                  <div className="flex items-center justify-between"><span>Día</span><strong className="text-slate-800">{turno.diaSemana}</strong></div>
+                  <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-800">{turno.horaInicio} - {turno.horaFin}</strong></div>
+                  <div className="flex items-center justify-between"><span>Orden</span><strong className="text-indigo-600">{turno.orden}</strong></div>
                 </div>
               </div>
             ))
           )}
         </div>
       )}
-
       {/* TABLA ASIGNACIONES */}
       {tabActiva === 'asignaciones' && (
         <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-200">
@@ -744,7 +729,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase">
                 <th className="py-4 px-6">Docente Titular</th>
-                <th className="py-4 px-6">Asignatura</th>
+                <th className="py-4 px-6">Curso</th>
                 <th className="py-4 px-6">Aula Asignada</th>
                 <th className="py-4 px-6">Carga Semanal</th>
                 <th className="py-4 px-6 text-center">Acciones</th>
@@ -793,7 +778,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           </table>
         </div>
       )}
-
       {/* TARJETAS AULAS */}
       {tabActiva === 'aulas' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -834,7 +818,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           )}
         </div>
       )}
-
       {/* TARJETAS CURSOS */}
       {tabActiva === 'cursos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -865,31 +848,29 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-                  <span className="text-xs text-slate-400 font-medium">Plan Vigente</span>
+                  <span className="text-xs text-slate-400 font-medium">Oferta académica</span>
                 </div>
               </div>
             ))
           )}
         </div>
       )}
-
       {/* MODAL CREAR / EDITAR */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className={`bg-white rounded-2xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-2xl border border-slate-100`}>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-800">
-                {tabActiva === 'asignaciones' && 'Asignar Docente a Aula'}
+                {tabActiva === 'asignaciones' && 'Asignar Docente a Curso y Aula'}
                 {tabActiva === 'aulas' && (editandoId ? 'Editar Aula' : 'Registrar Nueva Aula')}
                 {tabActiva === 'cursos' && (editandoId ? 'Editar Curso' : 'Registrar Nuevo Curso')}
                 {tabActiva === 'ciclos' && (editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo')}
-                {tabActiva === 'turnos' && (editandoId ? 'Editar Turno' : 'Registrar Nuevo Turno')}
+                {tabActiva === 'turnos' && (editandoId ? 'Editar Horario' : 'Registrar Nuevo Horario')}
               </h3>
               <button type="button" onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleGuardar} className="space-y-4">
               {tabActiva === 'ciclos' && (
                 <div className="space-y-5">
@@ -915,13 +896,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       })}
                     </div>
                   </div>
-
                   {errorCiclo && (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
                       {errorCiclo}
                     </div>
                   )}
-
                   {pasoCiclo === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Tipo de ciclo">
@@ -944,7 +923,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       </CampoCiclo>
                     </div>
                   )}
-
                   {pasoCiclo === 2 && (
                     <div>
                       <CampoCiclo label="Nombre oficial del ciclo">
@@ -955,16 +933,14 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       </button>
                     </div>
                   )}
-
                   {pasoCiclo === 3 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Fecha de inicio"><input type="date" value={formCiclo.fechaInicio} onChange={(e) => setFormCiclo({ ...formCiclo, fechaInicio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Fecha de fin"><input type="date" value={formCiclo.fechaFin} onChange={(e) => setFormCiclo({ ...formCiclo, fechaFin: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Capacidad"><input type="number" min="1" max="500" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
-                      <CampoCiclo label="Precio (S/)"><input type="number" min="0" max="9999.99" step="0.01" value={formCiclo.precio} onChange={(e) => setFormCiclo({ ...formCiclo, precio: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
+                      <CampoCiclo label="Precio (S/)"><input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precio} onChange={(e) => setFormCiclo({ ...formCiclo, precio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                     </div>
                   )}
-
                   {pasoCiclo === 4 && (
                     <div>
                       <p className="text-xs text-slate-500 mb-3">Selecciona los cursos que formarán parte de la oferta académica.</p>
@@ -989,7 +965,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       )}
                     </div>
                   )}
-
                   {pasoCiclo === 5 && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1002,7 +977,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       </div>
                     </div>
                   )}
-
                   {pasoCiclo === 6 && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="rounded-xl border border-slate-200 p-4">
@@ -1016,7 +990,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                           <p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
                         </div>
                       </div>
-
                       <div className="rounded-xl border border-slate-200 p-4">
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div>
@@ -1026,7 +999,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                             {puedePublicarCiclo ? 'Listo para publicar' : 'Requisitos pendientes'}
                           </span>
                         </div>
-
                         <div className="space-y-2">
                           {checklistPublicacion.map(({ texto, ok }) => (
                             <div key={texto} className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${ok ? 'border-emerald-100 bg-emerald-50/60' : 'border-amber-100 bg-amber-50/60'}`}>
@@ -1039,7 +1011,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                             </div>
                           ))}
                         </div>
-
                         <label className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs font-semibold ${puedePublicarCiclo ? 'bg-indigo-50 border-indigo-100 text-slate-700 cursor-pointer' : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                           <input type="checkbox" checked={Boolean(formCiclo.publicar && puedePublicarCiclo)} disabled={!puedePublicarCiclo || guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-indigo-600" />
                           <span>Publicar ciclo al guardar</span>
@@ -1047,7 +1018,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       </div>
                     </div>
                   )}
-
                   <div className="flex justify-between gap-2 pt-4 border-t border-slate-100">
                     <button type="button" onClick={() => pasoCiclo === 1 ? setModalAbierto(false) : setPasoCiclo((prev) => prev - 1)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
                       {pasoCiclo === 1 ? 'Cancelar' : 'Anterior'}
@@ -1062,31 +1032,51 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   </div>
                 </div>
               )}
-
               {tabActiva === 'turnos' && (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Turno</label>
-                    <input type="text" required placeholder="Ej: Mañana" value={formTurno.nombre} onChange={(e) => setFormTurno({ ...formTurno, nombre: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Horario</label>
-                    <input type="text" required placeholder="Ej: 08:00 - 13:00" value={formTurno.horario} onChange={(e) => setFormTurno({ ...formTurno, horario: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Modalidad</label>
-                    <select value={formTurno.modalidad} onChange={(e) => setFormTurno({ ...formTurno, modalidad: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
-                      <option>Presencial</option>
-                      <option>Virtual</option>
-                      <option>Mixta</option>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Ciclo</label>
+                    <select required value={formTurno.idCiclo} onChange={(e) => setFormTurno({ ...formTurno, idCiclo: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un ciclo</option>
+                      {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Estado</label>
-                    <select value={formTurno.estado} onChange={(e) => setFormTurno({ ...formTurno, estado: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
-                      <option>Activo</option>
-                      <option>Inactivo</option>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Curso</label>
+                    <select required value={formTurno.idCurso} onChange={(e) => setFormTurno({ ...formTurno, idCurso: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value="">Selecciona un curso</option>
+                      {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Día</label>
+                    <select required value={formTurno.diaNumero} onChange={(e) => {
+                      const diaNumero = Number(e.target.value);
+                      const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                      setFormTurno({ ...formTurno, diaNumero, diaSemana: dias[diaNumero] });
+                    }} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                      <option value={1}>Lunes</option>
+                      <option value={2}>Martes</option>
+                      <option value={3}>Miércoles</option>
+                      <option value={4}>Jueves</option>
+                      <option value={5}>Viernes</option>
+                      <option value={6}>Sábado</option>
+                      <option value={7}>Domingo</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Hora de inicio</label>
+                      <input type="time" required value={formTurno.horaInicio} onChange={(e) => setFormTurno({ ...formTurno, horaInicio: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Hora de fin</label>
+                      <input type="time" required value={formTurno.horaFin} onChange={(e) => setFormTurno({ ...formTurno, horaFin: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Orden</label>
+                    <input type="number" required min="1" max="100" value={formTurno.orden} onChange={(e) => setFormTurno({ ...formTurno, orden: Number(e.target.value) })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                 </>
               )}
@@ -1127,28 +1117,24 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   </div>
                 </>
               )}
-
               {tabActiva === 'aulas' && (
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre / Identificador</label>
                     <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nivel Educativo</label>
                     <select value={formAula.nivel} onChange={(e) => setFormAula({ ...formAula, nivel: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 bg-white cursor-pointer">
                       <option value="Preuniversitario">Preuniversitario</option>
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Capacidad Máxima</label>
                     <input type="number" min="5" max="100" value={formAula.capacidad} onChange={(e) => setFormAula({ ...formAula, capacidad: Number(e.target.value) })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                 </>
               )}
-
               {tabActiva === 'cursos' && (
                 <>
                   <div>
@@ -1165,7 +1151,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   </div>
                 </>
               )}
-
               {tabActiva !== 'ciclos' && (
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <button type="button" onClick={() => setModalAbierto(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
