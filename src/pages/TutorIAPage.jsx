@@ -108,23 +108,11 @@ Historial de Simulacros: ${estudiante.simulacros.map(s => `${s.simulacro}:${s.pu
         diagnostico: resultado.respuesta,
         fecha: new Date().toLocaleDateString('es-PE')
       });
-    } catch {
-      const tieneRiesgo = cursosCriticos.length > 0;
+    } catch (error) {
       setPlanEstudio({
-        diagnostico: tieneRiesgo
-          ? `Tu rendimiento general es competitivo (${estudiante.promedioGeneral}/20), pero necesitas asegurar la valla en ${cursosCriticos.map(c => c.nombre).join(' y ')} para garantizar tu ingreso a ${estudiante.carrera}.`
-          : `Excelente consistencia en simulacros con promedio ${estudiante.promedioGeneral}/20. Te encuentras en rango favorable para alcanzar la vacante en ${estudiante.universidadObjetivo}.`,
-        acciones: tieneRiesgo
-          ? [
-              `Priorizar 45 minutos diarios de problemas DECO en ${cursosCriticos[0]?.nombre || 'Física'}.`,
-              'Resolver a tiempo real el banco de preguntas tipo admisión del último simulacro.',
-              'Revisar las claves y justificaciones teóricas de los errores de cálculo vectorial.'
-            ]
-          : [
-              'Simulación de examen con control riguroso de 3 minutos por pregunta.',
-              'Refuerzo en preguntas trampa de Razonamiento Verbal y Matemático.',
-              'Mantener la velocidad de resolución en ciencias exactas.'
-            ],
+        diagnostico: `Tutor IA no disponible: ${error.message || 'No fue posible generar el diagnóstico.'}`,
+        acciones: [],
+        error: true,
         fecha: new Date().toLocaleDateString('es-PE')
       });
     } finally {
@@ -160,12 +148,13 @@ Historial de Simulacros: ${estudiante.simulacros.map(s => `${s.simulacro}:${s.pu
           hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
         }
       ]);
-    } catch {
+    } catch (error) {
       setMensajes(prev => [
         ...prev,
         {
           emisor: 'ia',
-          texto: `Para ingresar a ${estudiante.carrera}, te aconsejo analizar el solucionario de este último simulacro y practicar las preguntas tipo DECO de los temas que más puntos otorgan en el prospecto.`,
+          texto: `Tutor IA no disponible: ${error.message || 'No fue posible obtener una respuesta del servidor.'}`,
+          error: true,
           hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);

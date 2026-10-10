@@ -278,7 +278,7 @@ export default function AdminMaterialesPage() {
             ) : (
               <div className="space-y-3">
                 {materiales.map((material) => (
-                  <div key={material.idMaterial} className="p-4 rounded-2xl border border-slate-800 bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div key={material.idMaterial ?? material.IdMaterial} className="p-4 rounded-2xl border border-slate-800 bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-wider font-bold text-blue-300">{material.curso || 'Curso'}</p>
                       <h3 className="text-sm font-black text-white mt-1 truncate">{material.titulo}</h3>
