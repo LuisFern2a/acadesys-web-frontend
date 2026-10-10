@@ -327,7 +327,7 @@ export default function LandingPage({ onLoginSuccess }) {
         icon: 'success',
         title: resultado.esReinscripcion ? '¡Reinscripción exitosa!' : '¡Inscripción exitosa!',
         text: resultado.esReinscripcion
-          ? 'Tu matrícula fue registrada usando tu cuenta existente. Conservas tus accesos habituales.'
+          ? 'Tu matrícula fue registrada usando tu cuenta existente. Revisa tu correo para generar una contraseña temporal nueva y acceder.'
           : 'Revisa tu correo para obtener tus accesos.',
         confirmButtonText: 'Ir al inicio',
         confirmButtonColor: '#2563eb',
