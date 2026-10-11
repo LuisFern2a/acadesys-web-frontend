@@ -57,7 +57,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
       const result = await obtenerMiIntranetAlumno();
       setData(result);
     } catch (err) {
-      setError(err.message || 'No fue posible cargar tu intranet.');
+      setError(err.message || 'No fue posible cargar tu portal del alumno.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
       <div className="min-h-full flex items-center justify-center bg-slate-950 p-6">
         <div className="text-center">
           <Loader2 className="w-9 h-9 mx-auto animate-spin text-blue-400" />
-          <p className="mt-3 text-sm text-slate-400">Cargando tu intranet...</p>
+          <p className="mt-3 text-sm text-slate-400">Cargando tu portal del alumno...</p>
         </div>
       </div>
     );
@@ -133,7 +133,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
           <GraduationCap className="w-8 h-8 text-blue-400" />
           <h1 className="text-xl font-black text-white mt-4">Todavía no tienes un ciclo activo</h1>
           <p className="text-sm text-slate-400 mt-2">
-            Tu cuenta existe, pero aún no encontramos una matrícula activa. Comunícate con la administración de la academia.
+            Tu cuenta existe, pero aún no encontramos una matrícula activa para mostrar tu información preuniversitaria. Comunícate con la administración de la academia.
           </p>
         </div>
       </div>
@@ -435,3 +435,5 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     </div>
   );
 }
+
+

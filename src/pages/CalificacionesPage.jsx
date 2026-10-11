@@ -1,280 +1,127 @@
-import React from 'react';
-import { 
-  Award, 
-  TrendingUp, 
-  BookOpen, 
-  FileText, 
-  Download, 
-  AlertCircle, 
-  Sparkles,
-  ChevronRight,
-  Printer,
-  GraduationCap
-} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Award, Download, Loader2, RefreshCw, Search, Trophy, Users, AlertCircle } from 'lucide-react';
+import { obtenerCiclosPublicos, obtenerContextoNotas, obtenerMatriculasNotas, obtenerNotas } from '../services/api';
 
-export default function CalificacionesPage({ 
-  estudianteActivo, 
-  listaEstudiantes = [], 
-  onCambiarEstudiante, 
-  onIrATutorIA,
-  user
-}) {
-  const cursosPorDefecto = [
-    { id: 1, nombre: 'Álgebra Superior', parcial: 16, tareas: 18, final: 15, promedio: 16.2, materialPdf: 'Guia_Matrices_Polinomios_v2.pdf', pesoMb: '2.4 MB' },
-    { id: 2, nombre: 'Razonamiento Matemático', parcial: 17, tareas: 19, final: 18, promedio: 18.0, materialPdf: 'Compendio_Problemas_Tipo_UNI.pdf', pesoMb: '3.1 MB' },
-    { id: 3, nombre: 'Geometría del Espacio', parcial: 13, tareas: 15, final: 14, promedio: 14.0, materialPdf: 'Solucionario_Poliedros_Regulares.pdf', pesoMb: '1.8 MB' },
-    { id: 4, nombre: 'Física y Cinemática', parcial: 10, tareas: 12, final: 11, promedio: 11.0, materialPdf: 'Modulo_Cinematica_Vectorial.pdf', pesoMb: '4.2 MB' },
-    { id: 5, nombre: 'Química Orgánica', parcial: 12, tareas: 13, final: 12, promedio: 12.3, materialPdf: 'Formulario_Reacciones_Quimicas.pdf', pesoMb: '1.5 MB' }
-  ];
+const TIPOS = ['Simulacro', 'Examen', 'Practica', 'Oral', 'Tarea', 'Participacion', 'Todos'];
+const normalizarTipo = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-  const estudiante = {
-    id: estudianteActivo?.id || 1,
-    nombre: estudianteActivo?.nombre || user?.nombre || 'Jessenia Patricia',
-    codigo: estudianteActivo?.codigo || 'ACAD-2026-755',
-    aula: estudianteActivo?.aula || 'Semestral San Marcos',
-    puestoRanking: estudianteActivo?.puestoRanking || 3,
-    totalAlumnos: estudianteActivo?.totalAlumnos || 120,
-    cursos: (estudianteActivo?.cursos && estudianteActivo.cursos.length > 0) ? estudianteActivo.cursos : cursosPorDefecto
-  };
+export default function CalificacionesPage() {
+  const [ciclos, setCiclos] = useState([]);
+  const [idCiclo, setIdCiclo] = useState('');
+  const [tipo, setTipo] = useState('Simulacro');
+  const [contexto, setContexto] = useState(null);
+  const [matriculas, setMatriculas] = useState([]);
+  const [notas, setNotas] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [cargandoCiclos, setCargandoCiclos] = useState(true);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
 
-  // Cálculo reactivo de materias en riesgo y promedio ponderado
-  const cursosEnRiesgo = estudiante.cursos.filter(c => c.promedio < 13);
-  const totalCursos = estudiante.cursos.length;
-  const promedioGeneralCalculado = totalCursos > 0 
-    ? (estudiante.cursos.reduce((acc, c) => acc + c.promedio, 0) / totalCursos).toFixed(1)
-    : '0.0';
+  const cargarCiclos = useCallback(async () => {
+    setCargandoCiclos(true);
+    setError('');
+    try {
+      const lista = await obtenerCiclosPublicos();
+      setCiclos(lista);
+      setIdCiclo((actual) => actual && lista.some((c) => String(c.idCiclo) === actual)
+        ? actual : (lista.length ? String(lista[0].idCiclo) : ''));
+    } catch (err) {
+      setCiclos([]);
+      setIdCiclo('');
+      setError(err.message || 'No se pudieron cargar los ciclos.');
+    } finally { setCargandoCiclos(false); }
+  }, []);
 
-  const handleImprimir = () => {
-    window.print();
-  };
+  const cargarResultados = useCallback(async () => {
+    if (!idCiclo) { setMatriculas([]); setNotas([]); setContexto(null); return; }
+    setCargando(true);
+    setError('');
+    try {
+      const [ctx, listaMatriculas, listaNotas] = await Promise.all([
+        obtenerContextoNotas(idCiclo),
+        obtenerMatriculasNotas(idCiclo),
+        obtenerNotas()
+      ]);
+      const ids = new Set(listaMatriculas.map((m) => Number(m.idMatricula ?? m.IdMatricula)));
+      setContexto(ctx);
+      setMatriculas(listaMatriculas.map((m) => ({
+        idMatricula: Number(m.idMatricula ?? m.IdMatricula),
+        codigo: m.codigo ?? m.CodigoUsuario ?? '',
+        nombre: m.nombre ?? m.Alumno ?? ([m.Nombres, m.ApellidoPaterno, m.ApellidoMaterno].filter(Boolean).join(' ') || 'Alumno sin nombre')
+      })));
+      setNotas(listaNotas.filter((n) => ids.has(Number(n.IdMatricula ?? n.idMatricula))));
+    } catch (err) {
+      setContexto(null); setMatriculas([]); setNotas([]);
+      setError(err.message || 'No se pudo cargar el cuadro de mérito del ciclo.');
+    } finally { setCargando(false); }
+  }, [idCiclo]);
 
-  const handleDescargar = (archivo) => {
-    alert(`Descargando material: ${archivo}`);
+  useEffect(() => { cargarCiclos(); }, [cargarCiclos]);
+  useEffect(() => { if (!cargandoCiclos) cargarResultados(); }, [cargandoCiclos, cargarResultados]);
+
+  const resultados = useMemo(() => {
+    const tipoFiltro = normalizarTipo(tipo);
+    const lista = matriculas.map((m) => {
+      const evaluaciones = notas.filter((n) => Number(n.IdMatricula ?? n.idMatricula) === m.idMatricula &&
+        (tipo === 'Todos' || normalizarTipo(n.TipoEvaluacion ?? n.tipoEvaluacion) === tipoFiltro));
+      const puntajes = evaluaciones.map((n) => Number(n.Calificacion ?? n.calificacion)).filter(Number.isFinite);
+      const promedio = puntajes.length ? puntajes.reduce((a,b) => a + b, 0) / puntajes.length : null;
+      return { ...m, evaluaciones: puntajes.length, promedio };
+    }).filter((m) => !busqueda.trim() || `${m.nombre} ${m.codigo}`.toLowerCase().includes(busqueda.trim().toLowerCase()));
+    lista.sort((a,b) => {
+      if (a.promedio === null && b.promedio === null) return a.nombre.localeCompare(b.nombre);
+      if (a.promedio === null) return 1;
+      if (b.promedio === null) return -1;
+      return b.promedio - a.promedio || a.nombre.localeCompare(b.nombre);
+    });
+    let last = null; let lastRank = 0;
+    return lista.map((m,index) => {
+      const rank = m.promedio === null ? null : (last !== null && Math.abs(m.promedio - last) < 0.000001 ? lastRank : index + 1);
+      if (m.promedio !== null) { last = m.promedio; lastRank = rank; }
+      const total = lista.filter((x) => x.promedio !== null).length;
+      const percentile = rank && total ? rank / total : null;
+      const clasificacion = !rank ? 'Sin evaluación' : rank === 1 ? 'Primer puesto' : percentile <= .10 ? 'Top 10%' : percentile <= .25 ? 'Top 25%' : 'En ranking';
+      return { ...m, puesto: rank, clasificacion };
+    });
+  }, [matriculas, notas, tipo, busqueda]);
+
+  const totalConNota = resultados.filter((r) => r.promedio !== null).length;
+  const escalaMaxima = Number(contexto?.escalaMaxima || 0);
+  const cicloActual = ciclos.find((c) => String(c.idCiclo) === String(idCiclo));
+
+  const exportarCSV = () => {
+    const rows = [
+      ['Puesto','Código','Alumno','Ciclo','Tipo de evaluación','Promedio','Escala máxima','Evaluaciones','Clasificación'],
+      ...resultados.map((r) => [r.puesto ?? '', r.codigo, r.nombre, contexto?.ciclo || cicloActual?.nombre || '', tipo, r.promedio === null ? '' : r.promedio.toFixed(2), escalaMaxima || '', r.evaluaciones, r.clasificacion])
+    ];
+    const csv = rows.map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `cuadro-merito-ciclo-${idCiclo || 'sin-ciclo'}.csv`; a.click(); URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-full print:p-0 print:bg-white">
-      {/* CABECERA MEMBRETADA OFICIAL (SOLO VISIBLE AL IMPRIMIR / PDF) */}
-      <div className="hidden print:block mb-8 border-b-2 border-slate-900 pb-4">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-900 p-2 rounded-xl text-white">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">ACADESYS</h1>
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">
-                Academia Preuniversitaria
-              </p>
-            </div>
-          </div>
-          <div className="text-right text-xs text-slate-600">
-            <h2 className="text-sm font-bold text-slate-800 uppercase">Boleta Oficial de Resultados</h2>
-            <p>Periodo: Ciclo Actual</p>
-            <p>Fecha de emisión: {new Date().toLocaleDateString('es-PE')}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <div>
-            <p><span className="font-bold text-slate-700">Estudiante:</span> {estudiante.nombre}</p>
-            <p><span className="font-bold text-slate-700">Código:</span> {estudiante.codigo}</p>
-          </div>
-          <div>
-            <p><span className="font-bold text-slate-700">Ciclo Académico:</span> <strong className="text-slate-800">{estudiante.aula}</strong></p>
-            <p><span className="font-bold text-slate-700">Puesto en el Ciclo:</span> <strong className="text-slate-800">#{estudiante.puestoRanking}</strong></p>
-          </div>
-        </div>
-      </div>
-
-      {/* HEADER DE PANTALLA (OCULTO AL IMPRIMIR) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Rendimiento Académico</h2>
-          <p className="text-slate-500 text-sm mt-1">
-            {/* Aquí mostramos el nombre del estudiante y el ciclo al que pertenece */}
-            Estudiante: <strong className="text-slate-700">{estudianteActivo?.nombre || user?.nombre || 'Jessenia Patricia'}</strong>
-            <span className="mx-2">|</span>
-            Ciclo: <strong className="text-indigo-600">{estudianteActivo?.aula || 'Semestral San Marcos'}</strong>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={handleImprimir} 
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm cursor-pointer"
-          >
-            <Printer className="w-4 h-4" /> Exportar PDF
-          </button>
-        </div>
-      </div>
-
-      {/* MÉTRICAS SUPERIORES CON ARITMÉTICA EXACTA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 print:hidden">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Award className="w-4 h-4 text-amber-500" /> Ranking del Ciclo
-          </p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-black text-slate-800">Puesto #{estudianteActivo?.puestoRanking || 1}</span>
-            {/* Lo dejamos limpio, solo el puesto */}
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200/50 flex items-center justify-center text-indigo-600 shrink-0">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Puntaje Promedio</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-slate-800">{promedioGeneralCalculado}</span>
-              <span className="text-xs text-slate-500 font-medium">/ 20</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200/50 flex items-center justify-center text-rose-600 shrink-0">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cursos en Riesgo</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-2xl font-bold text-rose-600">
-                {cursosEnRiesgo.length} {cursosEnRiesgo.length === 1 ? 'Curso' : 'Cursos'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 rounded-2xl text-white shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs text-indigo-300 font-semibold">
-              <Sparkles className="w-4 h-4" /> Tutor IA
-            </div>
-            <p className="text-xs text-indigo-100 line-clamp-2 mt-1">
-              Revisar sugerencias pedagógicas personalizadas para {estudiante.nombre ? estudiante.nombre.split(' ')[0] : 'el estudiante'}.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onIrATutorIA}
-            className="text-xs text-indigo-300 hover:text-white font-medium flex items-center gap-1 mt-2 transition cursor-pointer"
-          >
-            Ver diagnóstico completo <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* TABLA DE ASIGNATURAS */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 mb-8 overflow-hidden print:border print:border-slate-300 print:shadow-none print:rounded-none">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between print:py-2">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-indigo-600 print:text-slate-900" />
-            <h2 className="font-bold text-slate-800 text-base">Boleta de Rendimiento Académico</h2>
-          </div>
-          <span className="text-xs text-slate-400 font-medium print:text-slate-600">
-            Escala vigesimal (0 - 20) • Ponderación: Parcial (30%) + Simulacros (30%) + Final (40%)
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider print:bg-slate-100 print:text-slate-900">
-                <th className="py-3 px-4 print:py-2 print:px-3">Asignatura</th>
-                {/* ELIMINADO <th>DOCENTE</th> */}
-                <th className="py-3 px-4 text-center print:py-2 print:px-2">Ex. Parcial (30%)</th>
-                <th className="py-3 px-4 text-center print:py-2 print:px-2">Simulacros (30%)</th>
-                <th className="py-3 px-4 text-center print:py-2 print:px-2">Ex. Final (40%)</th>
-                <th className="py-3 px-4 text-center print:py-2 print:px-2">Promedio</th>
-                <th className="py-3 px-4 text-center print:py-2 print:px-2">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm print:divide-slate-200">
-              {estudiante.cursos.map((curso) => {
-                const enRiesgo = curso.promedio < 13;
-                return (
-                  <tr key={curso.id} className="hover:bg-slate-50/50 transition-colors print:hover:bg-transparent">
-                    <td className="py-3 px-4 font-semibold text-slate-800 print:py-2 print:px-3">{curso.nombre}</td>
-                    {/* ELIMINADO <td>{curso.docente}</td> */}
-                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.parcial}</td>
-                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.tareas}</td>
-                    <td className="py-3 px-4 text-center text-slate-600 font-mono text-xs print:py-2 print:px-2">{curso.final}</td>
-                    <td className="py-3 px-4 text-center font-bold text-slate-800 font-mono print:py-2 print:px-2">
-                      <span className={enRiesgo ? 'text-rose-600 font-bold' : 'text-slate-800'}>
-                        {curso.promedio.toFixed(1)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center print:py-2 print:px-2">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        enRiesgo
-                          ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                      }`}>
-                        {enRiesgo ? 'En Riesgo' : 'Aprobado'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot className="hidden print:table-footer-group border-t-2 border-slate-900 text-xs font-bold text-slate-900">
-              <tr>
-                <td colSpan={4} className="py-3 px-3 text-right">PUNTAJE PROMEDIO GENERAL:</td>
-                <td className="py-3 px-3 text-center text-sm">{promedioGeneralCalculado} / 20</td>
-                <td className="py-3 px-3 text-center">
-                  {Number(promedioGeneralCalculado) >= 13 ? 'APROBADO' : 'OBSERVADO'}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-
-      {/* SECCIÓN DE FIRMAS PARA IMPRESIÓN */}
-      <div className="hidden print:flex justify-between mt-12 text-xs font-bold text-slate-500 text-center">
-        <div className="border-t border-slate-400 pt-2 w-48">
-          Coordinación Académica
-          <br />
-          <span className="font-normal text-slate-500">AcadeSys Pre-U</span>
-        </div>
-        <div className="border-t border-slate-400 pt-2 w-48">
-          Firma del Estudiante
-          <br />
-          <span className="font-normal text-slate-500">Conformidad de Resultados</span>
-        </div>
-      </div>
-
-      {/* RECURSOS Y MATERIALES DE ESTUDIO */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 print:hidden">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText className="w-5 h-5 text-indigo-600" />
-          <h2 className="font-bold text-slate-800 text-base">Recursos y Materiales de Refuerzo</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {estudiante.cursos.map((c) => (
-            <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between hover:bg-slate-50 transition-colors">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 bg-rose-50 border border-rose-100 rounded-lg text-rose-600 shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="overflow-hidden">
-                  <span className="block text-xs font-bold text-slate-800 truncate">{c.materialPdf}</span>
-                  <span className="text-[11px] text-slate-400">{c.nombre} • {c.pesoMb}</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDescargar(c.materialPdf)}
-                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" /> Descargar Material
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="min-h-full space-y-6 bg-slate-50 p-6 text-slate-900 md:p-10">
+      <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-center md:justify-between">
+        <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700"><Trophy className="h-4 w-4"/> RESULTADOS PREUNIVERSITARIOS</div><h1 className="text-3xl font-black">Simulacros y cuadro de mérito</h1><p className="mt-1 text-sm text-slate-500">El ranking se calcula dentro del ciclo seleccionado y según las evaluaciones registradas en la base de datos.</p></div>
+        <div className="flex gap-2"><button onClick={cargarResultados} disabled={cargando || !idCiclo} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold hover:bg-slate-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`}/> Actualizar</button><button onClick={exportarCSV} disabled={!resultados.length} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 disabled:opacity-50"><Download className="h-4 w-4"/> Exportar CSV</button></div>
+      </header>
+      {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"><AlertCircle className="h-5 w-5 shrink-0"/>{error}</div>}
+      <section className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
+        <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Ciclo
+          <select value={idCiclo} onChange={(e) => setIdCiclo(e.target.value)} disabled={cargandoCiclos || !ciclos.length} className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">{!ciclos.length && <option value="">No hay ciclos activos</option>}{ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}</select>
+        </label>
+        <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Evaluación para el ranking
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">{TIPOS.map((t) => <option key={t} value={t}>{t === 'Todos' ? 'Todas las evaluaciones (promedio)' : t}</option>)}</select>
+        </label>
+        <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 text-sm"><span><strong>{contexto?.ciclo || cicloActual?.nombre || 'Sin ciclo seleccionado'}</strong>{contexto?.universidadObjetivo ? ` · ${contexto.universidadObjetivo}` : ''}</span><span className="text-slate-500">Escala de puntaje: {escalaMaxima || 'no disponible'} · Alumnos matriculados: {matriculas.length} · Con nota: {totalConNota}</span></div>
+      </section>
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3"><div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Alumnos en el ciclo</p><p className="mt-2 text-3xl font-black">{cargando ? '…' : matriculas.length}</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Con evaluaciones</p><p className="mt-2 text-3xl font-black text-indigo-700">{cargando ? '…' : totalConNota}</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Primera posición actual</p><p className="mt-2 text-3xl font-black text-amber-600">{cargando ? '…' : resultados.find((r) => r.puesto === 1)?.nombre || 'Sin resultados'}</p></div></section>
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between"><h2 className="font-bold">Clasificación por ciclo</h2><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar alumno o código..." className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-indigo-400 md:w-72"/></div></div>
+        {cargando || cargandoCiclos ? <div className="p-10 text-center text-slate-500"><Loader2 className="mx-auto mb-2 h-7 w-7 animate-spin"/>Cargando resultados reales...</div> : resultados.length === 0 ? <div className="p-10 text-center"><Users className="mx-auto h-8 w-8 text-slate-300"/><p className="mt-3 font-bold">No hay alumnos que coincidan con el ciclo y el filtro.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4">Puesto</th><th className="px-5 py-4">Código</th><th className="px-5 py-4">Alumno</th><th className="px-5 py-4">Promedio</th><th className="px-5 py-4">Evaluaciones</th><th className="px-5 py-4">Clasificación</th></tr></thead><tbody>{resultados.map((r) => <tr key={r.idMatricula} className="border-t border-slate-100 hover:bg-slate-50/80"><td className="px-5 py-4 font-black">{r.puesto ? `#${r.puesto}` : '—'}</td><td className="px-5 py-4 font-mono text-xs text-slate-500">{r.codigo || '—'}</td><td className="px-5 py-4 font-semibold">{r.nombre}</td><td className="px-5 py-4 font-black">{r.promedio === null ? '—' : `${r.promedio.toFixed(2)} / ${escalaMaxima || '?'}`}</td><td className="px-5 py-4">{r.evaluaciones}</td><td className="px-5 py-4"><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${r.puesto === 1 ? 'border-amber-200 bg-amber-50 text-amber-700' : r.promedio === null ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>{r.clasificacion}</span></td></tr>)}</tbody></table></div>}
+        <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Criterio: promedio de las evaluaciones seleccionadas. Los alumnos sin notas se muestran al final y no reciben puesto. Los empates comparten posición.</div>
+      </section>
     </div>
   );
 }

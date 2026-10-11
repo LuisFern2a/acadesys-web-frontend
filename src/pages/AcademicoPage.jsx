@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Layers,
@@ -30,6 +31,7 @@ import {
   obtenerUsuarios,
   obtenerCiclosPublicos,
   obtenerCiclosAdmin,
+  obtenerDetalleCicloAdmin,
   crearCicloAdmin,
   actualizarCicloAdmin,
   eliminarCicloAdmin,
@@ -71,7 +73,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   // Formularios
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
-  const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', idAula: '', horas: 4 });
+  const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', horas: 4 });
   const [formCiclo, setFormCiclo] = useState({
     tipo: 'Anual',
     universidadObjetivo: 'UNMSM',
@@ -82,7 +84,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     horario: '08:00 - 13:00',
     fechaInicio: '',
     fechaFin: '',
-    capacidad: 250,
+    capacidad: 100,
     precio: '',
     diasClase: 'Lunes a Viernes',
     prefijoCodigo: '',
@@ -143,11 +145,19 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       nombre: c.nombre ?? c.Nombre ?? '',
       turno: c.turno ?? c.Turno ?? '',
       horario: c.horario ?? c.Horario ?? '',
-      capacidad: Number(c.capacidad ?? c.Capacidad ?? 0),
+      capacidad: Math.min(100, Number(c.capacidad ?? c.Capacidad ?? 100) || 100),
       universidadObjetivo: c.universidadObjetivo ?? c.UniversidadObjetivo ?? '',
       diasClase: c.diasClase ?? c.DiasClase ?? '',
+      fechaInicio: c.fechaInicio ?? c.FechaInicio ?? null,
+      fechaFin: c.fechaFin ?? c.FechaFin ?? null,
+      precio: Number(c.precio ?? c.Precio ?? 0),
+      prefijoCodigo: c.prefijoCodigo ?? c.PrefijoCodigo ?? '',
+      publicar: Number(c.estadoRegistro ?? c.EstadoRegistro ?? 0) === 1,
+      estado: Number(c.estadoRegistro ?? c.EstadoRegistro ?? 0) === 1 ? 'Activo' : 'Cerrado',
       totalAlumnos: Number(c.totalAlumnos ?? c.TotalAlumnos ?? 0),
       totalCursos: Number(c.totalCursos ?? c.TotalCursos ?? 0),
+      alumnos: Number(c.totalAlumnos ?? c.TotalAlumnos ?? 0),
+      cursos: Number(c.totalCursos ?? c.TotalCursos ?? 0),
     }));
     const listaDocentes = (Array.isArray(usuariosRaw) ? usuariosRaw : []).filter((u) => {
       const perfil = String(u.Perfil ?? u.NombrePerfil ?? u.perfil ?? '').toLowerCase();
@@ -164,7 +174,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       const userId = String(prev.idUsuario || '');
       const cycleId = String(prev.idCiclo || '');
       const courseId = String(prev.idCurso || '');
-      const roomId = String(prev.idAula || '');
       return {
         ...prev,
         idUsuario: listaDocentes.some((u) => String(u.IdUsuario ?? u.idUsuario) === userId)
@@ -173,8 +182,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           ? cycleId : String(listaCiclos[0]?.idCiclo ?? ''),
         idCurso: listaCursos.some((c) => String(c.idCurso) === courseId)
           ? courseId : String(listaCursos[0]?.idCurso ?? ''),
-        idAula: listaAulas.some((a) => String(a.idAula) === roomId)
-          ? roomId : String(listaAulas[0]?.idAula ?? ''),
       };
     });
   };
@@ -186,7 +193,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       idUsuario: String(usuarios[0]?.IdUsuario ?? usuarios[0]?.idUsuario ?? ''),
       idCiclo: String(ciclos[0]?.idCiclo ?? ''),
       idCurso: String(cursos[0]?.idCurso ?? ''),
-      idAula: String(aulas[0]?.idAula ?? ''),
       horas: 4,
     });
     setFormCiclo({
@@ -199,7 +205,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       horario: '08:00 - 13:00',
       fechaInicio: '',
       fechaFin: '',
-      capacidad: 250,
+      capacidad: 100,
       precio: '',
       diasClase: 'Lunes a Viernes',
       prefijoCodigo: '',
@@ -233,8 +239,18 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
     setModalAbierto(true);
   };
-  const abrirEditarCiclo = (ciclo) => {
+  const abrirEditarCiclo = async (ciclo) => {
     setEditandoId(ciclo.idCiclo);
+    setErrorCiclo('');
+    let cursosSeleccionados = [];
+    try {
+      const detalle = await obtenerDetalleCicloAdmin(ciclo.idCiclo);
+      cursosSeleccionados = (detalle.cursos || [])
+        .map((curso) => Number(curso.IdCurso ?? curso.idCurso))
+        .filter((id) => Number.isInteger(id) && id > 0);
+    } catch (error) {
+      setErrorCiclo(error.message || 'No se pudo cargar la oferta de cursos de este ciclo.');
+    }
     setFormCiclo({
       tipo: ciclo.nombre?.includes('Semestral') ? 'Semestral' : ciclo.nombre?.includes('Intensivo') ? 'Intensivo' : ciclo.nombre?.includes('Repaso') ? 'Repaso' : 'Anual',
       universidadObjetivo: ciclo.universidadObjetivo || 'UNMSM',
@@ -245,15 +261,14 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       horario: ciclo.horario || '08:00 - 13:00',
       fechaInicio: String(ciclo.fechaInicio || '').slice(0, 10),
       fechaFin: String(ciclo.fechaFin || '').slice(0, 10),
-      capacidad: Number(ciclo.capacidad || 250),
+      capacidad: Math.min(100, Number(ciclo.capacidad || 100)),
       precio: Number(ciclo.precio || 0),
       diasClase: ciclo.diasClase || 'Lunes a Viernes',
       prefijoCodigo: ciclo.prefijoCodigo || '',
       publicar: Boolean(ciclo.publicar),
-      cursosSeleccionados: []
+      cursosSeleccionados
     });
     setPasoCiclo(1);
-    setErrorCiclo('');
     setModalAbierto(true);
   };
   const abrirEditarTurno = (turno) => {
@@ -281,7 +296,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const formularioActualValido = (() => {
     if (tabActiva === 'cursos') return nombreValido(formCurso.nombre) && codigoCursoValido(formCurso.codigo);
     if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
-    if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && formAsig.idAula && Number(formAsig.horas) >= 1);
+    if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && Number(formAsig.horas) >= 1);
     if (tabActiva === 'turnos') return Boolean(
       formTurno.idCiclo &&
       formTurno.idCurso &&
@@ -316,12 +331,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
         if (editandoId) await actualizarCurso(editandoId, payload);
         else await crearCurso(payload);
       } else if (tabActiva === 'asignaciones') {
-        if (!formularioActualValido) throw new Error('Selecciona un docente, ciclo, curso y aula, e indica las horas semanales.');
+        if (!formularioActualValido) throw new Error('Selecciona un docente, ciclo y curso, e indica las horas semanales.');
         await crearAsignacionDocente({
           idUsuario: Number(formAsig.idUsuario),
           idCiclo: Number(formAsig.idCiclo),
           idCurso: Number(formAsig.idCurso),
-          idAula: Number(formAsig.idAula),
           horas: Number(formAsig.horas),
         });
       } else if (tabActiva === 'turnos') {
@@ -401,12 +415,12 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     }
     if (paso === 2) {
       const nombre = formCiclo.nombre.trim();
-      if (nombre.length < 5 || nombre.length > 80) return 'El nombre debe tener entre 5 y 80 caracteres.';
+      if (nombre.length < 10 || nombre.length > 100) return 'El nombre del ciclo debe tener entre 10 y 100 caracteres.';
     }
     if (paso === 3) {
       if (!formCiclo.fechaInicio || !formCiclo.fechaFin) return 'Completa las fechas del ciclo.';
       if (new Date(formCiclo.fechaFin) <= new Date(formCiclo.fechaInicio)) return 'La fecha final debe ser posterior a la fecha de inicio.';
-      if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 500) return 'La capacidad debe estar entre 1 y 500.';
+      if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 100) return 'La capacidad del ciclo debe estar entre 1 y 100 alumnos.';
       if (formCiclo.precio === '' || !Number.isFinite(Number(formCiclo.precio)) || Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
     }
     if (paso === 4 && cursos.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
@@ -465,6 +479,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       fechaInicio: formCiclo.fechaInicio,
       fechaFin: formCiclo.fechaFin,
       capacidad: Number(formCiclo.capacidad),
+      cursosSeleccionados: formCiclo.cursosSeleccionados.map(Number),
       precio: Number(formCiclo.precio),
       diasClase: formCiclo.diasClase.trim(),
       prefijoCodigo: formCiclo.prefijoCodigo.trim() || formCiclo.universidadObjetivo.slice(0, 4).toUpperCase(),
@@ -498,7 +513,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const asignacionesFiltradas = asignaciones.filter(a =>
     (a.docente || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (a.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (a.aula || '').toLowerCase().includes(busqueda.toLowerCase())
+    (a.ciclo || '').toLowerCase().includes(busqueda.toLowerCase())
   );
   const ciclosFiltrados = ciclos.filter((ciclo) =>
     (ciclo.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -524,7 +539,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             <div>
               <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Gestión Académica</h1>
               <p className="text-slate-600 text-sm mt-0.5">
-                Gestión de ciclos, aulas, cursos y distribución de carga horaria docente
+                Organiza ciclos, cursos, horarios y asignaciones docentes de la academia
               </p>
             </div>
           </div>
@@ -587,18 +602,6 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
         </button>
         <button
           type="button"
-          onClick={() => setTabActiva('aulas')}
-          className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            tabActiva === 'aulas'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-600 hover:text-slate-800'
-          }`}
-        >
-          <School className="w-4 h-4" />
-          Aulas ({aulas.length})
-        </button>
-        <button
-          type="button"
           onClick={() => setTabActiva('cursos')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'cursos'
@@ -616,7 +619,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por curso, docente, código o aula..."
+            placeholder="Buscar por ciclo, curso, docente o código..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full bg-transparent outline-none text-slate-700 text-xs"
@@ -650,7 +653,9 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             </div>
           ) : (
             ciclosFiltrados.map((ciclo) => {
-              const vacantes = Math.max(Number(ciclo.capacidad || 0) - Number(ciclo.alumnos || 0), 0);
+              const capacidad = Math.min(100, Number(ciclo.capacidad || 100));
+              const totalAlumnos = Number(ciclo.totalAlumnos ?? ciclo.alumnos ?? 0);
+              const vacantes = Math.max(capacidad - totalAlumnos, 0);
               return (
                 <div key={ciclo.idCiclo} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
                   <div className="flex items-start justify-between gap-3">
@@ -673,8 +678,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   <div className="space-y-2.5 mt-4 text-sm text-slate-600">
                     <div className="flex items-center justify-between"><span>Turno</span><strong className="text-slate-800">{ciclo.turno}</strong></div>
                     <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-800">{ciclo.horario}</strong></div>
-                    <div className="flex items-center justify-between"><span>Estudiantes</span><strong className="text-slate-800">{ciclo.alumnos}</strong></div>
-                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-indigo-600">{vacantes}</strong></div>
+                    <div className="flex items-center justify-between"><span>Estudiantes</span><strong className="text-slate-800">{totalAlumnos}</strong></div>
+                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-indigo-600">{vacantes} / {capacidad}</strong></div>
                     <div className="flex items-center justify-between"><span>Cursos</span><strong className="text-slate-800">{ciclo.cursos}</strong></div>
                   </div>
                 </div>
@@ -861,7 +866,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           <div className={`bg-white rounded-2xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-2xl border border-slate-100`}>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-800">
-                {tabActiva === 'asignaciones' && 'Asignar Docente a Curso y Aula'}
+                {tabActiva === 'asignaciones' && 'Asignar Docente a Curso y Ciclo'}
                 {tabActiva === 'aulas' && (editandoId ? 'Editar Aula' : 'Registrar Nueva Aula')}
                 {tabActiva === 'cursos' && (editandoId ? 'Editar Curso' : 'Registrar Nuevo Curso')}
                 {tabActiva === 'ciclos' && (editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo')}
@@ -926,7 +931,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   {pasoCiclo === 2 && (
                     <div>
                       <CampoCiclo label="Nombre oficial del ciclo">
-                        <input value={formCiclo.nombre} maxLength={80} onChange={(e) => setFormCiclo({ ...formCiclo, nombre: e.target.value })} className="campo-ciclo" placeholder={`Ciclo ${formCiclo.tipo} ${formCiclo.universidadObjetivo} ${formCiclo.periodo}`} />
+                        <input value={formCiclo.nombre} maxLength={100} onChange={(e) => setFormCiclo({ ...formCiclo, nombre: e.target.value })} className="campo-ciclo" placeholder={`Ciclo ${formCiclo.tipo} ${formCiclo.universidadObjetivo} ${formCiclo.periodo}`} />
                       </CampoCiclo>
                       <button type="button" onClick={() => setFormCiclo({ ...formCiclo, nombre: `Ciclo ${formCiclo.tipo} ${formCiclo.universidadObjetivo} ${formCiclo.periodo}` })} className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800">
                         Usar nombre sugerido
@@ -937,7 +942,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Fecha de inicio"><input type="date" value={formCiclo.fechaInicio} onChange={(e) => setFormCiclo({ ...formCiclo, fechaInicio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Fecha de fin"><input type="date" value={formCiclo.fechaFin} onChange={(e) => setFormCiclo({ ...formCiclo, fechaFin: e.target.value })} className="campo-ciclo" /></CampoCiclo>
-                      <CampoCiclo label="Capacidad"><input type="number" min="1" max="500" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
+                      <CampoCiclo label="Capacidad"><input type="number" min="1" max="100" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Precio (S/)"><input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precio} onChange={(e) => setFormCiclo({ ...formCiclo, precio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                     </div>
                   )}
@@ -1104,12 +1109,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">Aula destino</label>
-                    <select required value={formAsig.idAula} onChange={(e) => setFormAsig({ ...formAsig, idAula: e.target.value })} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
-                      <option value="">Selecciona un aula</option>
-                      {aulas.map((a) => <option key={a.idAula} value={a.idAula}>{a.nombre}</option>)}
-                    </select>
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs leading-relaxed text-indigo-800">
+                    La carga docente se organiza por ciclo y curso. El sistema gestiona internamente el registro técnico de aula; no necesitas seleccionar ni administrar un aula.
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Horas semanales</label>

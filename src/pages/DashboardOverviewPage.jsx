@@ -37,12 +37,11 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value) ? resCiclos.value : [];
 
         // Filtro real de alumnos
-        const estudiantes = listUsuarios.filter(u => 
-          Number(u.idPerfil || u.IdPerfil) === 4 || 
-          u.rol?.toLowerCase() === 'alumno' || 
-          u.rol?.toLowerCase() === 'estudiante'
-        );
-        setTotalEstudiantes(estudiantes.length > 0 ? estudiantes.length : listUsuarios.length);
+        const estudiantes = listUsuarios.filter((u) => {
+          const rol = String(u.rol || u.Rol || u.Perfil || u.NombrePerfil || u.perfil || '').trim().toLowerCase();
+          return rol.includes('alumno') || rol.includes('estudiante');
+        });
+        setTotalEstudiantes(estudiantes.length);
         setCiclos(listCiclos);
 
         // 2. Métrica Institucional Global de Morosidad (Recorre todos los ciclos activos dinámicamente)
@@ -59,9 +58,9 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
           resultadosPagos.forEach(listPagos => {
             if (Array.isArray(listPagos)) {
               listPagos.forEach(p => {
-                const estado = String(p.estado || p.estadoPago || '').toLowerCase();
+                const estado = String(p.estado || p.Estado || p.estadoPago || '').toLowerCase();
                 if (['pendiente', 'vencido', 'moroso'].includes(estado)) {
-                  mapaMorosos.add(p.idAlumno || p.correo || p.alumno);
+                  mapaMorosos.add(p.idUsuario || p.IdUsuario || p.idAlumno || p.correo || p.alumno);
                 }
               });
             }
@@ -69,18 +68,13 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
 
           conteoMorososGlobal = mapaMorosos.size;
         } else {
-          // Intentar consulta global si no hay array de ciclos
-          const pagosGlobales = await obtenerPagosPorCiclo().catch(() => []);
-          if (Array.isArray(pagosGlobales)) {
-            conteoMorososGlobal = pagosGlobales.filter(p => 
-              ['pendiente', 'vencido', 'moroso'].includes(String(p.estado || p.estadoPago || '').toLowerCase())
-            ).length;
-          }
+          // Sin ciclos activos, no existe una cartera morosa que consolidar.
+          conteoMorososGlobal = 0;
         }
         setTotalMorosos(conteoMorososGlobal);
 
         // 3. Promedio Institucional Dinámico (vacío o cargado según respuesta del backend)
-        setPromedioGeneral('--');
+        setPromedioGeneral('--'); // Se mantiene sin registros hasta disponer de una fuente agregada real.
 
       } catch (err) {
         console.error('Error al cargar métricas del dashboard:', err);
@@ -165,7 +159,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
             </div>
             <button
               type="button"
-              onClick={() => setActiveTab('academico')}
+              onClick={() => setActiveTab('academico-ciclos')}
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 cursor-pointer"
             >
               <span>Gestionar Ciclos</span>
@@ -244,3 +238,4 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
     </div>
   );
 }
+

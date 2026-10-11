@@ -13,7 +13,6 @@ import RegistroNotasPage from './pages/RegistroNotasPage';
 import ComunicadosPage from './pages/ComunicadosPage';
 import MorosidadPage from './pages/MorosidadPage';
 import OfflineFallback from './components/OfflineFallback';
-import TutorDashboardPage from './pages/TutorDashboardPage';
 import StudentIntranetPage from './pages/StudentIntranetPage';
 import AdminMaterialesPage from './pages/AdminMaterialesPage';
 import { obtenerMiIntranetAlumno } from './services/api';
@@ -176,14 +175,6 @@ export default function App() {
                 <DashboardOverviewPage setActiveTab={handleTabChange} />
               )}
 
-              {activeTab === 'tutor-dashboard' && (esAdmin || esTutor) && (
-                <TutorDashboardPage setActiveTab={handleTabChange} />
-              )}
-
-              {activeTab === 'matriculas' && (esAdmin || esTutor) && (
-                <UsuariosPage />
-              )}
-
               {activeTab === 'comunicados' && (
                 <ComunicadosPage user={session} />
               )}
@@ -236,3 +227,4 @@ export default function App() {
     </OfflineFallback>
   );
 }
+

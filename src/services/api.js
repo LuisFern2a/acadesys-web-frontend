@@ -247,8 +247,9 @@ export const registrarMatriculaAgil = crearMatricula;
 // HU-04: MÃ“DULO DE FINANZAS, PAGOS Y MOROSIDAD
 // ==========================================
 
-export async function obtenerPagosPorCiclo(idCiclo = 1) {
-  const response = await fetchWithAuth(`/api/pagos/ciclo/${idCiclo}`);
+export async function obtenerPagosPorCiclo(idCiclo) {
+  if (!idCiclo) throw new Error('Debe seleccionar un ciclo para consultar los pagos.');
+  const response = await fetchWithAuth(`/api/pagos/ciclo/${encodeURIComponent(idCiclo)}`);
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
@@ -555,6 +556,37 @@ export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
   if (Array.isArray(data.data)) return data.data;
   if (Array.isArray(data.asistencias)) return data.asistencias;
   return [];
+}
+
+export async function obtenerAsistenciaPorCiclo(idCiclo, fecha) {
+  if (!idCiclo) throw new Error('Debe seleccionar un ciclo.');
+  if (!fecha) throw new Error('Debe seleccionar una fecha.');
+  const params = new URLSearchParams({ idCiclo: String(idCiclo), fecha: String(fecha) });
+  const response = await fetchWithAuth(`/api/asistencias?${params.toString()}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.asistencias)) return data.asistencias;
+  return [];
+}
+
+export async function guardarAsistenciaPorCiclo(idCiclo, fecha, listaAlumnos) {
+  if (!idCiclo) throw new Error('Debe seleccionar un ciclo.');
+  if (!fecha) throw new Error('Debe seleccionar una fecha.');
+  if (!Array.isArray(listaAlumnos) || listaAlumnos.length === 0) throw new Error('No hay alumnos para guardar la asistencia.');
+  const response = await fetchWithAuth('/api/asistencias', {
+    method: 'POST',
+    body: JSON.stringify({ idCiclo, fecha, listaAlumnos })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
 }
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
@@ -1014,6 +1046,7 @@ export async function crearCicloAdmin(datosCiclo) {
     fechaInicio: datosCiclo.fechaInicio || null,
     fechaFin: datosCiclo.fechaFin || null,
     capacidad: Number(datosCiclo.capacidad),
+    cursosSeleccionados: Array.isArray(datosCiclo.cursosSeleccionados) ? datosCiclo.cursosSeleccionados.map(Number) : [],
     precio: Number(datosCiclo.precio),
     diasClase: String(datosCiclo.diasClase || '').trim(),
     prefijoCodigo: String(datosCiclo.prefijoCodigo || '').trim(),
@@ -1086,3 +1119,5 @@ export async function eliminarCicloAdmin(idCiclo) {
 
   return data;
 }
+
+

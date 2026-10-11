@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Bell,
   GraduationCap,
+  BookOpen,
   LogOut,
   BrainCircuit,
   Award,
@@ -17,10 +18,8 @@ import {
   CalendarClock,
   ClipboardCheck,
   Megaphone,
-  UserPlus,
   FileUp,
-  BadgeAlert,
-  FolderOpen
+  BadgeAlert
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 
@@ -95,8 +94,8 @@ export default function DashboardLayout({
 
   const itemsNavegacion = [
     {
-      id: 'dashboard',
-      label: 'Dashboard General',
+      id: (rolUsuario.includes('alumno') || rolUsuario.includes('estudiante')) ? 'student-home' : 'dashboard',
+      label: (rolUsuario.includes('alumno') || rolUsuario.includes('estudiante')) ? 'Inicio del Alumno' : 'Resumen de la Academia',
       icon: LayoutDashboard,
       rolesPermitidos: [
         'administrador',
@@ -109,14 +108,40 @@ export default function DashboardLayout({
     },
 
     {
-      id: 'matriculas',
-      label: 'Matrícula Ágil',
-      icon: UserPlus,
-      rolesPermitidos: [
-        'administrador',
-        'admin',
-        'tutor de aula'
-      ]
+      id: 'student-ciclo',
+      label: 'Mi Ciclo',
+      icon: GraduationCap,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
+      id: 'student-horario',
+      label: 'Mi Horario',
+      icon: CalendarClock,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
+      id: 'student-cursos',
+      label: 'Mis Cursos',
+      icon: BookOpen,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
+      id: 'student-notas',
+      label: 'Mis Resultados',
+      icon: Award,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
+      id: 'student-materiales',
+      label: 'Materiales de Estudio',
+      icon: FileUp,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
+      id: 'student-perfil',
+      label: 'Mi Perfil',
+      icon: Users,
+      rolesPermitidos: ['alumno', 'estudiante']
     },
 
     {
@@ -141,18 +166,13 @@ export default function DashboardLayout({
           icon: CalendarClock
         },
         {
-          id: 'academico',
-          label: 'Aulas y Cursos',
-          icon: FolderOpen
-        },
-        {
           id: 'asistencia',
-          label: 'Control Asistencia',
+          label: 'Asistencia por Ciclo',
           icon: CalendarCheck
         },
         {
           id: 'registro-notas',
-          label: 'Registro Simulacros',
+          label: 'Registro de Simulacros',
           icon: ClipboardCheck
         }
       ]
@@ -171,15 +191,13 @@ export default function DashboardLayout({
 
     {
       id: 'calificaciones',
-      label: 'Ranking y Notas',
+      label: 'Simulacros y Cuadro de Mérito',
       icon: Award,
       rolesPermitidos: [
         'administrador',
         'admin',
         'docente',
-        'tutor de aula',
-        'alumno',
-        'estudiante'
+        'tutor de aula'
       ]
     },
 
@@ -199,7 +217,7 @@ export default function DashboardLayout({
 
     {
       id: 'comunicados',
-      label: 'Circulares y Avisos',
+      label: 'Comunicados y Avisos',
       icon: Megaphone,
       rolesPermitidos: [
         'administrador',
@@ -247,17 +265,6 @@ export default function DashboardLayout({
         }
       ]
     },
-
-    {
-      id: 'tutor-dashboard',
-      label: 'Dashboard Tutor',
-      icon: Users,
-      rolesPermitidos: [
-        'administrador',
-        'admin',
-        'tutor de aula'
-      ]
-    }
   ];
 
   const menuItemsFiltrados = itemsNavegacion.filter((item) =>
@@ -268,28 +275,26 @@ export default function DashboardLayout({
 
   const titulosTabs = {
     dashboard: 'Dashboard Preuniversitario',
-    matriculas: 'Matrícula Ágil y Generación de Códigos',
-    'tutor-dashboard': 'Dashboard de Tutor de Aula',
     comunicados: 'Comunicados Institucionales',
     'materiales-admin': 'Materiales Académicos',
-    asistencia: 'Control de Asistencia',
+    asistencia: 'Asistencia por Ciclo',
     'registro-notas': 'Registro de Notas de Simulacro',
-    'academico': 'Gestión de Ciclos, Cursos y Aulas',
+    'academico': 'Cargas Docentes por Ciclo',
     'academico-ciclos': 'Ciclos y Cursos',
     'academico-turnos': 'Turnos y Horarios',
     morosidad: 'Monitoreo de Pagos y Morosidad',
-    calificaciones: 'Resultados y Cuadro de Mérito',
+    calificaciones: 'Simulacros y Cuadro de Mérito',
     'tutor-ia': 'Asistente de Orientación Preuniversitaria IA',
     usuarios: 'Directorio de Usuarios y Alumnos',
     perfiles: 'Seguridad y Roles RBAC',
     'menu-options': 'Estructura de Menús',
 
-    // Vistas de la intranet del alumno
+    // Vistas del portal del alumno
     'student-home': 'Inicio del Alumno',
     'student-ciclo': 'Mi Ciclo',
     'student-horario': 'Mi Horario',
     'student-cursos': 'Mis Cursos',
-    'student-notas': 'Calificaciones',
+    'student-notas': 'Mis Resultados',
     'student-materiales': 'Materiales de Estudio',
     'student-perfil': 'Mi Perfil'
   };
@@ -592,3 +597,4 @@ export default function DashboardLayout({
     </div>
   );
 }
+
