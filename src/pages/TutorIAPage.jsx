@@ -13,7 +13,7 @@ import {
   TrendingUp,
   UserRound,
 } from 'lucide-react';
-import { fetchWithAuth } from '../services/api';
+import { consultarTutorIA, fetchWithAuth } from '../services/api';
 
 const ESCALAS_POR_UNIVERSIDAD = {
   UNMSM: 2000,
@@ -59,15 +59,7 @@ function agruparCursos(historial = []) {
 }
 
 async function pedirTutor(pregunta) {
-  const response = await fetchWithAuth('/api/tutor-ia', {
-    method: 'POST',
-    body: JSON.stringify({ pregunta }),
-  });
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || `Error HTTP ${response.status}`);
-  }
+  const data = await consultarTutorIA(pregunta);
 
   const respuesta = data.respuesta || data.mensaje || data.analisis;
   if (typeof respuesta !== 'string' || !respuesta.trim()) {

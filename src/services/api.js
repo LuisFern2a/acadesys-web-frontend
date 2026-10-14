@@ -771,7 +771,7 @@ export async function consultarTutorIA(pregunta, contextoPreu = {}) {
   }
 
   const data = await response.json();
-  let textoFinal = data.respuesta || data.mensaje || data.result || '';
+  let textoFinal = data.respuesta || data.mensaje || data.result || data.analisis || '';
 
   if (typeof textoFinal === 'object') {
     textoFinal = textoFinal.analisis || JSON.stringify(textoFinal);
@@ -782,6 +782,7 @@ export async function consultarTutorIA(pregunta, contextoPreu = {}) {
   }
 
   return {
+    ...data,
     respuesta: textoFinal
   };
 }
