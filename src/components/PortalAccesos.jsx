@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   ShieldCheck, 
   GraduationCap, 
-  UserCheck, 
   CheckCircle2, 
   ArrowRight, 
   Sparkles,

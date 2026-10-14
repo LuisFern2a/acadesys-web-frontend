@@ -45,16 +45,6 @@ export default function DashboardLayout({
   });
 
   const rolUsuario = normalizeRole(user);
-
-  const esAdmin =
-    rolUsuario.includes('admin') ||
-    rolUsuario.includes('administrador') ||
-    rolUsuario.includes('recursos humanos') ||
-    rolUsuario === 'rrhh';
-
-  const esTutor = rolUsuario.includes('tutor');
-  const esDocente = rolUsuario.includes('docente');
-
   const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
   const colorTema = user?.colorTema || '#2563eb';
 

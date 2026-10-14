@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Award, Download, Loader2, RefreshCw, Search, Trophy, Users, AlertCircle } from 'lucide-react';
+import { Download, Loader2, RefreshCw, Search, Trophy, Users, AlertCircle } from 'lucide-react';
 import { obtenerCiclosPublicos, obtenerContextoNotas, obtenerMatriculasNotas, obtenerNotas } from '../services/api';
 
 const TIPOS = ['Simulacro', 'Examen', 'Practica', 'Oral', 'Tarea', 'Participacion', 'Todos'];

@@ -18,7 +18,6 @@ import {
 import { actualizarUsuario, obtenerUsuarios } from '../services/api';
 
 export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario }) {
-  if (!isOpen) return null;
 
   const [tabActiva, setTabActiva] = useState('general'); // 'general' | 'seguridad' | 'preferencias'
   
@@ -41,6 +40,8 @@ export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario 
 
   const [mensajeExito, setMensajeExito] = useState(false);
   const [guardando, setGuardando] = useState(false);
+
+  if (!isOpen) return null;
 
   const iniciales = nombre ? nombre.trim().slice(0, 2).toUpperCase() : 'US';
   const rol = user?.rol || user?.Perfil || 'Docente';

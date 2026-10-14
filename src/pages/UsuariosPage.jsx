@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Users, Search, Loader2, X, AlertCircle, Pencil, Trash2, Lock, Unlock, Shield } from 'lucide-react';
+import { Plus, Users, Search, Loader2, X, AlertCircle, Pencil, Trash2, Lock, Unlock } from 'lucide-react';
 import { obtenerPerfiles, obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../services/api';
 
 export default function UsuariosPage() {
   const [perfiles, setPerfiles] = useState([]);
-  const [loadingPerfiles, setLoadingPerfiles] = useState(true);
-  const [errorPerfiles, setErrorPerfiles] = useState('');
 
   const [usuarios, setUsuarios] = useState([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(true);
@@ -32,16 +30,7 @@ export default function UsuariosPage() {
   const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
   const DNI_REGEX = /^\d{8}$/;
   const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu|acadesys\.edu\.pe)$/;
-  const CONTRASENA_PERMITIDA = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!\%*#?&._-]{8,}$/;
-
-  // Usuarios base de contingencia institucional
-  const usuariosRespaldo = [
-    { idUsuario: 1, dni: '72345678', nombreUsuario: 'admin.acadesys', nombre: 'Yan Levi', apellido: 'Picon Ayala', correo: 'admin@acadesys.edu.pe', rol: 'Administrador', estadoRegistro: 'Activo' },
-    { idUsuario: 2, dni: '45892014', nombreUsuario: 'cmendoza', nombre: 'Carlos', apellido: 'Mendoza', correo: 'cmendoza@acadesys.edu.pe', rol: 'Docente', estadoRegistro: 'Activo' },
-    { idUsuario: 3, dni: '41209384', nombreUsuario: 'mflores', nombre: 'María', apellido: 'Flores', correo: 'mflores@acadesys.edu.pe', rol: 'Docente', estadoRegistro: 'Activo' },
-    { idUsuario: 4, dni: '75849201', nombreUsuario: 'ltoccas', nombre: 'Luis Fernando', apellido: 'Tóccas', correo: 'ltoccas@gmail.com', rol: 'Alumno', estadoRegistro: 'Activo' },
-    { idUsuario: 5, dni: '09837482', nombreUsuario: 'rtoccas', nombre: 'Roberto', apellido: 'Tóccas', correo: 'rtoccas@gmail.com', rol: 'Padre', estadoRegistro: 'Activo' }
-  ];
+  const CONTRASENA_PERMITIDA = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{8,}$/;
 
   const perfilesRespaldo = [
     { IdPerfil: 1, Nombre: 'Administrador' },
@@ -50,14 +39,7 @@ export default function UsuariosPage() {
     { IdPerfil: 4, Nombre: 'Alumno' }
   ];
 
-  useEffect(() => {
-    cargarPerfiles();
-    cargarUsuarios();
-  }, []);
-
-  const cargarPerfiles = async () => {
-    setLoadingPerfiles(true);
-    setErrorPerfiles('');
+  async function cargarPerfiles() {
     try {
       if (typeof obtenerPerfiles === 'function') {
         const data = await obtenerPerfiles();
@@ -70,11 +52,10 @@ export default function UsuariosPage() {
       console.warn('Usando perfiles base locales:', error);
       setPerfiles(perfilesRespaldo);
     } finally {
-      setLoadingPerfiles(false);
     }
   };
 
-  const cargarUsuarios = async () => {
+  async function cargarUsuarios() {
     setLoadingUsuarios(true);
     try {
       if (typeof obtenerUsuarios === 'function') {
@@ -360,13 +341,20 @@ export default function UsuariosPage() {
     const matchCorreo = resolverCorreo(u).toLowerCase();
     const query = searchTerm.toLowerCase();
 
-    return (
+
+
+  return (
       matchUser.includes(query) ||
       matchNombre.includes(query) ||
       matchDni.includes(query) ||
       matchCorreo.includes(query)
     );
   });
+
+  useEffect(() => {
+    cargarPerfiles();
+    cargarUsuarios();
+  }, []);
 
   return (
     <div className="p-4 sm:p-8 bg-slate-50 min-h-full">

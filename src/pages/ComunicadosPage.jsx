@@ -46,11 +46,7 @@ export default function ComunicadosPage({ user }) {
     { id: 'feriado', label: 'Feriado' }
   ];
 
-  useEffect(() => {
-    cargarLista();
-  }, []);
-
-  const cargarLista = async () => {
+  async function cargarLista() {
   setCargando(true);
   setErrorCarga('');
 
@@ -191,6 +187,11 @@ export default function ComunicadosPage({ user }) {
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
+
+  useEffect(() => {
+    cargarLista();
+  }, []);
+
 
   return (
     <div className="p-8 bg-slate-50 min-h-full">

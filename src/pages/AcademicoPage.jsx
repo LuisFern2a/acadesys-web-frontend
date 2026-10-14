@@ -103,7 +103,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   useEffect(() => {
     cargarDatos();
   }, []);
-  const cargarDatos = async () => {
+
+  async function cargarDatos() {
     setErrorDatos('');
     const [aulasRes, cursosRes, asignacionesRes, ciclosRes, usuariosRes, horariosRes] = await Promise.allSettled([
       obtenerAulas(),

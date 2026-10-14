@@ -2,21 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
 
-  AlertCircle,
+  AlertCircle,
 
-  CheckCircle2,
+  CheckCircle2,
 
-  Save,
+  Save,
 
-  School,
+  School,
 
-  ShieldCheck,
+  ShieldCheck,
 
-  Sparkles,
+  Sparkles,
 
-  TrendingUp,
+  TrendingUp,
 
-  Users
+  Users
 
 } from 'lucide-react';
 
@@ -24,17 +24,17 @@ import Swal from 'sweetalert2';
 
 import {
 
-  actualizarNotaDocente,
+  actualizarNotaDocente,
 
-  guardarNotasDocente,
+  guardarNotasDocente,
 
-  obtenerCiclosPublicos,
+  obtenerCiclosPublicos,
 
-  obtenerContextoNotas,
+  obtenerContextoNotas,
 
-  obtenerMatriculasNotas,
+  obtenerMatriculasNotas,
 
-  obtenerNotas
+  obtenerNotas
 
 } from '../services/api';
 
@@ -46,17 +46,17 @@ const NOTA_MINIMA = 0;
 
 const TIPOS_EVALUACION = [
 
-  'Simulacro',
+  'Simulacro',
 
-  'Examen',
+  'Examen',
 
-  'Tarea',
+  'Tarea',
 
-  'Practica',
+  'Practica',
 
-  'Oral',
+  'Oral',
 
-  'Participacion'
+  'Participacion'
 
 ];
 
@@ -64,1106 +64,1106 @@ const TIPOS_EVALUACION = [
 
 export default function RegistroNotasPage() {
 
-  const sessionData = (() => {
+  const sessionData = (() => {
 
-    try {
+    try {
 
-      return JSON.parse(localStorage.getItem('acadesys_session') || '{}');
+      return JSON.parse(localStorage.getItem('acadesys_session') || '{}');
 
-    } catch {
+    } catch {
 
-      return {};
+      return {};
 
-    }
+    }
 
-  })();
+  })();
 
 
 
-  const colorTema = sessionData.colorTema || '#4f46e5';
+  const colorTema = sessionData.colorTema || '#4f46e5';
 
 
 
-  const [ciclos, setCiclos] = useState([]);
+  const [ciclos, setCiclos] = useState([]);
 
-  const [idCiclo, setIdCiclo] = useState('');
+  const [idCiclo, setIdCiclo] = useState('');
 
-  const [tipoEvaluacion, setTipoEvaluacion] = useState('Simulacro');
+  const [tipoEvaluacion, setTipoEvaluacion] = useState('Simulacro');
 
-  const [contexto, setContexto] = useState(null);
+  const [contexto, setContexto] = useState(null);
 
-  const [estudiantes, setEstudiantes] = useState([]);
+  const [estudiantes, setEstudiantes] = useState([]);
 
-  const [evaluaciones, setEvaluaciones] = useState([]);
+  const [evaluaciones, setEvaluaciones] = useState([]);
 
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(true);
 
-  const [guardando, setGuardando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
-  const [errorCarga, setErrorCarga] = useState('');
+  const [errorCarga, setErrorCarga] = useState('');
 
 
 
-  const escalaMaxima = contexto?.escalaMaxima ?? null;
+  const escalaMaxima = contexto?.escalaMaxima ?? null;
 
-  const escalaLista = Number.isFinite(Number(escalaMaxima));
+  const escalaLista = Number.isFinite(Number(escalaMaxima));
 
 
 
-  const cargarCiclos = useCallback(async () => {
+  const cargarCiclos = useCallback(async () => {
 
-    try {
+    try {
 
-      setCargando(true);
+      setCargando(true);
 
-      setErrorCarga('');
+      setErrorCarga('');
 
 
 
-      const lista = await obtenerCiclosPublicos();
+      const lista = await obtenerCiclosPublicos();
 
-      setCiclos(lista);
+      setCiclos(lista);
 
 
 
-      if (lista.length > 0) {
+      if (lista.length > 0) {
 
-        setIdCiclo((actual) => actual || String(lista[0].idCiclo));
+        setIdCiclo((actual) => actual || String(lista[0].idCiclo));
 
-      } else {
+      } else {
 
-        setIdCiclo('');
+        setIdCiclo('');
 
-        setContexto(null);
+        setContexto(null);
 
-        setEstudiantes([]);
+        setEstudiantes([]);
 
-        setEvaluaciones([]);
+        setEvaluaciones([]);
 
-      }
+      }
 
-    } catch (error) {
+    } catch (error) {
 
-      console.error(error);
+      console.error(error);
 
-      setErrorCarga(error.message || 'No se pudieron cargar los ciclos.');
+      setErrorCarga(error.message || 'No se pudieron cargar los ciclos.');
 
-      setCiclos([]);
+      setCiclos([]);
 
-    } finally {
+    } finally {
 
-      setCargando(false);
+      setCargando(false);
 
-    }
+    }
 
-  }, []);
+  }, []);
 
 
 
-  const cargarRegistro = useCallback(async () => {
+  const cargarRegistro = useCallback(async () => {
 
-    if (!idCiclo) return;
+    if (!idCiclo) return;
 
 
 
-    try {
+    try {
 
-      setCargando(true);
+      setCargando(true);
 
-      setErrorCarga('');
+      setErrorCarga('');
 
-      setContexto(null);
+      setContexto(null);
 
-      setEstudiantes([]);
+      setEstudiantes([]);
 
-      setEvaluaciones([]);
+      setEvaluaciones([]);
 
 
 
-      const [contextoApi, matriculasApi, notasApi] = await Promise.all([
+      const [contextoApi, matriculasApi, notasApi] = await Promise.all([
 
-        obtenerContextoNotas(idCiclo),
+        obtenerContextoNotas(idCiclo),
 
-        obtenerMatriculasNotas(idCiclo),
+        obtenerMatriculasNotas(idCiclo),
 
-        obtenerNotas()
+        obtenerNotas()
 
-      ]);
+      ]);
 
 
 
-      setContexto(contextoApi);
+      setContexto(contextoApi);
 
 
 
-      const idsMatricula = new Set(
+      const idsMatricula = new Set(
 
-        matriculasApi.map((m) => Number(m.idMatricula))
+        matriculasApi.map((m) => Number(m.idMatricula))
 
-      );
+      );
 
 
 
-      const notasDelCiclo = notasApi.filter((nota) =>
+      const notasDelCiclo = notasApi.filter((nota) =>
 
-        idsMatricula.has(Number(nota.IdMatricula ?? nota.idMatricula))
+        idsMatricula.has(Number(nota.IdMatricula ?? nota.idMatricula))
 
-      );
+      );
 
 
 
-      setEvaluaciones(notasDelCiclo);
+      setEvaluaciones(notasDelCiclo);
 
 
 
-      setEstudiantes(
+      setEstudiantes(
 
-        matriculasApi.map((matricula) => ({
+        matriculasApi.map((matricula) => ({
 
-          ...matricula,
+          ...matricula,
 
-          calificacion: ''
+          calificacion: ''
 
-        }))
+        }))
 
-      );
+      );
 
-    } catch (error) {
+    } catch (error) {
 
-      console.error(error);
+      console.error(error);
 
-      setErrorCarga(error.message || 'No se pudo cargar el registro de notas.');
+      setErrorCarga(error.message || 'No se pudo cargar el registro de notas.');
 
-      setContexto(null);
+      setContexto(null);
 
-      setEstudiantes([]);
+      setEstudiantes([]);
 
-      setEvaluaciones([]);
+      setEvaluaciones([]);
 
-    } finally {
+    } finally {
 
-      setCargando(false);
+      setCargando(false);
 
-    }
+    }
 
-  }, [idCiclo]);
+  }, [idCiclo]);
 
 
 
-  useEffect(() => {
+  useEffect(() => {
 
-    cargarCiclos();
+    cargarCiclos();
 
-  }, [cargarCiclos]);
+  }, [cargarCiclos]);
 
 
 
-  useEffect(() => {
+  useEffect(() => {
 
-    cargarRegistro();
+    cargarRegistro();
 
-  }, [cargarRegistro]);
+  }, [cargarRegistro]);
 
 
 
-  useEffect(() => {
+  useEffect(() => {
 
-    if (!escalaLista) return;
+    if (!escalaLista) return;
 
 
 
-    setEstudiantes((actuales) =>
+    setEstudiantes((actuales) =>
 
-      actuales.map((estudiante) => {
+      actuales.map((estudiante) => {
 
-        const existente = evaluaciones
+        const existente = evaluaciones
 
-          .filter((nota) =>
+          .filter((nota) =>
 
-            Number(nota.IdMatricula ?? nota.idMatricula) === Number(estudiante.idMatricula) &&
+            Number(nota.IdMatricula ?? nota.idMatricula) === Number(estudiante.idMatricula) &&
 
-            String(nota.TipoEvaluacion ?? nota.tipoEvaluacion) === tipoEvaluacion
+            String(nota.TipoEvaluacion ?? nota.tipoEvaluacion) === tipoEvaluacion
 
-          )
+          )
 
-          .sort(
+          .sort(
 
-            (a, b) =>
+            (a, b) =>
 
-              Number(b.IdEvaluacion ?? b.idEvaluacion ?? 0) -
+              Number(b.IdEvaluacion ?? b.idEvaluacion ?? 0) -
 
-              Number(a.IdEvaluacion ?? a.idEvaluacion ?? 0)
+              Number(a.IdEvaluacion ?? a.idEvaluacion ?? 0)
 
-          )[0];
+          )[0];
 
 
 
-        return {
+        return {
 
-          ...estudiante,
+          ...estudiante,
 
-          idEvaluacion: existente?.IdEvaluacion ?? existente?.idEvaluacion ?? null,
+          idEvaluacion: existente?.IdEvaluacion ?? existente?.idEvaluacion ?? null,
 
-          calificacion:
+          calificacion:
 
-            existente?.Calificacion ?? existente?.calificacion ?? ''
+            existente?.Calificacion ?? existente?.calificacion ?? ''
 
-        };
+        };
 
-      })
+      })
 
-    );
+    );
 
-  }, [tipoEvaluacion, evaluaciones, escalaLista]);
+  }, [tipoEvaluacion, evaluaciones, escalaLista]);
 
 
 
-  const handleNotaChange = (idMatricula, valorCrudo) => {
+  const handleNotaChange = (idMatricula, valorCrudo) => {
 
-    if (!escalaLista || guardando) return;
+    if (!escalaLista || guardando) return;
 
 
 
-    if (valorCrudo === '') {
+    if (valorCrudo === '') {
 
-      setEstudiantes((actuales) =>
+      setEstudiantes((actuales) =>
 
-        actuales.map((estudiante) =>
+        actuales.map((estudiante) =>
 
-          Number(estudiante.idMatricula) === Number(idMatricula)
+          Number(estudiante.idMatricula) === Number(idMatricula)
 
-            ? { ...estudiante, calificacion: '' }
+            ? { ...estudiante, calificacion: '' }
 
-            : estudiante
+            : estudiante
 
-        )
+        )
 
-      );
+      );
 
-      return;
+      return;
 
-    }
+    }
 
 
 
-    if (!/^\d+$/.test(valorCrudo)) return;
+    if (!/^\d+$/.test(valorCrudo)) return;
 
 
 
-    const numero = Number(valorCrudo);
+    const numero = Number(valorCrudo);
 
 
 
-    if (
+    if (
 
-      !Number.isInteger(numero) ||
+      !Number.isInteger(numero) ||
 
-      numero < NOTA_MINIMA ||
+      numero < NOTA_MINIMA ||
 
-      numero > Number(escalaMaxima)
+      numero > Number(escalaMaxima)
 
-    ) {
+    ) {
 
-      return;
+      return;
 
-    }
+    }
 
 
 
-    setEstudiantes((actuales) =>
+    setEstudiantes((actuales) =>
 
-      actuales.map((estudiante) =>
+      actuales.map((estudiante) =>
 
-        Number(estudiante.idMatricula) === Number(idMatricula)
+        Number(estudiante.idMatricula) === Number(idMatricula)
 
-          ? { ...estudiante, calificacion: numero }
+          ? { ...estudiante, calificacion: numero }
 
-          : estudiante
+          : estudiante
 
-      )
+      )
 
-    );
+    );
 
-  };
+  };
 
 
 
-  const handleNotaKeyDown = (event) => {
+  const handleNotaKeyDown = (event) => {
 
-    const permitidas = [
+    const permitidas = [
 
-      'Backspace',
+      'Backspace',
 
-      'Delete',
+      'Delete',
 
-      'Tab',
+      'Tab',
 
-      'ArrowLeft',
+      'ArrowLeft',
 
-      'ArrowRight',
+      'ArrowRight',
 
-      'Home',
+      'Home',
 
-      'End'
+      'End'
 
-    ];
+    ];
 
 
 
-    if (permitidas.includes(event.key)) return;
+    if (permitidas.includes(event.key)) return;
 
-    if (event.ctrlKey || event.metaKey) return;
+    if (event.ctrlKey || event.metaKey) return;
 
 
 
-    if (!/^\d$/.test(event.key)) {
+    if (!/^\d$/.test(event.key)) {
 
-      event.preventDefault();
+      event.preventDefault();
 
-    }
+    }
 
-  };
+  };
 
 
 
-  const handleGuardar = async () => {
+  const handleGuardar = async () => {
 
-    if (!idCiclo || !escalaLista || guardando) return;
+    if (!idCiclo || !escalaLista || guardando) return;
 
 
 
-    const conNota = estudiantes.filter(
+    const conNota = estudiantes.filter(
 
-      (estudiante) =>
+      (estudiante) =>
 
-        estudiante.calificacion !== '' &&
+        estudiante.calificacion !== '' &&
 
-        estudiante.calificacion !== null &&
+        estudiante.calificacion !== null &&
 
-        estudiante.calificacion !== undefined
+        estudiante.calificacion !== undefined
 
-    );
+    );
 
 
 
-    if (conNota.length === 0) {
+    if (conNota.length === 0) {
 
-      await Swal.fire({
+      await Swal.fire({
 
-        title: 'No hay calificaciones para guardar',
+        title: 'No hay calificaciones para guardar',
 
-        text: 'Ingresa al menos una calificación antes de continuar.',
+        text: 'Ingresa al menos una calificación antes de continuar.',
 
-        icon: 'info',
+        icon: 'info',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: colorTema,
 
-        background: '#0f172a',
+        background: '#0f172a',
 
-        color: '#f8fafc'
+        color: '#f8fafc'
 
-      });
+      });
 
-      return;
+      return;
 
-    }
+    }
 
 
 
-    const fueraDeRango = conNota.some((estudiante) => {
+    const fueraDeRango = conNota.some((estudiante) => {
 
-      const valor = Number(estudiante.calificacion);
+      const valor = Number(estudiante.calificacion);
 
-      return (
+      return (
 
-        !Number.isInteger(valor) ||
+        !Number.isInteger(valor) ||
 
-        valor < NOTA_MINIMA ||
+        valor < NOTA_MINIMA ||
 
-        valor > Number(escalaMaxima)
+        valor > Number(escalaMaxima)
 
-      );
+      );
 
-    });
+    });
 
 
 
-    if (fueraDeRango) {
+    if (fueraDeRango) {
 
-      await Swal.fire({
+      await Swal.fire({
 
-        title: 'Calificación inválida',
+        title: 'Calificación inválida',
 
-        text: `Todas las calificaciones deben estar entre 0 y ${escalaMaxima}.`,
+        text: `Todas las calificaciones deben estar entre 0 y ${escalaMaxima}.`,
 
-        icon: 'error',
+        icon: 'error',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: colorTema,
 
-        background: '#0f172a',
+        background: '#0f172a',
 
-        color: '#f8fafc'
+        color: '#f8fafc'
 
-      });
+      });
 
-      return;
+      return;
 
-    }
+    }
 
 
 
-    try {
+    try {
 
-      setGuardando(true);
+      setGuardando(true);
 
 
 
-      const nuevas = conNota.filter((estudiante) => !estudiante.idEvaluacion);
+      const nuevas = conNota.filter((estudiante) => !estudiante.idEvaluacion);
 
-      const existentes = conNota.filter((estudiante) => estudiante.idEvaluacion);
+      const existentes = conNota.filter((estudiante) => estudiante.idEvaluacion);
 
 
 
-      if (nuevas.length > 0) {
+      if (nuevas.length > 0) {
 
-        await guardarNotasDocente(
+        await guardarNotasDocente(
 
-          idCiclo,
+          idCiclo,
 
-          nuevas.map((estudiante) => ({
+          nuevas.map((estudiante) => ({
 
-            IdMatricula: Number(estudiante.idMatricula),
+            IdMatricula: Number(estudiante.idMatricula),
 
-            TipoEvaluacion: tipoEvaluacion,
+            TipoEvaluacion: tipoEvaluacion,
 
-            Calificacion: Number(estudiante.calificacion)
+            Calificacion: Number(estudiante.calificacion)
 
-          }))
+          }))
 
-        );
+        );
 
-      }
+      }
 
 
 
-      if (existentes.length > 0) {
+      if (existentes.length > 0) {
 
-        await Promise.all(
+        await Promise.all(
 
-          existentes.map((estudiante) =>
+          existentes.map((estudiante) =>
 
-            actualizarNotaDocente(
+            actualizarNotaDocente(
 
-              estudiante.idEvaluacion,
+              estudiante.idEvaluacion,
 
-              Number(estudiante.calificacion)
+              Number(estudiante.calificacion)
 
-            )
+            )
 
-          )
+          )
 
-        );
+        );
 
-      }
+      }
 
 
 
-      await cargarRegistro();
+      await cargarRegistro();
 
 
 
-      await Swal.fire({
+      await Swal.fire({
 
-        title: 'Calificaciones guardadas',
+        title: 'Calificaciones guardadas',
 
-        text: 'Las calificaciones fueron sincronizadas con la base de datos.',
+        text: 'Las calificaciones fueron sincronizadas con la base de datos.',
 
-        icon: 'success',
+        icon: 'success',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: colorTema,
 
-        background: '#0f172a',
+        background: '#0f172a',
 
-        color: '#f8fafc'
+        color: '#f8fafc'
 
-      });
+      });
 
-    } catch (error) {
+    } catch (error) {
 
-      console.error(error);
+      console.error(error);
 
 
 
-      await Swal.fire({
+      await Swal.fire({
 
-        title: 'No se pudieron guardar las calificaciones',
+        title: 'No se pudieron guardar las calificaciones',
 
-        text:
+        text:
 
-          error.message ||
+          error.message ||
 
-          'La API rechazó la operación. No se registró un guardado local alternativo.',
+          'La API rechazó la operación. No se registró un guardado local alternativo.',
 
-        icon: 'error',
+        icon: 'error',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: colorTema,
 
-        background: '#0f172a',
+        background: '#0f172a',
 
-        color: '#f8fafc'
+        color: '#f8fafc'
 
-      });
+      });
 
-    } finally {
+    } finally {
 
-      setGuardando(false);
+      setGuardando(false);
 
-    }
+    }
 
-  };
+  };
 
 
 
-  const cicloSeleccionado = ciclos.find(
+  const cicloSeleccionado = ciclos.find(
 
-    (ciclo) => String(ciclo.idCiclo) === String(idCiclo)
+    (ciclo) => String(ciclo.idCiclo) === String(idCiclo)
 
-  );
+  );
 
 
 
-  const notasIngresadas = useMemo(
+  const notasIngresadas = useMemo(
 
-    () =>
+    () =>
 
-      estudiantes
+      estudiantes
 
-        .map((estudiante) => Number(estudiante.calificacion))
+        .map((estudiante) => Number(estudiante.calificacion))
 
-        .filter((valor) => Number.isFinite(valor)),
+        .filter((valor) => Number.isFinite(valor)),
 
-    [estudiantes]
+    [estudiantes]
 
-  );
+  );
 
 
 
-  const promedioGeneral =
+  const promedioGeneral =
 
-    notasIngresadas.length > 0
+    notasIngresadas.length > 0
 
-      ? (
+      ? (
 
-          notasIngresadas.reduce((acumulado, valor) => acumulado + valor, 0) /
+          notasIngresadas.reduce((acumulado, valor) => acumulado + valor, 0) /
 
-          notasIngresadas.length
+          notasIngresadas.length
 
-        ).toFixed(1)
+        ).toFixed(1)
 
-      : '0.0';
+      : '0.0';
 
 
 
-  const maxLength = escalaLista
+  const maxLength = escalaLista
 
-    ? String(Math.trunc(Number(escalaMaxima))).length
+    ? String(Math.trunc(Number(escalaMaxima))).length
 
-    : 4;
+    : 4;
 
 
 
-  return (
+  return (
 
-    <div className="p-6 md:p-10 font-sans text-slate-100 bg-slate-950 min-h-screen space-y-8">
+    <div className="p-6 md:p-10 font-sans text-slate-100 bg-slate-950 min-h-screen space-y-8">
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
 
-        <div>
+        <div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
 
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" />
 
-            <span>Evaluación académica · Escala dinámica</span>
+            <span>Evaluación académica · Escala dinámica</span>
 
-          </div>
+          </div>
 
 
 
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className="text-3xl font-black text-white tracking-tight">
 
-            Registro de Evaluaciones
+            Registro de Evaluaciones
 
-          </h1>
+          </h1>
 
 
 
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
 
-            {escalaLista
+            {escalaLista
 
-              ? `Escala oficial de ${contexto?.universidadObjetivo || 'la universidad'}: 0 a ${escalaMaxima}.`
+              ? `Escala oficial de ${contexto?.universidadObjetivo || 'la universidad'}: 0 a ${escalaMaxima}.`
 
-              : 'Selecciona un ciclo para obtener la escala oficial desde la API.'}
+              : 'Selecciona un ciclo para obtener la escala oficial desde la API.'}
 
-          </p>
+          </p>
 
-        </div>
+        </div>
 
 
 
-        <button
+        <button
 
-          type="button"
+          type="button"
 
-          disabled={
+          disabled={
 
-            guardando ||
+            guardando ||
 
-            cargando ||
+            cargando ||
 
-            !escalaLista ||
+            !escalaLista ||
 
-            estudiantes.length === 0
+            estudiantes.length === 0
 
-          }
+          }
 
-          onClick={handleGuardar}
+          onClick={handleGuardar}
 
-          className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 
-          style={{ backgroundColor: colorTema }}
+          style={{ backgroundColor: colorTema }}
 
-        >
+        >
 
-          <Save className="w-4 h-4" />
+          <Save className="w-4 h-4" />
 
-          <span>{guardando ? 'Guardando...' : 'Guardar Calificaciones'}</span>
+          <span>{guardando ? 'Guardando...' : 'Guardar Calificaciones'}</span>
 
-        </button>
+        </button>
 
-      </div>
+      </div>
 
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-lg">
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
 
-          <School className="w-5 h-5 text-indigo-400 shrink-0" />
+          <School className="w-5 h-5 text-indigo-400 shrink-0" />
 
-          <div className="w-full">
+          <div className="w-full">
 
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
 
-              Ciclo
+              Ciclo
 
-            </label>
+            </label>
 
-            <select
+            <select
 
-              value={idCiclo}
+              value={idCiclo}
 
-              onChange={(event) => setIdCiclo(event.target.value)}
+              onChange={(event) => setIdCiclo(event.target.value)}
 
-              disabled={cargando || guardando}
+              disabled={cargando || guardando}
 
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
 
-            >
+            >
 
-              {ciclos.length === 0 && <option value="">Sin ciclos disponibles</option>}
+              {ciclos.length === 0 && <option value="">Sin ciclos disponibles</option>}
 
-              {ciclos.map((ciclo) => (
+              {ciclos.map((ciclo) => (
 
-                <option key={ciclo.idCiclo} value={ciclo.idCiclo}>
+                <option key={ciclo.idCiclo} value={ciclo.idCiclo}>
 
-                  {ciclo.nombre}
+                  {ciclo.nombre}
 
-                </option>
+                </option>
 
-              ))}
+              ))}
 
-            </select>
+            </select>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
 
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
 
-          <ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0" />
+          <ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0" />
 
-          <div className="w-full">
+          <div className="w-full">
 
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
 
-              Tipo de evaluación
+              Tipo de evaluación
 
-            </label>
+            </label>
 
-            <select
+            <select
 
-              value={tipoEvaluacion}
+              value={tipoEvaluacion}
 
-              onChange={(event) => setTipoEvaluacion(event.target.value)}
+              onChange={(event) => setTipoEvaluacion(event.target.value)}
 
-              disabled={cargando || guardando || !idCiclo}
+              disabled={cargando || guardando || !idCiclo}
 
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
 
-            >
+            >
 
-              {TIPOS_EVALUACION.map((tipo) => (
+              {TIPOS_EVALUACION.map((tipo) => (
 
-                <option key={tipo} value={tipo}>
+                <option key={tipo} value={tipo}>
 
-                  {tipo}
+                  {tipo}
 
-                </option>
+                </option>
 
-              ))}
+              ))}
 
-            </select>
+            </select>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
 
 
-      {errorCarga && (
+      {errorCarga && (
 
-        <div className="flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">
 
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
 
-          <div>
+          <div>
 
-            <strong className="block text-rose-200">No se pudo sincronizar el registro.</strong>
+            <strong className="block text-rose-200">No se pudo sincronizar el registro.</strong>
 
-            <span>{errorCarga}</span>
+            <span>{errorCarga}</span>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
-      )}
+      )}
 
 
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
 
-          <Users className="w-5 h-5 text-indigo-400" />
+          <Users className="w-5 h-5 text-indigo-400" />
 
-          <div>
+          <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
 
-              Matriculados
+              Matriculados
 
-            </span>
+            </span>
 
-            <span className="text-xl font-black text-white">
+            <span className="text-xl font-black text-white">
 
-              {estudiantes.length}
+              {estudiantes.length}
 
-            </span>
+            </span>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
 
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
 
-          <TrendingUp className="w-5 h-5 text-violet-400" />
+          <TrendingUp className="w-5 h-5 text-violet-400" />
 
-          <div>
+          <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
 
-              Puntaje promedio
+              Puntaje promedio
 
-            </span>
+            </span>
 
-            <span className="text-xl font-black text-white font-mono">
+            <span className="text-xl font-black text-white font-mono">
 
-              {promedioGeneral}
+              {promedioGeneral}
 
-              {escalaLista && (
+              {escalaLista && (
 
-                <small className="text-xs text-slate-500"> / {escalaMaxima}</small>
+                <small className="text-xs text-slate-500"> / {escalaMaxima}</small>
 
-              )}
+              )}
 
-            </span>
+            </span>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
 
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
 
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
 
-          <div>
+          <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block">
 
-              Escala activa
+              Escala activa
 
-            </span>
+            </span>
 
-            <span className="text-xl font-black text-emerald-400 font-mono">
+            <span className="text-xl font-black text-emerald-400 font-mono">
 
-              {escalaLista ? `0 - ${escalaMaxima}` : 'No disponible'}
+              {escalaLista ? `0 - ${escalaMaxima}` : 'No disponible'}
 
-            </span>
+            </span>
 
-          </div>
+          </div>
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
 
 
-      <div className="bg-slate-900/60 rounded-3xl shadow-xl border border-slate-800/80 overflow-hidden backdrop-blur-xl">
+      <div className="bg-slate-900/60 rounded-3xl shadow-xl border border-slate-800/80 overflow-hidden backdrop-blur-xl">
 
-        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-slate-900/80">
+        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-slate-900/80">
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
 
-            <ShieldCheck className="w-4 h-4 text-indigo-400" />
+            <ShieldCheck className="w-4 h-4 text-indigo-400" />
 
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
 
-              {cicloSeleccionado?.nombre || 'Registro oficial'} • {tipoEvaluacion}
+              {cicloSeleccionado?.nombre || 'Registro oficial'} • {tipoEvaluacion}
 
-            </span>
+            </span>
 
-          </div>
+          </div>
 
 
 
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-400">
 
-            {escalaLista
+            {escalaLista
 
-              ? `Validación activa: [0 - ${escalaMaxima}]`
+              ? `Validación activa: [0 - ${escalaMaxima}]`
 
-              : 'Esperando escala del backend'}
+              : 'Esperando escala del backend'}
 
-          </span>
+          </span>
 
-        </div>
+        </div>
 
 
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
 
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse">
 
-            <thead>
+            <thead>
 
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
 
-                <th className="py-4 px-6">Estudiante</th>
+                <th className="py-4 px-6">Estudiante</th>
 
-                <th className="py-4 px-6 text-center">Matrícula</th>
+                <th className="py-4 px-6 text-center">Matrícula</th>
 
-                <th className="py-4 px-6 text-center">Calificación</th>
+                <th className="py-4 px-6 text-center">Calificación</th>
 
-                <th className="py-4 px-6 text-center">Estado</th>
+                <th className="py-4 px-6 text-center">Estado</th>
 
-              </tr>
+              </tr>
 
-            </thead>
+            </thead>
 
 
 
-            <tbody className="divide-y divide-slate-800/60 text-xs text-slate-300">
+            <tbody className="divide-y divide-slate-800/60 text-xs text-slate-300">
 
-              {cargando ? (
+              {cargando ? (
 
-                <tr>
+                <tr>
 
-                  <td colSpan={4} className="py-12 text-center text-slate-500">
+                  <td colSpan={4} className="py-12 text-center text-slate-500">
 
-                    Sincronizando matrículas, evaluaciones y escala...
+                    Sincronizando matrículas, evaluaciones y escala...
 
-                  </td>
+                  </td>
 
-                </tr>
+                </tr>
 
-              ) : estudiantes.length === 0 ? (
+              ) : estudiantes.length === 0 ? (
 
-                <tr>
+                <tr>
 
-                  <td colSpan={4} className="py-12 text-center text-slate-500">
+                  <td colSpan={4} className="py-12 text-center text-slate-500">
 
-                    {errorCarga
+                    {errorCarga
 
-                      ? 'No hay datos disponibles porque la sincronización falló.'
+                      ? 'No hay datos disponibles porque la sincronización falló.'
 
-                      : 'No hay estudiantes matriculados en este ciclo.'}
+                      : 'No hay estudiantes matriculados en este ciclo.'}
 
-                  </td>
+                  </td>
 
-                </tr>
+                </tr>
 
-              ) : (
+              ) : (
 
-                estudiantes.map((estudiante) => {
+                estudiantes.map((estudiante) => {
 
-                  const tieneNota =
+                  const tieneNota =
 
-                    estudiante.calificacion !== '' &&
+                    estudiante.calificacion !== '' &&
 
-                    estudiante.calificacion !== null &&
+                    estudiante.calificacion !== null &&
 
-                    estudiante.calificacion !== undefined;
+                    estudiante.calificacion !== undefined;
 
 
 
-                  return (
+                  return (
 
-                    <tr
+                    <tr
 
-                      key={estudiante.idMatricula}
+                      key={estudiante.idMatricula}
 
-                      className="hover:bg-slate-800/30 transition-colors"
+                      className="hover:bg-slate-800/30 transition-colors"
 
-                    >
+                    >
 
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6">
 
-                        <span className="font-bold text-white block">
+                        <span className="font-bold text-white block">
 
-                          {estudiante.nombre}
+                          {estudiante.nombre}
 
-                        </span>
+                        </span>
 
-                        <span className="text-[11px] font-mono text-indigo-400">
+                        <span className="text-[11px] font-mono text-indigo-400">
 
-                          {estudiante.codigo || 'Sin código'}
+                          {estudiante.codigo || 'Sin código'}
 
-                        </span>
+                        </span>
 
-                      </td>
+                      </td>
 
 
 
-                      <td className="py-4 px-6 text-center font-mono text-slate-400">
+                      <td className="py-4 px-6 text-center font-mono text-slate-400">
 
-                        #{estudiante.idMatricula}
+                        #{estudiante.idMatricula}
 
-                      </td>
+                      </td>
 
 
 
-                      <td className="py-4 px-6 text-center">
+                      <td className="py-4 px-6 text-center">
 
-                        <input
+                        <input
 
-                          type="text"
+                          type="text"
 
-                          inputMode="numeric"
+                          inputMode="numeric"
 
-                          disabled={!escalaLista || guardando}
+                          disabled={!escalaLista || guardando}
 
-                          value={estudiante.calificacion}
+                          value={estudiante.calificacion}
 
-                          onChange={(event) =>
+                          onChange={(event) =>
 
-                            handleNotaChange(
+                            handleNotaChange(
 
-                              estudiante.idMatricula,
+                              estudiante.idMatricula,
 
-                              event.target.value
+                              event.target.value
 
-                            )
+                            )
 
-                          }
+                          }
 
-                          onKeyDown={handleNotaKeyDown}
+                          onKeyDown={handleNotaKeyDown}
 
-                          maxLength={maxLength}
+                          maxLength={maxLength}
 
-                          placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
+                          placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
 
-                          className="w-24 text-center py-2 px-2 border rounded-xl text-sm font-bold font-mono outline-none transition bg-slate-950 border-slate-700 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-24 text-center py-2 px-2 border rounded-xl text-sm font-bold font-mono outline-none transition bg-slate-950 border-slate-700 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
 
-                        />
+                        />
 
-                      </td>
+                      </td>
 
 
 
-                      <td className="py-4 px-6 text-center">
+                      <td className="py-4 px-6 text-center">
 
-                        <span
+                        <span
 
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
 
-                            tieneNota
+                            tieneNota
 
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
 
-                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
 
-                          }`}
+                          }`}
 
-                        >
+                        >
 
-                          {tieneNota ? (
+                          {tieneNota ? (
 
-                            <>
+                            <>
 
-                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <CheckCircle2 className="w-3.5 h-3.5" />
 
-                              {estudiante.idEvaluacion ? 'Registrada' : 'Lista para guardar'}
+                              {estudiante.idEvaluacion ? 'Registrada' : 'Lista para guardar'}
 
-                            </>
+                            </>
 
-                          ) : (
+                          ) : (
 
-                            'Pendiente'
+                            'Pendiente'
 
-                          )}
+                          )}
 
-                        </span>
+                        </span>
 
-                      </td>
+                      </td>
 
-                    </tr>
+                    </tr>
 
-                  );
+                  );
 
-                })
+                })
 
-              )}
+              )}
 
-            </tbody>
+            </tbody>
 
-          </table>
+          </table>
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
-    </div>
+    </div>
 
-  );
+  );
 
 }
