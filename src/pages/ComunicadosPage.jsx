@@ -253,7 +253,7 @@ export default function ComunicadosPage({ user }) {
             id="buscar-comunicados"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full text-sm text-slate-800 placeholder-slate-400 pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+            className="w-full text-sm text-slate-800 placeholder:text-slate-500 pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
           />
         </div>
 
@@ -437,7 +437,7 @@ export default function ComunicadosPage({ user }) {
     placeholder="Ej: Simulacro Oficial / Entrega de Boletas"
     value={titulo}
     onChange={(e) => setTitulo(e.target.value)}
-    className="w-full text-sm text-slate-900 placeholder-slate-400 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+    className="w-full text-sm text-slate-900 placeholder:text-slate-500 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
   />
 </div>
 
@@ -495,7 +495,7 @@ export default function ComunicadosPage({ user }) {
                   value={dirigidoA}
                   onChange={(e) => setDirigidoA(e.target.value)}
                   placeholder="Ej: Todos los Niveles, 5to de Secundaria - Aula 101 UNI"
-                  className="w-full text-sm text-slate-900 placeholder-slate-400 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-500 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
                 />
               </div>
 
@@ -513,7 +513,7 @@ export default function ComunicadosPage({ user }) {
                   placeholder="Redacta las instrucciones, fechas u orden del día..."
                   value={contenido}
                   onChange={(e) => setContenido(e.target.value)}
-                  className="w-full text-sm text-slate-900 placeholder-slate-400 p-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 resize-none"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-500 p-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 resize-none"
                 />
               </div>
 

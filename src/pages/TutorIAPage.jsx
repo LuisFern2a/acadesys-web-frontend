@@ -390,7 +390,7 @@ export default function TutorIAPage() {
                   event.preventDefault();
                   event.currentTarget.form?.requestSubmit();
                 }
-              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-500" />
+              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-xs text-slate-100 outline-none placeholder:text-slate-400 focus:border-indigo-500" />
               <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: colorTema }}>
                 <Send className="h-4 w-4" />
               </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Menu as MenuIcon, 
   Plus, 
@@ -19,6 +19,11 @@ export default function OpcionesMenuPage() {
   const [guardando, setGuardando] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [errorMenus, setErrorMenus] = useState('');
+  const [errorPerfiles, setErrorPerfiles] = useState('');
+  const [errorAccion, setErrorAccion] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [menuCreado, setMenuCreado] = useState(null);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -29,109 +34,107 @@ export default function OpcionesMenuPage() {
     idPerfil: ''
   });
 
-  const menusBase = [
-    { IdOpcionMenu: 1, Nombre: 'Dashboard', Ruta: '/dashboard', Descripcion: 'Panel general de métricas y rendimiento institucional', IdPadre: null },
-    { IdOpcionMenu: 2, Nombre: 'Asistencia', Ruta: '/asistencia', Descripcion: 'Control diario de asistencias, tardanzas y justificaciones', IdPadre: null },
-    { IdOpcionMenu: 3, Nombre: 'Registrar Notas', Ruta: '/registro-notas', Descripcion: 'Ingreso bimestral de notas por ponderación vigesimal', IdPadre: null },
-    { IdOpcionMenu: 4, Nombre: 'Comunicados', Ruta: '/comunicados', Descripcion: 'Circulares institucionales y agenda directiva', IdPadre: null },
-    { IdOpcionMenu: 5, Nombre: 'Académico', Ruta: '/academico', Descripcion: 'Gestión de salones, cursos y carga horaria docente', IdPadre: null },
-    { IdOpcionMenu: 6, Nombre: 'Calificaciones', Ruta: '/calificaciones', Descripcion: 'Boletas individuales y posición en el ranking de aula', IdPadre: null },
-    { IdOpcionMenu: 7, Nombre: 'Tutor IA', Ruta: '/tutor-ia', Descripcion: 'Asistente pedagógico para preparación preuniversitaria', IdPadre: null },
-    { IdOpcionMenu: 8, Nombre: 'Perfiles', Ruta: '/perfiles', Descripcion: 'Administración de roles institucionales y privilegios RBAC', IdPadre: null },
-    { IdOpcionMenu: 9, Nombre: 'Usuarios', Ruta: '/usuarios', Descripcion: 'Gestión de credenciales, cuentas y control de accesos', IdPadre: null }
-  ];
-
-  const perfilesBase = [
-    { IdPerfil: 1, Nombre: 'Administrador' },
-    { IdPerfil: 2, Nombre: 'Docente' },
-    { IdPerfil: 3, Nombre: 'Padre' },
-    { IdPerfil: 4, Nombre: 'Alumno' }
-  ];
-
-  const extraerArreglo = (res) => {
-    if (Array.isArray(res)) return res;
-    if (res && Array.isArray(res.data)) return res.data;
-    if (res && Array.isArray(res.perfiles)) return res.perfiles;
-    if (res && Array.isArray(res.menus)) return res.menus;
-    return [];
-  };
-
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
+    setCargando(true);
+    setErrorMenus('');
+    setErrorPerfiles('');
     try {
-      setCargando(true);
-      const [resMenus, resPerfiles] = await Promise.all([
-        obtenerOpcionesMenu ? obtenerOpcionesMenu().catch(() => null) : null,
-        obtenerPerfiles ? obtenerPerfiles().catch(() => null) : null
+      const [resMenus, resPerfiles] = await Promise.allSettled([
+        obtenerOpcionesMenu(), obtenerPerfiles()
       ]);
+      if (resMenus.status === 'fulfilled' && Array.isArray(resMenus.value)) setMenus(resMenus.value);
+      else if (resMenus.status === 'fulfilled') setErrorMenus('El servidor devolvió un catálogo de menús no válido.');
+      else setErrorMenus(resMenus.reason?.message || 'No se pudieron cargar los menús.');
 
-      const listaMenus = extraerArreglo(resMenus);
-      const listaPerfiles = extraerArreglo(resPerfiles);
-
-      setMenus(listaMenus.length > 0 ? listaMenus : menusBase);
-      setPerfiles(listaPerfiles.length > 0 ? listaPerfiles : perfilesBase);
-    } catch (error) {
-      console.warn("Cargando catálogo local de menús:", error);
-      setMenus(menusBase);
-      setPerfiles(perfilesBase);
+      if (resPerfiles.status === 'rejected') {
+        setErrorPerfiles(resPerfiles.reason?.message || 'No se pudieron cargar los perfiles.');
+      } else {
+        const data = resPerfiles.value;
+        const lista = Array.isArray(data) ? data : data?.data ?? data?.perfiles;
+        if (!Array.isArray(lista) || lista.some((p) => !p || !Number.isSafeInteger(Number(p.IdPerfil)) || Number(p.IdPerfil) <= 0 || typeof p.Nombre !== 'string')) {
+          setErrorPerfiles('El servidor devolvió un catálogo de perfiles no válido.');
+        } else setPerfiles(lista);
+      }
     } finally {
       setCargando(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
+
+  const abrirModal = () => {
+    setErrorAccion('');
+    setMensaje('');
+    setMenuCreado(null);
+    setFormData({ nombre: '', ruta: '', descripcion: '', orden: 1, idPadre: '', idPerfil: '' });
+    setIsModalOpen(true);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.nombre.trim() || !formData.ruta.trim()) return;
+    if (guardando || cargando) return;
+    setErrorAccion('');
+    setMensaje('');
+    if (!formData.nombre.trim() || !formData.ruta.trim() || !Number.isInteger(Number(formData.orden)) || Number(formData.orden) <= 0) {
+      setErrorAccion('Completa el nombre, la ruta interna y un orden entero positivo.');
+      return;
+    }
+    if (formData.idPerfil && (errorPerfiles || !perfiles.some((p) => Number(p.IdPerfil) === Number(formData.idPerfil) && Number(p.EstadoRegistro) === 1))) {
+      setErrorAccion('Selecciona un perfil activo obtenido del servidor.');
+      return;
+    }
+    if (!menuCreado && formData.idPadre && !menus.some((m) => m.IdOpcionMenu === Number(formData.idPadre))) {
+      setErrorAccion('Selecciona un menú padre obtenido del servidor.');
+      return;
+    }
 
     setGuardando(true);
+    let creado = menuCreado;
     try {
-      const payloadMenu = {
-        nombre: formData.nombre.trim(),
-        Nombre: formData.nombre.trim(),
-        ruta: formData.ruta.trim(),
-        UrlMenu: formData.ruta.trim(),
-        descripcion: formData.descripcion.trim(),
-        Descripcion: formData.descripcion.trim(),
-        orden: Number(formData.orden) || 1,
-        Orden: Number(formData.orden) || 1,
-        idPadre: formData.idPadre ? Number(formData.idPadre) : null,
-        IdPadre: formData.idPadre ? Number(formData.idPadre) : null,
-      };
-
-      let respuestaMenu = null;
-      if (typeof crearOpcionMenu === 'function') {
-        respuestaMenu = await crearOpcionMenu(payloadMenu);
+      if (!creado) {
+        const respuesta = await crearOpcionMenu({
+          nombre: formData.nombre.trim(), ruta: formData.ruta.trim(),
+          descripcion: formData.descripcion.trim(), idPadre: formData.idPadre || null
+        });
+        const id = Number(respuesta.id);
+        creado = { id: Number.isSafeInteger(id) && id > 0 ? id : null };
+        setMenuCreado(creado);
+        if (!creado.id) {
+          setErrorAccion('El servidor confirmó la creación, pero no devolvió un ID válido. No se ha intentado asignar ni volver a crear el menú; revisa el catálogo.');
+          return;
+        }
       }
-
-      const idMenuCreado = 
-        respuestaMenu?.IdOpcionMenu ||
-        respuestaMenu?.id ||
-        Date.now();
-
-      if (formData.idPerfil && typeof asignarMenuAPerfil === 'function') {
-        await asignarMenuAPerfil(Number(idMenuCreado), Number(formData.idPerfil), Number(formData.orden) || 1);
-      }
-
-      setMenus(prev => [...prev, { ...payloadMenu, IdOpcionMenu: idMenuCreado }]);
+      if (!creado.id) return;
+      if (formData.idPerfil) await asignarMenuAPerfil(creado.id, Number(formData.idPerfil), Number(formData.orden));
+      setMensaje(`Menú #${creado.id} creado. ${formData.idPerfil ? 'Asignación al perfil confirmada.' : 'No se solicitó asignación a un perfil.'}`);
       setIsModalOpen(false);
-      setFormData({ nombre: '', ruta: '', descripcion: '', orden: 1, idPadre: '', idPerfil: '' });
     } catch (error) {
-      console.warn("Guardado local de menú:", error);
-      setIsModalOpen(false);
+      setErrorAccion(creado
+        ? `El menú #${creado.id} fue creado, pero la asignación al perfil falló: ${error.message}. Puedes reintentar la asignación sin crear otro menú.`
+        : (error.message || 'No se pudo crear el menú.'));
     } finally {
+      if (creado) await cargarDatos();
       setGuardando(false);
     }
   };
 
-  const menusFiltrados = menus.filter(m => {
+  const coincidencias = new Set(menus.filter(m => {
     const nom = m.Nombre || m.nombre || '';
     const rut = m.UrlMenu || m.url_menu || m.ruta || m.Url || '';
     const term = searchTerm.toLowerCase();
     return nom.toLowerCase().includes(term) || rut.toLowerCase().includes(term);
-  });
+  }).map((m) => m.IdOpcionMenu));
+  const menusPorId = new Map(menus.map((m) => [m.IdOpcionMenu, m]));
+  for (const id of [...coincidencias]) {
+    let padre = menusPorId.get(id)?.IdPadre;
+    while (padre != null && !coincidencias.has(padre)) {
+      coincidencias.add(padre);
+      padre = menusPorId.get(padre)?.IdPadre;
+    }
+  }
+  const menusFiltrados = menus.filter((m) => coincidencias.has(m.IdOpcionMenu));
 
   return (
     <div className="p-4 sm:p-8 bg-slate-50 min-h-full">
@@ -155,6 +158,7 @@ export default function OpcionesMenuPage() {
           <button
             type="button"
             onClick={cargarDatos}
+            disabled={cargando || guardando}
             className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition shadow-sm cursor-pointer"
             title="Recargar catálogo"
           >
@@ -162,13 +166,19 @@ export default function OpcionesMenuPage() {
           </button>
           <button
             type="button"
-            onClick={() => setIsModalOpen(true)}
+            onClick={abrirModal}
+            disabled={cargando || guardando || Boolean(errorMenus)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nueva Opción
           </button>
         </div>
       </div>
+
+      {errorMenus && <p role="alert" className="text-xs text-rose-500 mb-4">{errorMenus} <button type="button" onClick={cargarDatos} disabled={cargando || guardando}>Reintentar</button></p>}
+      {errorPerfiles && <p role="alert" className="text-xs text-rose-500 mb-4">{errorPerfiles} <button type="button" onClick={cargarDatos} disabled={cargando || guardando}>Reintentar perfiles</button></p>}
+      {errorAccion && <p role="alert" className="text-xs text-rose-500 mb-4">{errorAccion}</p>}
+      {mensaje && <p role="status" className="text-xs text-slate-700 mb-4">{mensaje}</p>}
 
       {/* Buscador */}
       <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex items-center gap-3">
@@ -178,7 +188,7 @@ export default function OpcionesMenuPage() {
           placeholder="Buscar opción por nombre o ruta de acceso..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-transparent outline-none text-slate-700 text-xs"
+          className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-500 text-xs"
         />
       </div>
 
@@ -204,15 +214,17 @@ export default function OpcionesMenuPage() {
                     <span className="text-xs">Cargando catálogo de navegación...</span>
                   </td>
                 </tr>
+              ) : errorMenus ? (
+                <tr><td colSpan="6" className="py-8 text-center text-slate-400 text-xs">No se pudo consultar el catálogo. Reintenta la carga.</td></tr>
               ) : menusFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
-                    No se encontraron opciones para el filtro ingresado.
+                    {menus.length === 0 ? 'No hay menús activos registrados en el servidor.' : 'No se encontraron opciones para el filtro ingresado.'}
                   </td>
                 </tr>
               ) : (
-                menusFiltrados.map((item, idx) => {
-                  const id = item.IdOpcionMenu || item.id || item.id_opcion_menu || idx + 1;
+                menusFiltrados.map((item) => {
+                  const id = item.IdOpcionMenu;
                   const nombre = item.Nombre || item.nombre || '-';
                   const ruta = item.UrlMenu || item.url_menu || item.ruta || item.Url || '-';
                   const descripcion = item.Descripcion || item.descripcion || '-';
@@ -231,7 +243,7 @@ export default function OpcionesMenuPage() {
                       <td className="py-4 px-6 text-xs text-slate-500">
                         {idPadre ? (
                           <span className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                            <Layers className="w-3 h-3" /> Submenú de #{idPadre}
+                            <Layers className="w-3 h-3" /> Submenú de #{idPadre} · {menusPorId.get(idPadre)?.Nombre}
                           </span>
                         ) : (
                           <span className="text-slate-400">Menú Raíz</span>
@@ -260,6 +272,7 @@ export default function OpcionesMenuPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                disabled={guardando}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -267,15 +280,19 @@ export default function OpcionesMenuPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
+              {errorAccion && <p role="alert" className="text-xs text-rose-500">{errorAccion}</p>}
+              {errorPerfiles && <p role="alert" className="text-xs text-rose-500">{errorPerfiles}</p>}
+              {menuCreado && <p role="status" className="text-xs text-slate-700">El menú ya fue creado{menuCreado.id ? ` con ID #${menuCreado.id}` : ''}. No se volverá a crear al reintentar.</p>}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre</label>
                 <input 
                   required 
                   type="text" 
                   value={formData.nombre} 
+                  disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, nombre: e.target.value })} 
                   placeholder="Ej: Calificaciones" 
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800 placeholder:text-slate-500"
                 />
               </div>
 
@@ -285,9 +302,10 @@ export default function OpcionesMenuPage() {
                   required 
                   type="text" 
                   value={formData.ruta} 
+                  disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, ruta: e.target.value })} 
                   placeholder="/calificaciones" 
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800 placeholder:text-slate-500"
                 />
               </div>
 
@@ -297,9 +315,10 @@ export default function OpcionesMenuPage() {
                   <input 
                     type="text" 
                     value={formData.descripcion} 
+                    disabled={guardando || Boolean(menuCreado)}
                     onChange={e => setFormData({ ...formData, descripcion: e.target.value })} 
                     placeholder="Ej: Registro de notas" 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800 placeholder:text-slate-500"
                   />
                 </div>
                 <div>
@@ -308,8 +327,9 @@ export default function OpcionesMenuPage() {
                     type="number" 
                     min="1"
                     value={formData.orden} 
+                    disabled={guardando}
                     onChange={e => setFormData({ ...formData, orden: Number(e.target.value) })} 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800"
                   />
                 </div>
               </div>
@@ -318,16 +338,17 @@ export default function OpcionesMenuPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Menú Padre</label>
                 <select
                   value={formData.idPadre}
+                  disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, idPadre: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs bg-white cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800 bg-white cursor-pointer"
                 >
                   <option value="">Ninguno (Menú Principal)</option>
-                  {menus.map((m, idx) => {
-                    const mId = m.IdOpcionMenu || m.id || m.id_opcion_menu || idx + 1;
+                  {menus.map((m) => {
+                    const mId = m.IdOpcionMenu;
                     const mNombre = m.Nombre || m.nombre;
                     return (
                       <option key={mId} value={mId}>
-                        #{mId} - {mNombre}
+                        #{mId} - {mNombre}{m.IdPadre ? ` (submenú de #${m.IdPadre})` : ''}
                       </option>
                     );
                   })}
@@ -338,13 +359,14 @@ export default function OpcionesMenuPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Asignar a Perfil</label>
                 <select
                   value={formData.idPerfil}
+                  disabled={guardando || cargando || Boolean(errorPerfiles) || !perfiles.some((p) => Number(p.EstadoRegistro) === 1)}
                   onChange={e => setFormData({ ...formData, idPerfil: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs bg-white cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 text-xs text-slate-800 bg-white cursor-pointer"
                 >
-                  <option value="">Seleccionar Perfil...</option>
-                  {perfiles.map((p, idx) => {
-                    const pId = p.IdPerfil ?? p.idPerfil ?? p.id ?? idx + 1;
-                    const pNom = p.NombrePerfil ?? p.nombrePerfil ?? p.Nombre ?? p.nombre ?? `Perfil #${pId}`;
+                  <option value="">{perfiles.some((p) => Number(p.EstadoRegistro) === 1) ? 'Seleccionar Perfil...' : 'No hay perfiles activos disponibles'}</option>
+                  {perfiles.filter((p) => Number(p.EstadoRegistro) === 1).map((p) => {
+                    const pId = p.IdPerfil;
+                    const pNom = p.Nombre;
                     return (
                       <option key={pId} value={pId}>
                         {pNom}
@@ -358,17 +380,18 @@ export default function OpcionesMenuPage() {
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)} 
+                  disabled={guardando}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  disabled={guardando} 
+                  disabled={guardando || cargando || (Boolean(menuCreado) && (!menuCreado.id || !formData.idPerfil))}
                   className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
                 >
                   {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {guardando ? 'Guardando...' : 'Guardar Opción'}
+                  {guardando ? 'Guardando...' : menuCreado ? 'Reintentar asignación' : 'Guardar Opción'}
                 </button>
               </div>
             </form>

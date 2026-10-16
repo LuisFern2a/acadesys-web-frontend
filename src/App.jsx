@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import DashboardLayout from './components/DashboardLayout';
 import PerfilesPage from './pages/PerfilesPage';
@@ -15,7 +15,7 @@ import MorosidadPage from './pages/MorosidadPage';
 import OfflineFallback from './components/OfflineFallback';
 import StudentIntranetPage from './pages/StudentIntranetPage';
 import AdminMaterialesPage from './pages/AdminMaterialesPage';
-import { obtenerMiIntranetAlumno } from './services/api';
+import { obtenerMiIntranetAlumno, obtenerMiUsuario } from './services/api';
 
 const leerSesionGuardada = () => {
   const saved = localStorage.getItem('acadesys_session') || localStorage.getItem('usuario');
@@ -32,6 +32,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [studentBootstrapped, setStudentBootstrapped] = useState(false);
+  const revalidandoSesionRef = useRef(0);
 
   const esAlumnoRol = (user) => {
     const rol = String(user?.rol || user?.Perfil || '').toLowerCase();
@@ -91,6 +92,70 @@ export default function App() {
         .finally(() => setStudentBootstrapped(true));
     }
   }, [session, studentBootstrapped]);
+
+  // Punto 18: si el perfil operativo cambió durante la sesión, no conservar
+  // indefinidamente permisos visuales obsoletos. Se revalida contra el backend
+  // SOLO al recuperar el foco de la ventana (no es polling constante) y se
+  // reutiliza el mecanismo de sesión existente. La seguridad real está en el
+  // backend (auth.middleware); esto solo sincroniza la apariencia del sidebar.
+  useEffect(() => {
+    if (!session) return undefined;
+
+    const normalizarRol = (valor) => {
+      const base = String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+      if (!base) return '';
+      if (base === 'admin' || base.includes('administrador')) return 'administrador';
+      if (base === 'rrhh' || base.includes('recursos humanos')) return 'administrador';
+      if (base.includes('estudiante')) return 'alumno';
+      if (base.includes('alumno')) return 'alumno';
+      return base;
+    };
+
+    const revalidarSesion = async () => {
+      const ahora = Date.now();
+      if (ahora - revalidandoSesionRef.current < 5000) return; // evita ráfagas de foco
+      revalidandoSesionRef.current = ahora;
+      try {
+        const me = await obtenerMiUsuario();
+        if (!me) return;
+
+        const rolNuevo = me.NombrePerfil || me.Perfil || me.rol || '';
+        const idNuevo = me.IdPerfil ?? me.idPerfil ?? null;
+        const idActual = session.idPerfil ?? session.IdPerfil ?? null;
+        const rolActual = session.rol || session.Perfil || '';
+
+        const idDisponibles = idNuevo != null && idActual != null;
+        const cambioId = idDisponibles && String(idNuevo) !== String(idActual);
+        const cambioRol = !idDisponibles && normalizarRol(rolNuevo) !== normalizarRol(rolActual);
+        if (!cambioId && !cambioRol) return;
+
+        const actualizada = {
+          ...session,
+          rol: rolNuevo || session.rol,
+          Perfil: rolNuevo || session.Perfil,
+          idPerfil: idNuevo ?? session.idPerfil,
+        };
+        setSession(actualizada);
+        localStorage.setItem('acadesys_session', JSON.stringify(actualizada));
+        setStudentBootstrapped(false);
+
+        // La pestaña actual pudo dejar de ser válida para el nuevo perfil.
+        const esAlumnoNuevo = normalizarRol(rolNuevo) === 'alumno';
+        setActiveTab(esAlumnoNuevo ? 'student-home' : 'dashboard');
+        localStorage.setItem('acadesys_tab', esAlumnoNuevo ? 'student-home' : 'dashboard');
+      } catch {
+        // 401 (sesión inválida) ya lo maneja fetchWithAuth cerrando sesión.
+        // Otros errores no deben forzar un logout.
+      }
+    };
+
+    window.addEventListener('focus', revalidarSesion);
+    return () => window.removeEventListener('focus', revalidarSesion);
+  }, [session]);
 
   const handleLogin = (user) => {
     setSession(user);

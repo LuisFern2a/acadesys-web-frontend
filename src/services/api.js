@@ -107,9 +107,13 @@ export async function obtenerPerfiles() {
 }
 
 export async function crearPerfil(nuevoPerfil) {
+  const payload = {
+    NombrePerfil: nuevoPerfil.NombrePerfil,
+    Descripcion: nuevoPerfil.Descripcion
+  };
   const response = await fetchWithAuth(`/api/perfiles`, {
     method: "POST",
-    body: JSON.stringify(nuevoPerfil),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
@@ -119,9 +123,31 @@ export async function crearPerfil(nuevoPerfil) {
 }
 
 export async function actualizarPerfil(idPerfil, perfilActualizado) {
-  const response = await fetchWithAuth(`/api/perfiles/${idPerfil}`, {
+  if (!Number.isSafeInteger(Number(idPerfil)) || Number(idPerfil) <= 0) {
+    throw new Error('No se puede actualizar un perfil sin un identificador válido.');
+  }
+  // Se envían solo los campos presentes: permite editar nombre/descripción
+  // o cambiar únicamente el estado (activar/desactivar).
+  const payload = {};
+  if (perfilActualizado.NombrePerfil !== undefined) {
+    payload.NombrePerfil = String(perfilActualizado.NombrePerfil).trim();
+  }
+  if (perfilActualizado.Descripcion !== undefined) {
+    payload.Descripcion = String(perfilActualizado.Descripcion);
+  }
+  if (perfilActualizado.EstadoRegistro !== undefined) {
+    const estado = Number(perfilActualizado.EstadoRegistro);
+    if (![0, 1].includes(estado)) {
+      throw new Error('El estado del perfil debe ser Activo o Inactivo.');
+    }
+    payload.EstadoRegistro = estado;
+  }
+  if (Object.keys(payload).length === 0) {
+    throw new Error('No se enviaron cambios para el perfil.');
+  }
+  const response = await fetchWithAuth(`/api/perfiles/${Number(idPerfil)}`, {
     method: "PUT",
-    body: JSON.stringify(perfilActualizado),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
@@ -131,6 +157,9 @@ export async function actualizarPerfil(idPerfil, perfilActualizado) {
 }
 
 export async function eliminarPerfil(idPerfil) {
+  if (!Number.isSafeInteger(Number(idPerfil)) || Number(idPerfil) <= 0) {
+    throw new Error('No se puede eliminar un perfil sin un identificador válido.');
+  }
   const response = await fetchWithAuth(`/api/perfiles/${idPerfil}`, {
     method: "DELETE",
   });
@@ -154,10 +183,42 @@ export async function obtenerUsuarios() {
   return await response.json();
 }
 
+// Directorio MÍNIMO no sensible (IdUsuario + NombreCompleto + Perfil).
+// Reemplaza al listado administrativo en vistas que solo necesitan identificar
+// personas (Académico, Dashboard) sin exponer DNI, correo ni celular.
+export async function obtenerDirectorioUsuarios() {
+  const response = await fetchWithAuth(`/api/usuarios/directorio`);
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
+// Datos del usuario autenticado (Mi Perfil). No acepta un IdUsuario arbitrario:
+// el backend siempre los resuelve desde la sesión.
+export async function obtenerMiUsuario() {
+  const response = await fetchWithAuth(`/api/usuarios/me`);
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+  }
+  return await response.json();
+}
+
 export async function crearUsuario(datosUsuario) {
+  if (Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 1) {
+    throw new Error('La API de usuarios admite un único perfil por operación.');
+  }
+
   const idPerfilPrincipal = Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 0
     ? Number(datosUsuario.perfiles[0])
-    : Number(datosUsuario.idPerfil || datosUsuario.IdPerfil || 1);
+    : Number(datosUsuario.idPerfil ?? datosUsuario.IdPerfil);
+
+  // Sin perfiles "por defecto": el perfil debe venir del catálogo real del servidor.
+  if (!Number.isSafeInteger(idPerfilPrincipal) || idPerfilPrincipal <= 0) {
+    throw new Error('Debes seleccionar un perfil válido para el usuario.');
+  }
 
   const payload = {
     CodigoUsuario: String(datosUsuario.nombreUsuario || datosUsuario.codigoUsuario || '').trim(),
@@ -171,7 +232,6 @@ export async function crearUsuario(datosUsuario) {
     UsuarioCreacion: datosUsuario.usuarioCreacion || 'sistema',
     EstadoRegistro: 1,
     IdPerfil: idPerfilPrincipal,
-    IdAcademia: datosUsuario.idAcademia || 1
   };
 
   const response = await fetchWithAuth(`/api/usuarios`, {
@@ -188,14 +248,59 @@ export async function crearUsuario(datosUsuario) {
 }
 
 export async function actualizarUsuario(idUsuario, datosUsuario) {
-  const payload = {
-    DNI: String(datosUsuario.dni || '').trim().slice(0, 8),
-    Nombres: datosUsuario.nombre || '',
-    ApellidoPaterno: datosUsuario.apellido || '',
-    ApellidoMaterno: datosUsuario.apellidoMaterno || '',
-    Celular: datosUsuario.celular || '',
-    CorreoElectronico: datosUsuario.correo || '',
-  };
+  if (!Number.isSafeInteger(Number(idUsuario)) || Number(idUsuario) <= 0) {
+    throw new Error('No se puede actualizar un usuario sin un identificador válido.');
+  }
+  if (Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 1) {
+    throw new Error('La API de usuarios admite un único perfil por operación.');
+  }
+
+  // Actualización PARCIAL: solo se envían los campos realmente presentes para
+  // no sobrescribir información que no se está modificando.
+  const payload = {};
+
+  const dni = datosUsuario.dni ?? datosUsuario.DNI;
+  if (dni !== undefined && dni !== null) {
+    const dniLimpio = String(dni).trim().slice(0, 8);
+    payload.DNI = dniLimpio || null;
+  }
+
+  const nombres = datosUsuario.nombre ?? datosUsuario.Nombres ?? datosUsuario.nombres;
+  if (nombres !== undefined) payload.Nombres = String(nombres);
+
+  const apellidoPaterno = datosUsuario.apellido ?? datosUsuario.ApellidoPaterno;
+  if (apellidoPaterno !== undefined) payload.ApellidoPaterno = String(apellidoPaterno);
+
+  const apellidoMaterno = datosUsuario.apellidoMaterno ?? datosUsuario.ApellidoMaterno;
+  if (apellidoMaterno !== undefined) payload.ApellidoMaterno = String(apellidoMaterno);
+
+  const celular = datosUsuario.celular ?? datosUsuario.Celular;
+  if (celular !== undefined) payload.Celular = String(celular);
+
+  const correo = datosUsuario.correo ?? datosUsuario.CorreoElectronico ?? datosUsuario.Correo;
+  if (correo !== undefined) payload.CorreoElectronico = String(correo);
+
+  const clave = datosUsuario.contrasena ?? datosUsuario.Clave;
+  if (clave !== undefined && String(clave).trim()) payload.Clave = String(clave).trim();
+
+  const estado = datosUsuario.estadoRegistro ?? datosUsuario.EstadoRegistro;
+  if (estado !== undefined && estado !== null) {
+    const estadoNumerico = estado === 'Activo' ? 1 : estado === 'Inactivo' ? 0 : Number(estado);
+    if (![0, 1].includes(estadoNumerico)) throw new Error('El estado de acceso debe ser Activo o Inactivo.');
+    payload.EstadoRegistro = estadoNumerico;
+  }
+
+  const idPerfil = datosUsuario.idPerfil ?? datosUsuario.IdPerfil ?? datosUsuario.perfiles?.[0];
+  if (idPerfil !== undefined && idPerfil !== null) {
+    if (!Number.isSafeInteger(Number(idPerfil)) || Number(idPerfil) <= 0) {
+      throw new Error('Selecciona un perfil válido.');
+    }
+    payload.IdPerfil = Number(idPerfil);
+  }
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error('No se enviaron cambios para el usuario.');
+  }
 
   const response = await fetchWithAuth(`/api/usuarios/${idUsuario}`, {
     method: "PUT",
@@ -204,13 +309,56 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    throw new Error(errData.error || errData.message || errData.mensaje || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json().catch(() => ({ mensaje: "Actualizado con Ã©xito" }));
+  return response.status === 204 ? null : await response.json();
+}
+
+// Autoservicio de datos personales (Mi Perfil). El backend toma el IdUsuario de
+// la sesión (nunca del cliente) y aplica una allowlist estricta: solo enviamos
+// Nombres, DNI, CorreoElectronico y Celular. Cualquier campo administrativo
+// (IdPerfil, EstadoRegistro, IdAcademia, CodigoUsuario, Clave...) se omite aquí
+// y el backend además los ignora.
+export async function actualizarMiUsuario(datosUsuario) {
+  const payload = {};
+
+  const nombres = datosUsuario?.nombre ?? datosUsuario?.nombres ?? datosUsuario?.Nombres;
+  if (nombres !== undefined) payload.Nombres = String(nombres);
+
+  const dni = datosUsuario?.dni ?? datosUsuario?.DNI;
+  if (dni !== undefined && dni !== null) {
+    const dniLimpio = String(dni).trim().slice(0, 8);
+    payload.DNI = dniLimpio || null;
+  }
+
+  const correo = datosUsuario?.correo ?? datosUsuario?.CorreoElectronico ?? datosUsuario?.Correo;
+  if (correo !== undefined) payload.CorreoElectronico = String(correo);
+
+  const celular = datosUsuario?.celular ?? datosUsuario?.Celular;
+  if (celular !== undefined) payload.Celular = String(celular);
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error('No se enviaron cambios para tu perfil.');
+  }
+
+  const response = await fetchWithAuth(`/api/usuarios/me`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || errData.message || errData.mensaje || `Error HTTP: ${response.status}`);
+  }
+
+  return response.status === 204 ? null : await response.json();
 }
 
 export async function eliminarUsuario(idUsuario) {
+  if (!Number.isSafeInteger(Number(idUsuario)) || Number(idUsuario) <= 0) {
+    throw new Error('No se puede eliminar un usuario sin un identificador válido.');
+  }
   const response = await fetchWithAuth(`/api/usuarios/${idUsuario}`, {
     method: "DELETE",
   });
@@ -220,7 +368,7 @@ export async function eliminarUsuario(idUsuario) {
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
 
-  return await response.json().catch(() => ({ mensaje: "Eliminado con Ã©xito" }));
+  return response.status === 204 ? null : await response.json();
 }
 
 // ==========================================
@@ -306,19 +454,76 @@ export async function obtenerMonitoreoTutores(idCiclo = 1) {
 // ==========================================
 
 export async function obtenerOpcionesMenu() {
-  const response = await fetchWithAuth(`/api/menus`);
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+  const visitados = new Set();
+  async function recorrer(endpoint, idPadre, profundidad = 0) {
+    if (profundidad > 25) throw new Error('La jerarquía de menús supera la profundidad permitida.');
+    const data = await leerRespuestaMenus(await fetchWithAuth(endpoint));
+    if (!Array.isArray(data)) throw new Error('El servidor devolvió un catálogo de menús no válido.');
+    const resultado = [];
+    for (const dato of data) {
+      const menu = normalizarMenu(dato, idPadre);
+      if (visitados.has(menu.IdOpcionMenu) || visitados.size >= 2000) {
+        throw new Error('La jerarquía de menús contiene ciclos, duplicados o demasiados elementos.');
+      }
+      visitados.add(menu.IdOpcionMenu);
+      resultado.push(menu);
+      resultado.push(...await recorrer(`/api/menus/${menu.IdOpcionMenu}/submenus`, menu.IdOpcionMenu, profundidad + 1));
+    }
+    return resultado;
   }
-  return await response.json();
+  return recorrer('/api/menus', null);
+}
+
+function idMenuValido(id) {
+  return ['number', 'string'].includes(typeof id) && /^\d+$/.test(String(id)) &&
+    Number.isSafeInteger(Number(id)) && Number(id) > 0 && Number(id) <= 2147483647;
+}
+
+async function leerRespuestaMenus(response) {
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(data?.error || data?.message || `Error HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  if (data === null) throw new Error('El servidor devolvió una respuesta de menús no válida.');
+  return data;
+}
+
+function normalizarMenu(menu, padreEsperado) {
+  if (!menu || !idMenuValido(menu.IdOpcionMenu) || typeof menu.Nombre !== 'string' ||
+      (menu.UrlMenu != null && typeof menu.UrlMenu !== 'string') ||
+      (menu.Descripcion != null && typeof menu.Descripcion !== 'string') ||
+      (menu.EstadoRegistro !== undefined && Number(menu.EstadoRegistro) !== 1)) {
+    throw new Error('El servidor devolvió una opción de menú no válida.');
+  }
+  const padre = menu.IdPadre === undefined ? (padreEsperado ?? null) : menu.IdPadre;
+  if (padre !== null && !idMenuValido(padre)) throw new Error('El menú tiene un padre no válido.');
+  const idPadre = padre === null ? null : Number(padre);
+  if (padreEsperado !== undefined && idPadre !== padreEsperado) {
+    throw new Error('La respuesta de submenús no coincide con su menú padre.');
+  }
+  return { ...menu, IdOpcionMenu: Number(menu.IdOpcionMenu), IdPadre: idPadre, UrlMenu: menu.UrlMenu ?? '' };
+}
+
+export async function obtenerMenusPorPerfil(idPerfil) {
+  if (!idMenuValido(idPerfil)) throw new Error('Selecciona un perfil válido para consultar su navegación.');
+  const data = await leerRespuestaMenus(await fetchWithAuth(`/api/menus/perfil/${Number(idPerfil)}`));
+  if (!data.perfil || Number(data.perfil.IdPerfil) !== Number(idPerfil) || !Array.isArray(data.menus)) {
+    throw new Error('El servidor devolvió una configuración de navegación no válida.');
+  }
+  return { perfil: data.perfil, menus: data.menus.map((menu) => normalizarMenu(menu)) };
+}
+
+function notificarCambioMenus() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('acadesys-menus-actualizados'));
 }
 
 export async function crearOpcionMenu(datosMenu) {
   const payload = {
     Nombre: datosMenu.nombre,
     UrlMenu: datosMenu.ruta,
-    Descripcion: datosMenu.descripcion || datosMenu.icono || 'OpciÃ³n de MenÃº',
+    Descripcion: datosMenu.descripcion || '',
     IdPadre: datosMenu.idPadre ? Number(datosMenu.idPadre) : null,
     EstadoRegistro: 1
   };
@@ -328,19 +533,19 @@ export async function crearOpcionMenu(datosMenu) {
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
-  }
-
-  return await response.json();
+  const data = await leerRespuestaMenus(response);
+  notificarCambioMenus();
+  return data;
 }
 
 export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
+  if (!idMenuValido(idOpcionMenu) || !idMenuValido(idPerfil) || !idMenuValido(orden)) {
+    throw new Error('Menú, perfil y orden deben tener identificadores enteros positivos válidos.');
+  }
   const payload = {
     IdOpcionMenu: Number(idOpcionMenu),
     IdPerfil: Number(idPerfil),
-    Orden: Number(orden) || 1,
+    Orden: Number(orden),
     EstadoRegistro: 1
   };
 
@@ -349,12 +554,9 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
-  }
-
-  return await response.json();
+  const data = await leerRespuestaMenus(response);
+  notificarCambioMenus();
+  return data;
 }
 
 // ==========================================

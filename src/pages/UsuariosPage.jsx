@@ -8,6 +8,10 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [operandoId, setOperandoId] = useState(null);
+  const [errorUsuarios, setErrorUsuarios] = useState('');
+  const [errorPerfiles, setErrorPerfiles] = useState('');
+  const [errorOperacion, setErrorOperacion] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,35 +36,26 @@ export default function UsuariosPage() {
   const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu|acadesys\.edu\.pe)$/;
   const CONTRASENA_PERMITIDA = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{8,}$/;
 
-  const perfilesRespaldo = [
-    { IdPerfil: 1, Nombre: 'Administrador' },
-    { IdPerfil: 2, Nombre: 'Docente' },
-    { IdPerfil: 3, Nombre: 'Padre' },
-    { IdPerfil: 4, Nombre: 'Alumno' }
-  ];
-
   async function cargarPerfiles() {
+    setErrorPerfiles('');
     try {
-      if (typeof obtenerPerfiles === 'function') {
-        const data = await obtenerPerfiles();
-        const lista = Array.isArray(data) ? data : data?.data || [];
-        setPerfiles(lista.length > 0 ? lista : perfilesRespaldo);
-      } else {
-        setPerfiles(perfilesRespaldo);
-      }
+      const data = await obtenerPerfiles();
+      const lista = Array.isArray(data) ? data : data?.data;
+      if (!Array.isArray(lista)) throw new Error('El servidor devolvió un catálogo de perfiles no válido.');
+      setPerfiles(lista);
     } catch (error) {
-      console.warn('Usando perfiles base locales:', error);
-      setPerfiles(perfilesRespaldo);
-    } finally {
+      setErrorPerfiles(error.message || 'No se pudieron cargar los perfiles.');
     }
   };
 
   async function cargarUsuarios() {
     setLoadingUsuarios(true);
+    setErrorUsuarios('');
     try {
       if (typeof obtenerUsuarios === 'function') {
         const data = await obtenerUsuarios();
-        const lista = Array.isArray(data) ? data : data?.data || [];
+        const lista = Array.isArray(data) ? data : data?.data;
+        if (!Array.isArray(lista)) throw new Error('El servidor devolvió una lista de usuarios no válida.');
 
         const mapaUsuarios = new Map();
         lista.forEach((u) => {
@@ -100,19 +95,20 @@ export default function UsuariosPage() {
         });
 
         setUsuarios(Array.from(mapaUsuarios.values()));
+        return true;
       } else {
         throw new Error('No está disponible el servicio de usuarios.');
       }
     } catch (error) {
-      console.warn('No fue posible cargar la nómina desde el backend:', error);
-      setUsuarios([]);
+      setErrorUsuarios(error.message || 'No fue posible cargar la nómina desde el backend.');
+      return false;
     } finally {
       setLoadingUsuarios(false);
     }
   };
 
   const resolverUsuario = (u) => {
-    const user = (u.NombreUsuario || u.nombreUsuario || u.usuario || u.Usuario || u.username || u.login);
+    const user = (u.CodigoUsuario || u.codigoUsuario || u.NombreUsuario || u.nombreUsuario || u.usuario || u.Usuario || u.username || u.login);
     if (user && String(user).trim() !== '') return String(user).trim();
     const email = u.correo || u.Correo || u.email || '';
     if (email.includes('@')) return email.split('@')[0];
@@ -133,50 +129,38 @@ export default function UsuariosPage() {
 
   const resolverCorreo = (u) => u.correo || u.Correo || u.CorreoElectronico || u.email || '-';
 
-  const resolverPerfilNombre = (u, idx = 0) => {
-    const perfilesArray = u.perfilesUnificados || u.perfiles || u.Perfiles || u.roles;
-    if (Array.isArray(perfilesArray) && perfilesArray.length > 0) {
-      const mapeados = perfilesArray.map((p) => {
-        if (typeof p === 'object' && p !== null) {
-          return p.Nombre || p.nombre || p.NombrePerfil;
-        }
-        const enc = perfiles.find(item => String(item.id_perfil ?? item.IdPerfil ?? item.id) === String(p));
-        if (enc) return enc.Nombre || enc.nombre || enc.NombrePerfil;
-        if (String(p) === '1') return 'Administrador';
-        if (String(p) === '2') return 'Docente';
-        if (String(p) === '3') return 'Padre';
-        if (String(p) === '4') return 'Alumno';
-        if (typeof p === 'string' && isNaN(p)) return p.trim();
-        return null;
-      }).filter(Boolean);
-
-      const unicos = Array.from(new Set(mapeados));
-      if (unicos.length > 0) return unicos.join(', ');
+  // El perfil SIEMPRE proviene del servidor (NombrePerfil + EstadoPerfil).
+  // Sin IDs mágicos ni heurísticas por correo/DNI/nombre de usuario.
+  const resolverPerfil = (u) => {
+    const idPerfil = u.IdPerfil ?? u.idPerfil ?? u.id_perfil ?? null;
+    const nombre = String(u.NombrePerfil ?? u.nombrePerfil ?? u.Perfil ?? '').trim();
+    if (idPerfil === null || idPerfil === undefined || Number(idPerfil) <= 0) {
+      return { etiqueta: 'Sin perfil', tipo: 'sin-perfil' };
     }
-
-    const nombreDirecto = u.NombrePerfil || u.nombrePerfil || u.perfil || u.Perfil || u.rol;
-    if (nombreDirecto && typeof nombreDirecto === 'string' && isNaN(nombreDirecto)) {
-      return nombreDirecto.trim();
+    const estadoPerfil = u.EstadoPerfil ?? u.estadoPerfil;
+    const inactivo = estadoPerfil !== undefined && estadoPerfil !== null && Number(estadoPerfil) !== 1;
+    if (inactivo) {
+      return {
+        etiqueta: nombre ? `${nombre} (Perfil inactivo)` : 'Perfil inactivo',
+        tipo: 'inactivo',
+      };
     }
-
-    const email = (u.correo || u.Correo || '').toLowerCase();
-    const user = (u.NombreUsuario || u.nombreUsuario || '').toLowerCase();
-    if (user.includes('admin') || email.includes('admin') || user.includes('yan')) return 'Administrador';
-    if (user.includes('docente') || email.includes('mendoza') || email.includes('flores')) return 'Docente';
-    if (email.includes('gmail.com')) {
-      const dniNum = parseInt(String(u.dni || idx).replace(/\D/g, '').slice(-1) || idx, 10);
-      return dniNum % 2 === 0 ? 'Alumno' : 'Padre';
-    }
-    return 'Docente';
+    return { etiqueta: nombre || `Perfil #${idPerfil}`, tipo: 'activo' };
   };
 
   const resolverBadgeRol = (rolTexto = '') => {
     const r = rolTexto.toLowerCase();
-    if (r.includes('admin')) return 'bg-purple-50 text-purple-700 border-purple-200';
+    if (r.includes('admin') || r.includes('rrhh') || r.includes('recursos humanos')) return 'bg-purple-50 text-purple-700 border-purple-200';
     if (r.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (r.includes('padre')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (r.includes('alumno')) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (r.includes('tutor') || r.includes('padre')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (r.includes('alumno') || r.includes('estudiante')) return 'bg-amber-50 text-amber-700 border-amber-200';
     return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+  };
+
+  const estiloBadgePerfil = (perfil) => {
+    if (perfil.tipo === 'sin-perfil') return 'bg-slate-100 text-slate-500 border-slate-200';
+    if (perfil.tipo === 'inactivo') return 'bg-rose-50 text-rose-600 border-rose-200';
+    return resolverBadgeRol(perfil.etiqueta);
   };
 
   const resolverEstado = (u) => {
@@ -184,7 +168,14 @@ export default function UsuariosPage() {
     return String(est) === '1' || String(est).toUpperCase() === 'ACTIVO' ? 'Activo' : 'Inactivo';
   };
 
+  // Solo se pueden asignar perfiles activos; el backend lo valida igualmente.
+  const perfilesAsignables = perfiles.filter((p) => {
+    const estado = p.EstadoRegistro ?? p.estadoRegistro ?? p.estado;
+    return estado === undefined || Number(estado) === 1;
+  });
+
   const abrirModalCrear = () => {
+    setErrorOperacion('');
     setUsuarioEditando(null);
     setFormData({
       nombreUsuario: '',
@@ -195,81 +186,83 @@ export default function UsuariosPage() {
       contrasena: '',
       estadoRegistro: 'Activo',
     });
-    setPerfilesSeleccionados([2]);
+    setPerfilesSeleccionados([]);
     setErrores({});
     setIsModalOpen(true);
   };
 
   const handleEditar = (u) => {
+    setErrorOperacion('');
     setUsuarioEditando(u);
     setFormData({
       nombreUsuario: resolverUsuario(u),
       dni: resolverDni(u) !== '-' ? resolverDni(u) : '',
-      nombre: u.nombre || u.Nombre || u.nombres || '',
+      nombre: u.Nombres ?? u.nombre ?? u.Nombre ?? u.nombres ?? '',
       apellido: u.ApellidoPaterno || u.apellido || u.Apellido || u.apellidos || '',
       correo: resolverCorreo(u) !== '-' ? resolverCorreo(u) : '',
       contrasena: '',
       estadoRegistro: resolverEstado(u),
     });
 
-    const perfs = u.perfilesUnificados || u.perfiles || [u.idPerfil || 2];
+    const perfs = u.perfilesUnificados || u.perfiles || [u.IdPerfil ?? u.idPerfil];
+    const idsAsignables = new Set(perfilesAsignables.map((p) => Number(p.IdPerfil ?? p.idPerfil ?? p.id)));
     setPerfilesSeleccionados(
       Array.isArray(perfs)
-        ? perfs.map(p => (typeof p === 'object' ? (p.id || p.IdPerfil || p.id_perfil) : Number(p))).filter(Boolean)
-        : [2]
+        ? [...new Set(perfs.map(p => Number(typeof p === 'object' && p !== null ? (p.id ?? p.IdPerfil ?? p.idPerfil ?? p.id_perfil) : p)).filter(id => Number.isSafeInteger(id) && id > 0 && idsAsignables.has(id)))]
+        : []
     );
     setErrores({});
     setIsModalOpen(true);
   };
 
   const handleToggleEstado = async (u) => {
-    const id = u.idUsuario || u.IdUsuario || u.id_usuario || u.id || u.dni;
+    if (operandoId !== null || guardando) return;
+    const id = u.idUsuario ?? u.IdUsuario ?? u.id_usuario ?? u.id;
     const estadoActual = resolverEstado(u);
     const nuevoEstado = estadoActual === 'Activo' ? 'Inactivo' : 'Activo';
 
+    setOperandoId(id ?? 'sin-id');
+    setErrorOperacion('');
     try {
-      if (typeof actualizarUsuario === 'function') {
-        await actualizarUsuario(id, {
-          ...u,
-          estadoRegistro: nuevoEstado === 'Activo' ? 1 : 0
-        });
+      // Enviamos SOLO el estado: el PUT es parcial y no debe tocar
+      // campos que no se están modificando.
+      await actualizarUsuario(id, {
+        EstadoRegistro: nuevoEstado === 'Activo' ? 1 : 0,
+      });
+      if (!await cargarUsuarios()) {
+        setErrorOperacion('El servidor confirmó el cambio de estado, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
       }
     } catch (error) {
-      console.warn('Actualización de estado local:', error);
+      setErrorOperacion(error.message || 'No se pudo cambiar el estado del usuario.');
+    } finally {
+      setOperandoId(null);
     }
-
-    setUsuarios(prev => prev.map(item => {
-      const itemId = item.idUsuario || item.IdUsuario || item.id_usuario || item.id || item.dni;
-      return itemId === id ? { ...item, estadoRegistro: nuevoEstado } : item;
-    }));
   };
 
   const handleEliminar = async (u) => {
+    if (operandoId !== null || guardando) return;
     const nombre = resolverNombreCompleto(u);
-    const id = u.idUsuario || u.IdUsuario || u.id_usuario || u.id || u.dni;
+    const id = u.idUsuario ?? u.IdUsuario ?? u.id_usuario ?? u.id;
 
     if (window.confirm(`¿Estás seguro de que deseas eliminar a "${nombre}"?`)) {
+      setOperandoId(id ?? 'sin-id');
+      setErrorOperacion('');
       try {
-        if (typeof eliminarUsuario === 'function') {
-          await eliminarUsuario(id);
+        await eliminarUsuario(id);
+        if (!await cargarUsuarios()) {
+          setErrorOperacion('El servidor confirmó la eliminación, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
         }
       } catch (error) {
-        console.warn('Eliminación local:', error);
+        setErrorOperacion(error.message || 'No se pudo eliminar el usuario.');
+      } finally {
+        setOperandoId(null);
       }
-      setUsuarios(prev => prev.filter(item => {
-        const itemId = item.idUsuario || item.IdUsuario || item.id_usuario || item.id || item.dni;
-        return itemId !== id;
-      }));
     }
   };
 
   const cambiarPerfil = (idPerfil) => {
-    setPerfilesSeleccionados((actuales) => {
-      if (actuales.includes(idPerfil)) {
-        return actuales.filter((id) => id !== idPerfil);
-      }
-      return [...actuales, idPerfil];
-    });
+    // La API recibe un único IdPerfil, no un arreglo de asignaciones.
+    setPerfilesSeleccionados((actuales) => actuales.includes(idPerfil) ? [] : [idPerfil]);
   };
 
   const handleChange = (e) => {
@@ -279,6 +272,8 @@ export default function UsuariosPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (guardando || operandoId !== null) return;
+    setErrorOperacion('');
     const nuevosErrores = {};
 
     if (!formData.nombreUsuario.trim()) nuevosErrores.nombreUsuario = 'El nombre de usuario es obligatorio.';
@@ -286,18 +281,20 @@ export default function UsuariosPage() {
     if (!SOLO_LETRAS.test(formData.nombre)) nuevosErrores.nombre = 'El nombre debe contener solo letras.';
     if (!SOLO_LETRAS.test(formData.apellido)) nuevosErrores.apellido = 'El apellido debe contener solo letras.';
     if (!CORREO_PERMITIDO.test(formData.correo)) nuevosErrores.correo = 'El correo institucional o Gmail es requerido.';
-    if (!usuarioEditando && !CONTRASENA_PERMITIDA.test(formData.contrasena)) {
+    if ((!usuarioEditando || formData.contrasena) && !CONTRASENA_PERMITIDA.test(formData.contrasena)) {
       nuevosErrores.contrasena = 'La contraseña requiere mínimo 8 caracteres con letras y números.';
     }
-    if (perfilesSeleccionados.length === 0) nuevosErrores.perfiles = 'Debes seleccionar al menos un perfil.';
+    if (perfilesSeleccionados.length !== 1) nuevosErrores.perfiles = 'La API requiere seleccionar un único perfil.';
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores);
       return;
     }
 
-    const primerPerfil = perfilesSeleccionados[0] ? Number(perfilesSeleccionados[0]) : 2;
+    const primerPerfil = Number(perfilesSeleccionados[0]);
     const payloadUsuario = {
+      apellidoMaterno: usuarioEditando?.ApellidoMaterno ?? usuarioEditando?.apellidoMaterno ?? '',
+      celular: usuarioEditando?.Celular ?? usuarioEditando?.celular ?? '',
       ...formData,
       perfiles: perfilesSeleccionados.map(Number),
       idPerfil: primerPerfil,
@@ -307,28 +304,17 @@ export default function UsuariosPage() {
     setGuardando(true);
     try {
       if (usuarioEditando) {
-        const id = usuarioEditando.idUsuario || usuarioEditando.IdUsuario || usuarioEditando.id_usuario || usuarioEditando.id || usuarioEditando.dni;
-        if (typeof actualizarUsuario === 'function') await actualizarUsuario(id, payloadUsuario);
-        setUsuarios(prev => prev.map(item => {
-          const itemId = item.idUsuario || item.IdUsuario || item.id_usuario || item.id || item.dni;
-          return itemId === id ? { ...item, ...payloadUsuario } : item;
-        }));
+        const id = usuarioEditando.idUsuario ?? usuarioEditando.IdUsuario ?? usuarioEditando.id_usuario ?? usuarioEditando.id;
+        await actualizarUsuario(id, payloadUsuario);
       } else {
-        const respuesta = typeof crearUsuario === 'function'
-          ? await crearUsuario(payloadUsuario)
-          : null;
-        const nuevo = {
-          ...payloadUsuario,
-          idUsuario: respuesta?.id || respuesta?.idUsuario || Date.now(),
-          IdUsuario: respuesta?.id || respuesta?.idUsuario || Date.now(),
-          CodigoUsuario: respuesta?.codigoUsuario || respuesta?.CodigoUsuario || ''
-        };
-        setUsuarios(prev => [nuevo, ...prev]);
+        await crearUsuario(payloadUsuario);
       }
       setIsModalOpen(false);
+      if (!await cargarUsuarios()) {
+        setErrorOperacion('El servidor confirmó el guardado, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
+      }
     } catch (error) {
-      console.warn('Guardado local ante error de red:', error);
-      setIsModalOpen(false);
+      setErrorOperacion(error.message || 'No se pudo guardar el usuario.');
     } finally {
       setGuardando(false);
     }
@@ -384,6 +370,12 @@ export default function UsuariosPage() {
         </button>
       </div>
 
+      {(errorUsuarios || errorPerfiles || errorOperacion) && (
+        <p role="alert" className="text-[11px] text-rose-500 mb-4">
+          {[errorUsuarios, errorPerfiles, errorOperacion].filter(Boolean).join(' ')}
+        </p>
+      )}
+
       {/* BUSCADOR */}
       <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex items-center gap-3">
         <Search className="w-4 h-4 text-slate-400" />
@@ -392,7 +384,7 @@ export default function UsuariosPage() {
           placeholder="Buscar por usuario, nombre completo, correo o DNI..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-transparent outline-none text-slate-700 text-xs"
+          className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-500 text-xs"
         />
       </div>
 
@@ -426,7 +418,7 @@ export default function UsuariosPage() {
               {usuariosFiltrados.map((u, idx) => {
                 const idFila = u.idUsuario || u.IdUsuario || u.id_usuario || u.id || u.dni || idx;
                 const estadoTxt = resolverEstado(u);
-                const perfilNombre = resolverPerfilNombre(u, idx);
+                const perfil = resolverPerfil(u);
                 const esActivo = estadoTxt === 'Activo';
 
                 return (
@@ -444,8 +436,8 @@ export default function UsuariosPage() {
                       {resolverCorreo(u)}
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${resolverBadgeRol(perfilNombre)}`}>
-                        {perfilNombre}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${estiloBadgePerfil(perfil)}`}>
+                        {perfil.etiqueta}
                       </span>
                     </td>
                     <td className="py-4 px-6">
@@ -461,6 +453,7 @@ export default function UsuariosPage() {
                       <div className="flex items-center justify-center gap-1.5 text-slate-400">
                         <button
                           type="button"
+                          disabled={operandoId !== null || guardando}
                           onClick={() => handleEditar(u)}
                           title="Editar usuario"
                           className="p-1.5 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
@@ -470,6 +463,7 @@ export default function UsuariosPage() {
 
                         <button
                           type="button"
+                          disabled={operandoId !== null || guardando}
                           onClick={() => handleToggleEstado(u)}
                           title={esActivo ? 'Bloquear acceso' : 'Desbloquear acceso'}
                           className={`p-1.5 rounded-lg transition-all cursor-pointer ${
@@ -483,6 +477,7 @@ export default function UsuariosPage() {
 
                         <button
                           type="button"
+                          disabled={operandoId !== null || guardando}
                           onClick={() => handleEliminar(u)}
                           title="Eliminar usuario"
                           className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
@@ -517,19 +512,23 @@ export default function UsuariosPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
+              {errorOperacion && <p role="alert" className="text-[11px] text-rose-500">{errorOperacion}</p>}
+              {errorPerfiles && <p role="alert" className="text-[11px] text-rose-500">{errorPerfiles}</p>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre de Usuario</label>
                   <input
                     type="text"
                     name="nombreUsuario"
+                    readOnly={Boolean(usuarioEditando)}
                     value={formData.nombreUsuario}
                     onChange={handleChange}
                     placeholder="Ej: jperalta"
-                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                    className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                       errores.nombreUsuario ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                     }`}
                   />
+                  {usuarioEditando && <p className="text-[11px] text-slate-400 mt-1">La API no permite modificar el código de usuario.</p>}
                   {errores.nombreUsuario && (
                     <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> {errores.nombreUsuario}
@@ -549,7 +548,7 @@ export default function UsuariosPage() {
                       setFormData((prev) => ({ ...prev, dni: val }));
                     }}
                     placeholder="74839201"
-                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                    className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                       errores.dni ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                     }`}
                   />
@@ -575,7 +574,7 @@ export default function UsuariosPage() {
                       }
                     }}
                     placeholder="Juan"
-                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                    className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                       errores.nombre ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                     }`}
                   />
@@ -599,7 +598,7 @@ export default function UsuariosPage() {
                       }
                     }}
                     placeholder="Pérez"
-                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                    className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                       errores.apellido ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                     }`}
                   />
@@ -619,7 +618,7 @@ export default function UsuariosPage() {
                   value={formData.correo}
                   onChange={handleChange}
                   placeholder="usuario@acadesys.edu.pe o @gmail.com"
-                  className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                  className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                     errores.correo ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                   }`}
                 />
@@ -640,7 +639,7 @@ export default function UsuariosPage() {
                   value={formData.contrasena}
                   onChange={handleChange}
                   placeholder={usuarioEditando ? "••••••••••••••••" : "Mínimo 8 caracteres con letras y números"}
-                  className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                  className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-800 placeholder:text-slate-500 outline-none ${
                     errores.contrasena ? 'border-rose-500' : 'border-slate-200 focus:border-indigo-600'
                   }`}
                 />
@@ -654,9 +653,12 @@ export default function UsuariosPage() {
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-2">Perfil Asignado</label>
                 <div className={`border rounded-xl p-3 bg-slate-50/50 ${errores.perfiles ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200'}`}>
+                  {perfilesAsignables.length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No hay perfiles activos disponibles para asignar.</p>
+                  ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    {perfiles.map((perfil) => {
-                      const id = perfil.IdPerfil || perfil.idPerfil || perfil.id;
+                    {perfilesAsignables.map((perfil) => {
+                      const id = Number(perfil.IdPerfil ?? perfil.idPerfil ?? perfil.id);
                       const nombre = perfil.Nombre || perfil.nombre;
                       return (
                         <label key={id} className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700">
@@ -671,6 +673,7 @@ export default function UsuariosPage() {
                       );
                     })}
                   </div>
+                  )}
                 </div>
                 {errores.perfiles && (
                   <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">

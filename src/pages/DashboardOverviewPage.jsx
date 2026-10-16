@@ -10,8 +10,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { 
-  obtenerUsuarios, 
-  obtenerCiclosPublicos, 
+  obtenerDirectorioUsuarios,
+  obtenerCiclosPublicos,
   obtenerPagosPorCiclo 
 } from '../services/api';
 
@@ -27,9 +27,9 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
       try {
         setCargando(true);
 
-        // 1. Cargar Usuarios y Ciclos
+        // 1. Cargar directorio mínimo (no sensible) y Ciclos
         const [resUsuarios, resCiclos] = await Promise.allSettled([
-          obtenerUsuarios ? obtenerUsuarios() : Promise.resolve([]),
+          obtenerDirectorioUsuarios ? obtenerDirectorioUsuarios() : Promise.resolve([]),
           obtenerCiclosPublicos ? obtenerCiclosPublicos() : Promise.resolve([])
         ]);
 

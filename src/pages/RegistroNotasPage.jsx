@@ -1102,7 +1102,7 @@ export default function RegistroNotasPage() {
 
                           placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
 
-                          className="w-24 text-center py-2 px-2 border rounded-xl text-sm font-bold font-mono outline-none transition bg-slate-950 border-slate-700 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-24 text-center py-2 px-2 border rounded-xl text-sm font-bold font-mono outline-none transition bg-slate-950 border-slate-700 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 disabled:placeholder:text-slate-200 disabled:cursor-not-allowed"
 
                         />
 

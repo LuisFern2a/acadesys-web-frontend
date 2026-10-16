@@ -28,7 +28,7 @@ import {
   obtenerAsignacionesDocente,
   crearAsignacionDocente,
   eliminarAsignacionDocente,
-  obtenerUsuarios,
+  obtenerDirectorioUsuarios,
   obtenerCiclosPublicos,
   obtenerCiclosAdmin,
   obtenerDetalleCicloAdmin,
@@ -45,7 +45,7 @@ function CampoCiclo({ label, children }) {
     <label className="block">
       <span className="block text-xs font-semibold text-slate-700 mb-1">{label}</span>
       {React.cloneElement(children, {
-        className: `${children.props.className || ''} w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100`
+        className: `${children.props.className || ''} w-full text-sm text-slate-800 placeholder:text-slate-500 border border-slate-300 rounded-xl px-3 py-2.5 bg-white outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100`
       })}
     </label>
   );
@@ -111,7 +111,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       obtenerCursos(),
       obtenerAsignacionesDocente(),
       obtenerCiclosAdmin().catch(() => obtenerCiclosPublicos()),
-      obtenerUsuarios(),
+      obtenerDirectorioUsuarios(),
       obtenerHorarios(),
     ]);
     const errores = [];
@@ -623,7 +623,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             placeholder="Buscar por ciclo, curso, docente o código..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full bg-transparent outline-none text-slate-700 text-xs"
+            className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-500 text-xs"
           />
         </div>
         {tabActiva === 'aulas' && (
@@ -1123,7 +1123,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre / Identificador</label>
-                    <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-800 placeholder-slate-400 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-800 placeholder:text-slate-500 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nivel Educativo</label>
@@ -1141,15 +1141,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Curso</label>
-                    <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-800 placeholder:text-slate-500 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Código Único</label>
-                    <input type="text" required placeholder="Ej: MAT-TRI" value={formCurso.codigo} minLength={2} onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
+                    <input type="text" required placeholder="Ej: MAT-TRI" value={formCurso.codigo} minLength={2} onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })} className="w-full text-sm text-slate-800 placeholder:text-slate-500 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Descripción Breve</label>
-                    <textarea rows="2" placeholder="Identidades trigonométricas y geometría analítica" value={formCurso.descripcion} onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })} className="w-full text-sm text-slate-800 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 resize-none" />
+                    <textarea rows="2" placeholder="Identidades trigonométricas y geometría analítica" value={formCurso.descripcion} onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })} className="w-full text-sm text-slate-800 placeholder:text-slate-500 border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 resize-none" />
                   </div>
                 </>
               )}

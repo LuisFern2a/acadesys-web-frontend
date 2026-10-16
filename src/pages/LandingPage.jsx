@@ -32,6 +32,22 @@ const MAPA_ROLES = {
   '4': 'Estudiante'
 };
 
+// Normaliza nombres/alias de rol para compatibilidad (Admin≈Administrador,
+// Estudiante≈Alumno, Tutor≈Tutor de Aula, RRHH≈Recursos Humanos).
+// No se hardcodean IDs: el backend entrega el perfil real.
+const normalizarRol = (texto) => {
+  const t = String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+  if (t.includes('admin') || t.includes('recursos humanos') || t === 'rrhh') return 'administrador';
+  if (t.includes('docente')) return 'docente';
+  if (t.includes('tutor')) return 'tutor de aula';
+  if (t.includes('alumno') || t.includes('estudiante')) return 'alumno';
+  return t;
+};
+
 export default function LandingPage({ onLoginSuccess }) {
   const [authModal, setAuthModal] = useState(null);
   const [rolEsperado, setRolEsperado] = useState(null);
@@ -368,13 +384,13 @@ export default function LandingPage({ onLoginSuccess }) {
       if (!res.ok) {
         throw new Error(data.error || data.mensaje || data.message || 'Credenciales inválidas.');
       }
-      const rolRecibidoTexto = (data.rol || data.perfil || data.NombrePerfil || '').toString().toLowerCase();
+      const perfilNormalizado = normalizarRol(data.rol || data.perfil || data.NombrePerfil);
       const idPerfilRecibido = (data.idPerfil || data.IdPerfil || data.id_perfil || '').toString();
       
       if (rolEsperado) {
-        const nombreEsperado = (MAPA_ROLES[rolEsperado] || '').toLowerCase();
+        const perfilEsperado = normalizarRol(MAPA_ROLES[rolEsperado]);
         const coincideId = idPerfilRecibido === rolEsperado;
-        const coincideNombre = rolRecibidoTexto.includes(nombreEsperado);
+        const coincideNombre = perfilNormalizado !== '' && perfilNormalizado === perfilEsperado;
         if (!coincideId && !coincideNombre) {
           const perfilCuenta = data.rol || data.perfil || data.NombrePerfil || 'Usuario';
           throw new Error(
@@ -385,8 +401,13 @@ export default function LandingPage({ onLoginSuccess }) {
       
       const academia = data.academia || {};
       const sessionUser = {
+        idUsuario: data.idUsuario ?? data.user?.idUsuario ?? data.user?.id,
         nombre: data.usuario || data.nombres || data.nombre || inputUser,
-        rol: data.rol || data.perfil || data.NombrePerfil || 'Administrador',
+        correo: data.correo ?? data.user?.correo,
+        dni: data.dni ?? data.user?.dni,
+        codigoUsuario: data.codigoUsuario ?? data.user?.codigoUsuario,
+        rol: data.rol || data.perfil || data.NombrePerfil || '',
+        idPerfil: idPerfilRecibido || null,
         token: data.token || data.jwt || data.accessToken,
         idAcademia: data.idAcademia || academia.idAcademia || academia.id || 1,
         colorTema: academia.colorTema || data.colorTema || '#2563eb',
@@ -395,6 +416,9 @@ export default function LandingPage({ onLoginSuccess }) {
       };
       if (!sessionUser.token) {
         throw new Error('El servidor no devolvió un token de sesión válido.');
+      }
+      if (!sessionUser.rol) {
+        throw new Error('El servidor no devolvió un perfil válido para tu cuenta.');
       }
       localStorage.setItem('acadesys_token', sessionUser.token);
       localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
@@ -789,7 +813,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     placeholder={rolEsperado === '4' ? 'Código de estudiante o correo' : 'Usuario o correo'}
                     value={loginData.usuario}
                     onChange={(e) => setLoginData({ ...loginData, usuario: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-sm text-white placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
@@ -810,7 +834,7 @@ export default function LandingPage({ onLoginSuccess }) {
                     placeholder="Ingresa tu contraseña"
                     value={loginData.password}
                     onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    className="w-full pl-10 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-sm text-white placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                   />
                   <button
                     type="button"

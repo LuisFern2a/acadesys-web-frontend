@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ShieldCheck,
   Users,
@@ -22,11 +22,87 @@ import {
   BadgeAlert
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
+import { obtenerPerfiles, obtenerMenusPorPerfil } from '../services/api';
 
 const normalizeRole = (user) =>
   String(user?.rol || user?.Perfil || '')
     .trim()
     .toLowerCase();
+
+const normalizarNombrePerfil = (nombre) => String(nombre || '').normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+function resolverPerfilNavegacion(data, idPerfil, rol) {
+  const lista = Array.isArray(data) ? data : data?.data ?? data?.perfiles;
+  if (!Array.isArray(lista) || lista.some((p) => !p || !Number.isSafeInteger(Number(p.IdPerfil)) ||
+      Number(p.IdPerfil) <= 0 || typeof p.Nombre !== 'string')) {
+    throw new Error('El catálogo de perfiles no tiene un formato válido.');
+  }
+  const activos = lista.filter((p) => Number(p.EstadoRegistro) === 1);
+  if (idPerfil != null) {
+    const perfil = activos.find((p) => String(p.IdPerfil) === String(idPerfil));
+    if (!perfil) throw new Error('No se encontró el perfil activo de la sesión.');
+    return perfil;
+  }
+  // Compatibilidad con sesiones existentes que no conservan idPerfil. Nunca se adivina un ID.
+  const nombre = normalizarNombrePerfil(rol);
+  const alias = (n) => ({ estudiante: 'alumno', admin: 'administrador', rrhh: 'recursos humanos' }[n] || n);
+  const exactos = activos.filter((p) => normalizarNombrePerfil(p.Nombre) === nombre);
+  const candidatos = exactos.length ? exactos : activos.filter((p) => alias(normalizarNombrePerfil(p.Nombre)) === alias(nombre));
+  if (candidatos.length !== 1) throw new Error('No se pudo identificar de forma única el perfil de la sesión.');
+  return candidatos[0];
+}
+
+function resolverVistaMenu(ruta, rol) {
+  // Lista cerrada de vistas que App.jsx ya renderiza. No evalúa rutas, HTML ni importaciones.
+  const clave = String(ruta || '').trim().toLowerCase().replace(/^\//, '').replace(/\/$/, '');
+  const vistas = {
+    dashboard: 'dashboard', academico: 'academico', 'academico-ciclos': 'academico-ciclos',
+    'academico-turnos': 'academico-turnos', asistencia: 'asistencia', 'registro-notas': 'registro-notas',
+    morosidad: 'morosidad', calificaciones: 'calificaciones', 'tutor-ia': 'tutor-ia',
+    comunicados: 'comunicados', 'materiales-admin': 'materiales-admin', usuarios: 'usuarios',
+    perfiles: 'perfiles', 'menu-options': 'menu-options', 'opciones-menu': 'menu-options',
+    'student-home': 'student-home', 'student-ciclo': 'student-ciclo', 'student-horario': 'student-horario',
+    'student-cursos': 'student-cursos', 'student-notas': 'student-notas',
+    'student-materiales': 'student-materiales', 'student-perfil': 'student-perfil'
+  };
+  if (!Object.hasOwn(vistas, clave)) return null;
+  const alumno = rol.includes('alumno') || rol.includes('estudiante');
+  if (alumno && clave === 'dashboard') return 'student-home';
+  if (alumno && clave === 'calificaciones') return 'student-notas';
+  return vistas[clave];
+}
+
+function integrarMenusNavegacion(items, rol, menusBD) {
+  const anteriores = items.filter((item) => item.rolesPermitidos.some((r) => rol.includes(r)));
+  const hojas = anteriores.flatMap((item) => item.submenus || [item]);
+  const catalogo = new Map(hojas.map((item) => [item.id, item]));
+  const staff = ['admin', 'docente', 'tutor'].some((r) => rol.includes(r));
+  if (staff) catalogo.set('academico', { id: 'academico', label: 'Cargas Docentes por Ciclo', icon: Layers });
+  const asignados = new Map();
+  let omitidos = 0;
+  for (const menu of menusBD || []) {
+    const vista = resolverVistaMenu(menu.UrlMenu, rol);
+    if (!vista || !catalogo.has(vista)) { omitidos += 1; continue; }
+    if (!asignados.has(vista)) asignados.set(vista, menu);
+  }
+  // Mientras falte cualquier vista histórica, no se retira navegación de ese perfil.
+  const completa = Array.isArray(menusBD) && hojas.length > 0 && hojas.every((h) => asignados.has(h.id));
+  const visibles = new Set(completa ? asignados.keys() : [...catalogo.keys()].filter((id) => id !== 'academico'));
+  for (const id of asignados.keys()) visibles.add(id);
+  const orden = (item) => Number(asignados.get(item.id)?.Orden ?? Number.MAX_SAFE_INTEGER);
+  const aplicar = (item) => ({ ...item, label: asignados.get(item.id)?.Nombre?.trim() || item.label });
+  const resultado = anteriores.flatMap((item) => {
+    if (!item.submenus) return visibles.has(item.id) ? [aplicar(item)] : [];
+    const submenus = item.submenus.filter((sub) => visibles.has(sub.id)).map(aplicar);
+    if (item.id === 'academico_grupo' && asignados.has('academico')) submenus.push(aplicar(catalogo.get('academico')));
+    submenus.sort((a, b) => orden(a) - orden(b));
+    return submenus.length ? [{ ...item, submenus }] : [];
+  });
+  const ordenGrupo = (item) => item.submenus ? Math.min(...item.submenus.map(orden)) : orden(item);
+  resultado.sort((a, b) => ordenGrupo(a) - ordenGrupo(b));
+  return { items: resultado, completa, omitidos };
+}
 
 export default function DashboardLayout({
   children,
@@ -38,13 +114,44 @@ export default function DashboardLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
+  const [configuracionMenu, setConfiguracionMenu] = useState(null);
+  const [revisionMenu, setRevisionMenu] = useState(0);
 
   const [openAccordions, setOpenAccordions] = useState({
     academico_grupo: true,
     seguridad_grupo: false
   });
 
-  const rolUsuario = normalizeRole(user);
+  const rolSesion = normalizeRole(user);
+  // Solo compatibilidad de navegación; no sustituye las comprobaciones de App ni del backend.
+  const rolUsuario = rolSesion.includes('recursos humanos') || rolSesion === 'rrhh'
+    ? 'administrador' : rolSesion === 'tutor' ? 'tutor de aula' : rolSesion;
+  const idPerfilSesion = user?.idPerfil ?? user?.IdPerfil;
+  const claveSesion = `${user?.idUsuario ?? user?.IdUsuario ?? user?.id ?? ''}:${idPerfilSesion ?? ''}:${rolSesion}`;
+
+  useEffect(() => {
+    let activo = true;
+    let solicitud = 0;
+    async function cargar() {
+      const numero = ++solicitud;
+      setConfiguracionMenu({ clave: claveSesion, menus: null, cargando: true, error: '' });
+      try {
+        const perfil = resolverPerfilNavegacion(await obtenerPerfiles(), idPerfilSesion, rolSesion);
+        const data = await obtenerMenusPorPerfil(perfil.IdPerfil);
+        if (activo && numero === solicitud) setConfiguracionMenu({ clave: claveSesion, menus: data.menus, cargando: false, error: '' });
+      } catch (error) {
+        if (activo && numero === solicitud) setConfiguracionMenu({ clave: claveSesion, menus: null, cargando: false, error: error.message || 'No se pudo consultar la navegación.' });
+      }
+    }
+    cargar();
+    window.addEventListener('acadesys-menus-actualizados', cargar);
+    window.addEventListener('focus', cargar);
+    return () => {
+      activo = false;
+      window.removeEventListener('acadesys-menus-actualizados', cargar);
+      window.removeEventListener('focus', cargar);
+    };
+  }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
   const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
   const colorTema = user?.colorTema || '#2563eb';
 
@@ -58,6 +165,7 @@ export default function DashboardLayout({
     nombreDisplay.trim().slice(0, 2).toUpperCase() || 'US';
 
   const cambiarTab = (tab) => {
+    if (!idsNavegacion.has(tab)) return;
     setActiveTab(tab);
 
     if (window.innerWidth < 1024) {
@@ -257,11 +365,10 @@ export default function DashboardLayout({
     },
   ];
 
-  const menuItemsFiltrados = itemsNavegacion.filter((item) =>
-    item.rolesPermitidos.some((rolPermitido) =>
-      rolUsuario.includes(rolPermitido)
-    )
-  );
+  const configuracionActual = configuracionMenu?.clave === claveSesion ? configuracionMenu : null;
+  const navegacion = integrarMenusNavegacion(itemsNavegacion, rolUsuario, configuracionActual?.menus);
+  const menuItemsFiltrados = navegacion.items;
+  const idsNavegacion = new Set(menuItemsFiltrados.flatMap((item) => item.submenus || [item]).map((item) => item.id));
 
   const titulosTabs = {
     dashboard: 'Dashboard Preuniversitario',
@@ -338,7 +445,7 @@ export default function DashboardLayout({
         </div>
 
         {/* NAVEGACIÓN */}
-        <nav className="p-3 space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">
+        <nav data-menu-source={navegacion.completa ? 'database' : 'compatibility'} className="p-3 space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">
 
           {menuItemsFiltrados.map((item) => {
             const Icon = item.icon;
@@ -565,6 +672,14 @@ export default function DashboardLayout({
 
         {/* VISTA ACTIVA */}
         <main className="flex-1 overflow-y-auto print:overflow-visible">
+          {(!navegacion.completa || navegacion.omitidos > 0) && (
+            <div role={configuracionActual?.error ? 'alert' : 'status'} className="px-6 py-2 text-xs text-slate-300 print:hidden">
+              {!navegacion.completa && 'Navegación en compatibilidad temporal: se conservan las opciones actuales. '}
+              {configuracionActual?.cargando || !configuracionActual ? 'Consultando asignaciones del servidor. ' : configuracionActual.error || (!navegacion.completa ? 'Las asignaciones de BD aún no cubren todas las vistas actuales. ' : '')}
+              {navegacion.omitidos > 0 && ` Se omitieron ${navegacion.omitidos} opciones sin una vista compatible para este perfil. `}
+              {configuracionActual?.error && <button type="button" onClick={() => setRevisionMenu((n) => n + 1)} className="text-indigo-300">Reintentar</button>}
+            </div>
+          )}
           {children}
         </main>
 

@@ -19,6 +19,7 @@ export default function PerfilesPage() {
   const [perfiles, setPerfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorAccion, setErrorAccion] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal para crear / editar perfil
@@ -30,54 +31,30 @@ export default function PerfilesPage() {
     descripcion: ''
   });
 
-  // Catálogo base institucional RBAC
-  const perfilesBase = [
-    { 
-      IdPerfil: 1, 
-      Nombre: 'Administrador', 
-      Descripcion: 'Acceso total a métricas institucionales, asignaciones docentes, seguridad y usuarios.', 
-      EstadoRegistro: 1 
-    },
-    { 
-      IdPerfil: 2, 
-      Nombre: 'Docente', 
-      Descripcion: 'Control de asistencia, cuaderno de calificaciones bimestrales y publicación de circulares.', 
-      EstadoRegistro: 1 
-    },
-    { 
-      IdPerfil: 3, 
-      Nombre: 'Padre', 
-      Descripcion: 'Visualización de boletas de notas de hijos, alertas de asistencia y comunicados directivos.', 
-      EstadoRegistro: 1 
-    },
-    { 
-      IdPerfil: 4, 
-      Nombre: 'Estudiante', 
-      Descripcion: 'Consulta de calificaciones personales, agenda escolar e interacción con el Tutor Pedagógico IA.', 
-      EstadoRegistro: 1 
-    }
-  ];
-
   const extraerArreglo = (res) => {
     if (Array.isArray(res)) return res;
     if (res && Array.isArray(res.data)) return res.data;
     if (res && Array.isArray(res.perfiles)) return res.perfiles;
-    return [];
+    throw new Error('El servidor devolvió un formato de perfiles no válido.');
   };
 
   const cargarPerfiles = async () => {
     try {
       setLoading(true);
       setError(null);
-      let lista = [];
-      if (typeof obtenerPerfiles === 'function') {
-        const res = await obtenerPerfiles();
-        lista = extraerArreglo(res);
+      setErrorAccion('');
+      const res = await obtenerPerfiles();
+      const lista = extraerArreglo(res);
+      if (lista.some((p) => !p || typeof p !== 'object' ||
+        !Number.isSafeInteger(Number(p.IdPerfil ?? p.id_perfil ?? p.id)) ||
+        Number(p.IdPerfil ?? p.id_perfil ?? p.id) <= 0)) {
+        throw new Error('El servidor devolvió perfiles sin identificadores válidos.');
       }
-      setPerfiles(lista.length > 0 ? lista : perfilesBase);
+      setPerfiles(lista);
+      return true;
     } catch (err) {
-      console.warn('Usando perfiles base locales ante error de conexión:', err);
-      setPerfiles(perfilesBase);
+      setError(err.message || 'No se pudieron cargar los perfiles.');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -88,94 +65,94 @@ export default function PerfilesPage() {
   }, []);
 
   const abrirModalCrear = () => {
+    setErrorAccion('');
     setEditandoId(null);
     setFormData({ nombre: '', descripcion: '' });
     setIsModalOpen(true);
   };
 
   const abrirModalEditar = (p) => {
+    setErrorAccion('');
     const id = p.IdPerfil ?? p.id_perfil ?? p.id;
     setEditandoId(id);
     setFormData({
-      nombre: p.Nombre || p.nombre || p.nombre_perfil || '',
+      nombre: p.Nombre || p.NombrePerfil || p.nombre || p.nombre_perfil || '',
       descripcion: p.Descripcion || p.descripcion || ''
     });
     setIsModalOpen(true);
   };
 
   const handleToggleEstado = async (p) => {
+    if (saving || loading) return;
     const id = p.IdPerfil ?? p.id_perfil ?? p.id;
-    const estadoActual = p.EstadoRegistro ?? p.estadoRegistro ?? 1;
-    const nuevoEstado = String(estadoActual) === '1' || String(estadoActual).toUpperCase() === 'ACTIVO' ? 0 : 1;
+    const estado = p.EstadoRegistro ?? p.estadoRegistro ?? p.estado ?? 1;
+    const activo = String(estado) === '1' || String(estado).toUpperCase() === 'ACTIVO';
+    const nuevoEstado = activo ? 0 : 1;
 
+    setErrorAccion('');
+    setSaving(true);
     try {
-      if (typeof actualizarPerfil === 'function') {
-        await actualizarPerfil(id, { ...p, EstadoRegistro: nuevoEstado, estadoRegistro: nuevoEstado });
+      await actualizarPerfil(id, { EstadoRegistro: nuevoEstado });
+      // El estado visual solo cambia al recargar el catálogo desde el servidor.
+      if (!await cargarPerfiles()) {
+        setErrorAccion('El servidor confirmó el cambio de estado, pero no se pudo recargar el catálogo. Reintenta la consulta para verificar el estado real.');
       }
     } catch (err) {
-      console.warn('Actualización local de estado del perfil:', err);
+      setErrorAccion(err.message || 'No se pudo cambiar el estado del perfil.');
+    } finally {
+      setSaving(false);
     }
-
-    setPerfiles(prev => prev.map(item => {
-      const itemId = item.IdPerfil ?? item.id_perfil ?? item.id;
-      return itemId === id ? { ...item, EstadoRegistro: nuevoEstado, estadoRegistro: nuevoEstado } : item;
-    }));
   };
 
   const handleEliminar = async (p) => {
+    if (saving || loading) return;
     const id = p.IdPerfil ?? p.id_perfil ?? p.id;
     const nombre = p.Nombre || p.nombre || `Perfil #${id}`;
 
     if (window.confirm(`¿Estás seguro de eliminar el rol "${nombre}"? Los usuarios vinculados deberán ser reasignados.`)) {
+      setErrorAccion('');
+      setSaving(true);
       try {
-        if (typeof eliminarPerfil === 'function') {
-          await eliminarPerfil(id);
+        await eliminarPerfil(id);
+        if (!await cargarPerfiles()) {
+          setErrorAccion('El servidor confirmó la eliminación, pero no se pudo recargar el catálogo. Reintenta la consulta para verificar los datos actuales.');
         }
       } catch (err) {
-        console.warn('Eliminación local de perfil:', err);
+        setErrorAccion(err.message || 'No se pudo eliminar el perfil.');
+      } finally {
+        setSaving(false);
       }
-      setPerfiles(prev => prev.filter(item => {
-        const itemId = item.IdPerfil ?? item.id_perfil ?? item.id;
-        return itemId !== id;
-      }));
     }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.nombre.trim()) return;
+    if (saving || loading) return;
+    setErrorAccion('');
+    if (!formData.nombre.trim()) {
+      setErrorAccion('Ingresa el nombre del perfil.');
+      return;
+    }
 
     setSaving(true);
     const payload = {
-      nombre: formData.nombre.trim(),
-      Nombre: formData.nombre.trim(),
-      nombrePerfil: formData.nombre.trim(),
-      descripcion: formData.descripcion.trim(),
-      Descripcion: formData.descripcion.trim(),
-      EstadoRegistro: 1
+      NombrePerfil: formData.nombre.trim(),
+      Descripcion: formData.descripcion.trim()
     };
 
     try {
       if (editandoId) {
-        if (typeof actualizarPerfil === 'function') {
-          await actualizarPerfil(editandoId, payload);
-        }
-        setPerfiles(prev => prev.map(item => {
-          const itemId = item.IdPerfil ?? item.id_perfil ?? item.id;
-          return itemId === editandoId ? { ...item, ...payload } : item;
-        }));
+        await actualizarPerfil(editandoId, payload);
       } else {
-        const nuevo = { ...payload, IdPerfil: Date.now(), id: Date.now() };
-        if (typeof crearPerfil === 'function') {
-          await crearPerfil(payload);
-        }
-        setPerfiles(prev => [...prev, nuevo]);
+        await crearPerfil(payload);
       }
       setIsModalOpen(false);
       setFormData({ nombre: '', descripcion: '' });
+      if (!await cargarPerfiles()) {
+        setErrorAccion('El servidor confirmó el guardado, pero no se pudo recargar el catálogo. Reintenta la consulta antes de volver a guardar.');
+      }
     } catch (err) {
-      console.warn('Guardado local ante contingencia de red:', err);
-      setIsModalOpen(false);
+      setErrorAccion(err.message || 'No se pudo guardar el perfil.');
     } finally {
       setSaving(false);
     }
@@ -219,6 +196,7 @@ export default function PerfilesPage() {
           <button
             type="button"
             onClick={cargarPerfiles}
+            disabled={loading || saving}
             className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition shadow-sm cursor-pointer"
             title="Sincronizar perfiles"
           >
@@ -227,12 +205,15 @@ export default function PerfilesPage() {
           <button
             type="button"
             onClick={abrirModalCrear}
+            disabled={loading || saving}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Perfil
           </button>
         </div>
       </div>
+
+      {errorAccion && <p role="alert" className="text-xs text-rose-500 mb-4">{errorAccion}</p>}
 
       {/* Buscador */}
       <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex items-center gap-3">
@@ -242,7 +223,7 @@ export default function PerfilesPage() {
           placeholder="Buscar rol por nombre o descripción de accesos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-transparent outline-none text-slate-700 text-xs"
+          className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-500 text-xs"
         />
       </div>
 
@@ -254,7 +235,7 @@ export default function PerfilesPage() {
             <p className="text-slate-700 font-medium text-xs">Cargando catálogo de perfiles...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center flex flex-col items-center justify-center">
+          <div role="alert" className="p-8 text-center flex flex-col items-center justify-center">
             <AlertCircle className="w-8 h-8 text-rose-500 mb-2" />
             <p className="text-slate-700 font-medium text-xs">{error}</p>
             <button
@@ -268,8 +249,8 @@ export default function PerfilesPage() {
         ) : perfilesFiltrados.length === 0 ? (
           <div className="p-10 text-center text-slate-400">
             <Shield className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-            <h3 className="text-sm font-semibold text-slate-700">Sin coincidencias</h3>
-            <p className="text-xs text-slate-400 mt-1">No hay roles que coincidan con la búsqueda ingresada.</p>
+            <h3 className="text-sm font-semibold text-slate-700">{perfiles.length === 0 ? 'No hay perfiles registrados' : 'Sin coincidencias'}</h3>
+            <p className="text-xs text-slate-400 mt-1">{perfiles.length === 0 ? 'El servidor no devolvió perfiles activos o inactivos.' : 'No hay roles que coincidan con la búsqueda ingresada.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -284,8 +265,8 @@ export default function PerfilesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-                {perfilesFiltrados.map((p, idx) => {
-                  const id = p.IdPerfil ?? p.id_perfil ?? p.id ?? idx + 1;
+                {perfilesFiltrados.map((p) => {
+                  const id = p.IdPerfil ?? p.id_perfil ?? p.id;
                   const nombre = p.Nombre || p.nombre || p.nombre_perfil || p.NombrePerfil || `Perfil #${id}`;
                   const descripcion = p.Descripcion || p.descripcion || 'Sin descripción asignada';
                   const estado = p.EstadoRegistro ?? p.estadoRegistro ?? p.estado ?? 1;
@@ -322,6 +303,7 @@ export default function PerfilesPage() {
                           <button
                             type="button"
                             onClick={() => abrirModalEditar(p)}
+                            disabled={loading || saving}
                             title="Editar perfil"
                             className="p-1.5 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
                           >
@@ -331,7 +313,8 @@ export default function PerfilesPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleEstado(p)}
-                            title={activo ? 'Desactivar rol' : 'Activar rol'}
+                            disabled={loading || saving}
+                            title={activo ? 'Desactivar perfil' : 'Activar perfil'}
                             className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                               activo 
                                 ? 'hover:text-amber-600 hover:bg-amber-50' 
@@ -344,6 +327,7 @@ export default function PerfilesPage() {
                           <button
                             type="button"
                             onClick={() => handleEliminar(p)}
+                            disabled={loading || saving}
                             title="Eliminar perfil"
                             className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
                           >
@@ -378,6 +362,7 @@ export default function PerfilesPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
+              {errorAccion && <p role="alert" className="text-xs text-rose-500">{errorAccion}</p>}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Nombre del Rol / Perfil
@@ -388,7 +373,7 @@ export default function PerfilesPage() {
                   placeholder="Ej: Coordinador Académico"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 transition"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-500 outline-none focus:border-indigo-600 transition"
                 />
               </div>
 
@@ -401,7 +386,7 @@ export default function PerfilesPage() {
                   placeholder="Describe las atribuciones y módulos permitidos para este rol..."
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 transition resize-none"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-500 outline-none focus:border-indigo-600 transition resize-none"
                 />
               </div>
 
