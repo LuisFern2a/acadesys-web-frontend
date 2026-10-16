@@ -1059,7 +1059,8 @@ export async function obtenerCursosCiclo(idCiclo) {
     nombre: c.Nombre ?? c.nombre,
     codigo: c.Codigo ?? c.codigo ?? '',
     descripcion: c.Descripcion ?? c.descripcion ?? '',
-    universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? ''
+    universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? '',
+    docente: c.Docentes ?? c.docente ?? ''
   }));
 }
 
