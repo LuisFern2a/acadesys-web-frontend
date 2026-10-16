@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Users,
   Sparkles,
   X,
   AlertCircle,
@@ -16,7 +15,7 @@ import {
   GraduationCap,
   Clock,
   BookOpen,
-  Calendar
+  Phone
 } from 'lucide-react';
 import {
   API_URL,
@@ -49,6 +48,111 @@ const normalizarRol = (texto) => {
   return t;
 };
 
+// Identidad visual determinista por universidad objetivo.
+// La variante se elige por hash estable del nombre: nunca cambia entre recargas
+// y no usa Math.random(). Todas las variantes se mantienen dentro de la paleta
+// azul/celeste de AcadeSys.
+const VARIANTES_UNIVERSIDAD = [
+  {
+    cabecera: 'from-blue-700 via-blue-800 to-[#0a2149]',
+    acento: 'text-blue-300',
+    linea: 'from-blue-400/50'
+  },
+  {
+    cabecera: 'from-indigo-700 via-blue-800 to-[#0a1f45]',
+    acento: 'text-indigo-300',
+    linea: 'from-indigo-400/50'
+  },
+  {
+    cabecera: 'from-sky-700 via-blue-800 to-[#08204a]',
+    acento: 'text-sky-300',
+    linea: 'from-sky-400/50'
+  },
+  {
+    cabecera: 'from-cyan-700 via-blue-800 to-[#08203f]',
+    acento: 'text-cyan-300',
+    linea: 'from-cyan-400/50'
+  },
+  {
+    cabecera: 'from-blue-800 via-slate-800 to-[#0b1c3a]',
+    acento: 'text-blue-200',
+    linea: 'from-blue-300/50'
+  },
+  {
+    cabecera: 'from-slate-700 via-blue-800 to-[#0a1f45]',
+    acento: 'text-slate-300',
+    linea: 'from-slate-400/50'
+  }
+];
+
+const hashEstable = (texto = '') => {
+  let hash = 0;
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = (hash * 31 + texto.charCodeAt(i)) % 1000000007;
+  }
+  return Math.abs(hash);
+};
+
+const varianteUniversidad = (clave = '') =>
+  VARIANTES_UNIVERSIDAD[hashEstable(String(clave).toUpperCase()) % VARIANTES_UNIVERSIDAD.length];
+
+// Nombres completos SOLO para presentación. No alteran los datos recibidos ni
+// se usan para lógica: si una universidad no está en el mapa, se muestra su
+// sigla/valor tal cual (la agrupación sigue siendo dinámica).
+const NOMBRES_UNIVERSIDAD = {
+  UNMSM: 'Universidad Nacional Mayor de San Marcos',
+  UNI: 'Universidad Nacional de Ingeniería',
+  PUCP: 'Pontificia Universidad Católica del Perú',
+  UNFV: 'Universidad Nacional Federico Villarreal',
+  UNAC: 'Universidad Nacional del Callao',
+  UNT: 'Universidad Nacional de Trujillo'
+};
+
+const nombreUniversidad = (clave = '') =>
+  NOMBRES_UNIVERSIDAD[String(clave).trim().toUpperCase()] || '';
+
+// Formatea 'YYYY-MM-DD' sin desfase de zona horaria. Devuelve '' si no es válida.
+const formatearFecha = (valor = '') => {
+  const coincidencia = String(valor).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!coincidencia) return '';
+  const fecha = new Date(
+    Number(coincidencia[1]),
+    Number(coincidencia[2]) - 1,
+    Number(coincidencia[3])
+  );
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+// El precio solo se muestra cuando es un monto real: se descartan 0 y 1, que en
+// la base figuran como valores de relleno.
+const precioValido = (precio) => {
+  const numero = Number(precio);
+  return Number.isFinite(numero) && numero > 1;
+};
+
+// --- Contacto oficial ---
+// Números confirmados para el widget de contacto.
+const TELEFONO_CONTACTO = '+51991587243';
+const WHATSAPP_CONTACTO = '51991587243';
+
+const contactarPorTelefono = () => {
+  if (!TELEFONO_CONTACTO) return;
+  window.location.href = `tel:${TELEFONO_CONTACTO}`;
+};
+
+const contactarPorWhatsApp = () => {
+  if (!WHATSAPP_CONTACTO) return;
+  window.open(`https://wa.me/${WHATSAPP_CONTACTO}`, '_blank', 'noopener,noreferrer');
+};
+
+// Icono de WhatsApp local (SVG propio, sin dependencias ni imágenes externas).
+const IconoWhatsApp = ({ className = '' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
+
 export default function LandingPage({ onLoginSuccess }) {
   const [authModal, setAuthModal] = useState(null);
   const [rolEsperado, setRolEsperado] = useState(null);
@@ -57,6 +161,7 @@ export default function LandingPage({ onLoginSuccess }) {
   const [error, setError] = useState(null);
   const [loginData, setLoginData] = useState({ usuario: '', password: '' });
   const [ciclos, setCiclos] = useState([]);
+  const [filtroUniversidad, setFiltroUniversidad] = useState('TODOS');
   const [loadingCiclos, setLoadingCiclos] = useState(true);
   const [errorCiclos, setErrorCiclos] = useState(null);
   const [cicloSeleccionado, setCicloSeleccionado] = useState(null);
@@ -114,6 +219,37 @@ export default function LandingPage({ onLoginSuccess }) {
 
   cargarCiclos();
 }, []);
+
+  // Agrupación dinámica por universidad objetivo: se construye con los datos
+  // reales, sin listas fijas. Si aparece una universidad nueva, se crea su
+  // sección automáticamente.
+  const universidadesAgrupadas = React.useMemo(() => {
+    const mapa = new Map();
+
+    for (const ciclo of ciclos) {
+      const etiqueta = String(ciclo.universidadObjetivo || '').trim();
+      const clave = etiqueta || 'Por confirmar';
+
+      if (!mapa.has(clave)) {
+        mapa.set(clave, { clave, sinDato: !etiqueta, ciclos: [] });
+      }
+
+      mapa.get(clave).ciclos.push(ciclo);
+    }
+
+    return Array.from(mapa.values()).sort((a, b) => {
+      if (a.sinDato !== b.sinDato) return a.sinDato ? 1 : -1;
+      return a.clave.localeCompare(b.clave, 'es');
+    });
+  }, [ciclos]);
+
+  const filtroActivo = universidadesAgrupadas.some((u) => u.clave === filtroUniversidad)
+    ? filtroUniversidad
+    : 'TODOS';
+
+  const universidadesVisibles = filtroActivo === 'TODOS'
+    ? universidadesAgrupadas
+    : universidadesAgrupadas.filter((u) => u.clave === filtroActivo);
 
   const abrirDetalleCiclo = async (ciclo) => {
     const idCiclo = ciclo.idCiclo ?? ciclo.id;
@@ -431,42 +567,52 @@ export default function LandingPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-[linear-gradient(145deg,#07152f_0%,#0a2149_42%,#0a3272_72%,#071a3c_100%)] text-slate-100 overflow-hidden font-sans select-none">
-      <div className="absolute -top-48 -left-56 w-[760px] h-[760px] bg-blue-500/20 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-[18%] -right-72 w-[900px] h-[900px] bg-blue-500/20 rounded-full blur-[170px] pointer-events-none" />
-      <div className="absolute -bottom-72 -left-40 w-[900px] h-[700px] bg-blue-600/20 rounded-full blur-[170px] pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.11] pointer-events-none bg-[radial-gradient(#93c5fd_1px,transparent_1px)] [background-size:32px_32px]" />
+    <div className="relative min-h-screen scroll-smooth bg-[linear-gradient(145deg,#07152f_0%,#0a2149_42%,#0a3272_72%,#071a3c_100%)] text-slate-100 overflow-hidden font-sans select-none">
+      <div className="absolute -top-48 -left-56 w-[760px] h-[760px] bg-blue-500/14 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-[18%] -right-72 w-[900px] h-[900px] bg-blue-500/14 rounded-full blur-[170px] pointer-events-none" />
+      <div className="absolute -bottom-72 -left-40 w-[900px] h-[700px] bg-blue-600/14 rounded-full blur-[170px] pointer-events-none" />
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#93c5fd_1px,transparent_1px)] [background-size:38px_38px]" />
 
-      <header className="relative z-20 max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-white/10 bg-[#06142b]/35 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-600/25 border border-white/10">
-            <ShieldCheck className="w-6 h-6 text-white" />
+      <header className="relative z-20 border-b border-white/10 bg-[#06142b]/35 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <a href="#inicio" className="flex items-center gap-3 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-600/25 border border-white/10">
+              <ShieldCheck className="w-6 h-6 text-white" />
+            </div>
+            <span className="leading-tight">
+              <span className="block text-lg font-extrabold tracking-tight text-white">AcadeSys</span>
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-300">Plataforma Pre-U</span>
+            </span>
+          </a>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
+            <a href="#inicio" className="hover:text-white transition">Inicio</a>
+            <a href="#ciclos" className="hover:text-white transition">Ciclos</a>
+            <a href="#nosotros" className="hover:text-white transition">Nosotros</a>
+          </nav>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => openModal('login', 4)}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20"
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              onClick={() => openModal('login', 1)}
+              className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold transition"
+            >
+              Administrador
+            </button>
           </div>
-          <span className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-            AcadeSys
-          </span>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={() => openModal('login', 4)}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-lg shadow-blue-600/20"
-          >
-            Soy Estudiante
-          </button>
-          <button
-            type="button"
-            onClick={() => openModal('login', 1)}
-            className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold transition"
-          >
-            Administrador
-          </button>
         </div>
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 sm:pt-10 pb-20 flex flex-col items-center text-center">
         {/* HERO UNIVERSIDADES Y ESTUDIANTES */}
-        <section className="relative w-full min-h-[390px] sm:min-h-[440px] rounded-[2rem] overflow-hidden border border-blue-400/30 shadow-2xl shadow-blue-950/50 mb-12 flex items-center justify-center">
+        <section id="inicio" className="relative w-full scroll-mt-24 min-h-[390px] sm:min-h-[440px] rounded-[2rem] overflow-hidden border border-blue-400/30 shadow-2xl shadow-blue-950/50 mb-12 flex items-center justify-center">
           <div className="absolute inset-0 grid grid-cols-2 lg:grid-cols-4">
             {[
               { nombre: 'UNMSM', src: 'https://images.openai.com/static-rsc-4/A9WTlnq_FRbD6ehh18vI-V788eVGGuTs0_-orzjbGyNmAz-0tJZfp6rLBbXZFX0H2_gy_PP-v2EcERGI43T4XYkaejZYfypKtLvHtg3wLuxPm_n6LRpSlbcjhstuvkZgYniBLCIyDqG0xfTVlVf2ie4KgC1E7sBLWMguuQucX2BbXWWT9bqLOTcJRgoL11mp?purpose=fullsize' },
@@ -501,13 +647,19 @@ export default function LandingPage({ onLoginSuccess }) {
             <p className="max-w-2xl text-slate-200/80 text-sm sm:text-base lg:text-[17px] leading-relaxed font-normal drop-shadow-lg">
               Conoce nuestros ciclos preuniversitarios, revisa los turnos y horarios disponibles y elige la preparación que mejor se adapte a tu objetivo universitario.
             </p>
+            <a
+              href="#ciclos"
+              className="mt-7 inline-flex items-center justify-center px-7 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition shadow-lg shadow-blue-600/25"
+            >
+              Ver ciclos
+            </a>
           </div>
         </section>
 
         {/* CICLOS DISPONIBLES */}
-        <section className="w-full mb-16 text-left" id="ciclos">
-          <h2 className="text-2xl sm:text-[28px] font-black text-white mb-2 text-center">Ciclos disponibles</h2>
-          <p className="text-slate-400 text-sm text-center mb-8">Elige tu ciclo e inscríbete en minutos</p>
+        <section className="w-full scroll-mt-24 mb-16 text-left" id="ciclos">
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 text-center">Nuestros ciclos</h2>
+          <p className="text-slate-400 text-sm text-center max-w-2xl mx-auto mb-6">Elige tu universidad objetivo y encuentra el programa de preparación adecuado.</p>
           {loadingCiclos ? (
   <div
     className="w-full max-w-2xl mx-auto p-8 rounded-3xl bg-[#071a38]/80 border border-blue-400/20 text-center shadow-xl"
@@ -572,143 +724,169 @@ export default function LandingPage({ onLoginSuccess }) {
     </p>
   </div>
 ) : (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-    {ciclos.map((ciclo) => {
-      const capacidad = Number(ciclo.capacidad || 0);
-      const inscritos = Number(ciclo.totalAlumnos || 0);
-      const vacantes = Math.max(capacidad - inscritos, 0);
-      const cupoCompleto = capacidad > 0 && vacantes <= 0;
-
-      return (
-        <article
-          key={ciclo.idCiclo ?? ciclo.id}
-          className="group p-6 rounded-3xl bg-[#071a38]/90 border border-blue-400/35 backdrop-blur-xl hover:border-sky-400/60 hover:-translate-y-1 transition-all duration-300 flex flex-col shadow-xl shadow-black/20"
-        >
-          <div className="flex items-start justify-between gap-3 mb-5">
-            <div
-              className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center text-blue-300"
-              aria-hidden="true"
-            >
-              <GraduationCap className="w-6 h-6" />
-            </div>
-
-            <span
-              className={`px-3 py-1 rounded-full border text-xs font-bold whitespace-nowrap ${
-                cupoCompleto
-                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-200'
-                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+  <div className="w-full">
+    {/* SELECTOR DE UNIVERSIDAD OBJETIVO (dinámico, con los datos reales) */}
+    <div className="mb-7">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 text-center mb-2.5">
+        Universidad objetivo
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {[{ clave: 'TODOS' }, ...universidadesAgrupadas.map((u) => ({ clave: u.clave }))].map((opcion) => {
+          const activo = filtroActivo === opcion.clave;
+          return (
+            <button
+              key={opcion.clave}
+              type="button"
+              onClick={() => setFiltroUniversidad(opcion.clave)}
+              aria-pressed={activo}
+              className={`px-4 py-2 rounded-xl border text-xs font-semibold transition-colors ${
+                activo
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-[#0B1528]/60 border-blue-950/70 text-slate-300 hover:text-white hover:border-blue-500/40'
               }`}
             >
-              {cupoCompleto ? 'Cupo completo' : 'Disponible'}
-            </span>
-          </div>
-
-          <h3 className="text-xl font-black text-white mb-2">
-            {ciclo.nombre || 'Ciclo sin nombre'}
-          </h3>
-
-          <p className="text-sm text-slate-300 mb-5">
-            Universidad objetivo:{' '}
-            <span className="font-semibold text-white">
-              {ciclo.universidadObjetivo || 'Por confirmar'}
-            </span>
-          </p>
-
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            <div className="rounded-2xl bg-slate-900/60 border border-slate-700 p-3">
-              <p className="text-xs font-semibold text-slate-400">
-                Inscritos
-              </p>
-              <p className="text-base font-bold text-white mt-1">
-                {inscritos}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900/60 border border-slate-700 p-3">
-              <p className="text-xs font-semibold text-slate-400">
-                Vacantes
-              </p>
-              <p className="text-base font-bold text-white mt-1">
-                {capacidad > 0 ? vacantes : 'Por confirmar'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <Clock
-                className="w-4 h-4 text-indigo-300 shrink-0"
-                aria-hidden="true"
-              />
-              <span>
-                <strong className="text-white">Turno:</strong>{' '}
-                {ciclo.turno || 'Por confirmar'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <Calendar
-                className="w-4 h-4 text-blue-300 shrink-0"
-                aria-hidden="true"
-              />
-              <span>
-                <strong className="text-white">Horario:</strong>{' '}
-                {ciclo.horario || 'Por confirmar'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <BookOpen
-                className="w-4 h-4 text-cyan-300 shrink-0"
-                aria-hidden="true"
-              />
-              <span>
-                <strong className="text-white">Cursos:</strong>{' '}
-                {ciclo.totalCursos}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <Users
-                className="w-4 h-4 text-cyan-300 shrink-0"
-                aria-hidden="true"
-              />
-              <span>
-                <strong className="text-white">Días:</strong>{' '}
-                {ciclo.diasClase || 'Por confirmar'}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-auto flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={() => abrirDetalleCiclo(ciclo)}
-              className="flex-1 py-3 rounded-2xl border border-slate-600 text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[#071a38] text-sm font-bold transition"
-              aria-label={`Ver detalle del ciclo ${ciclo.nombre || ''}`}
-            >
-              Ver detalle
+              {opcion.clave === 'TODOS' ? 'Todos' : opcion.clave}
             </button>
+          );
+        })}
+      </div>
+    </div>
 
-            <button
-              type="button"
-              onClick={() => abrirCheckout(ciclo)}
-              disabled={cupoCompleto}
-              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#071a38] text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {cupoCompleto ? 'Cupo completo' : 'Inscribirme'}
-            </button>
-          </div>
-        </article>
-      );
-    })}
+    {/* SECCIONES POR UNIVERSIDAD */}
+    <div className="space-y-10">
+      {universidadesVisibles.map((universidad) => {
+        const variante = varianteUniversidad(universidad.clave);
+        const nombreCompleto = nombreUniversidad(universidad.clave);
+        return (
+          <section key={universidad.clave} className="text-left">
+            <div className="mb-3">
+              {nombreCompleto ? (
+                <>
+                  <p className={`text-[11px] font-bold uppercase tracking-[0.14em] ${variante.acento}`}>
+                    {universidad.clave}
+                  </p>
+                  <h3 className="text-lg sm:text-xl font-bold text-white leading-tight mt-1">
+                    {nombreCompleto}
+                  </h3>
+                </>
+              ) : (
+                <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                  {universidad.clave}
+                </h3>
+              )}
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Ciclos de preparación · {universidad.ciclos.length} {universidad.ciclos.length === 1 ? 'programa' : 'programas'}
+              </p>
+            </div>
+            <div className={`h-px w-full bg-gradient-to-r ${variante.linea} to-transparent mb-5`} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {universidad.ciclos.map((ciclo) => {
+                const capacidad = Number(ciclo.capacidad || 0);
+                const inscritos = Number(ciclo.totalAlumnos || 0);
+                const vacantes = Math.max(capacidad - inscritos, 0);
+                const cupoCompleto = capacidad > 0 && vacantes <= 0;
+
+                return (
+                  <article
+                    key={ciclo.idCiclo ?? ciclo.id}
+                    className="group rounded-2xl overflow-hidden bg-[#071a38]/80 border border-blue-400/20 hover:border-blue-400/45 hover:-translate-y-0.5 transition-all duration-300 flex flex-col shadow-lg shadow-black/20"
+                  >
+                    {/* CABECERA GRÁFICA (identidad sutil por universidad) */}
+                    <div className="relative h-20 sm:h-24 overflow-hidden">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${variante.cabecera}`} />
+                      <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full border border-white/10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#071a38] to-transparent" />
+
+                      <div className="relative h-full flex items-center justify-between gap-3 px-4 sm:px-5">
+                        <span className={`text-xs font-bold uppercase tracking-[0.14em] ${variante.acento}`}>
+                          {ciclo.universidadObjetivo || universidad.clave}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-semibold whitespace-nowrap ${
+                            cupoCompleto ? 'text-rose-200' : 'text-emerald-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${cupoCompleto ? 'bg-rose-300' : 'bg-emerald-300'}`}
+                            aria-hidden="true"
+                          />
+                          {cupoCompleto ? 'Cupo completo' : 'Disponible'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* INFORMACIÓN DEL CICLO */}
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="text-xl font-bold text-white leading-snug">
+                        {ciclo.nombre || 'Ciclo sin nombre'}
+                      </h3>
+
+                      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Turno</dt>
+                          <dd className="mt-1 text-sm font-semibold text-slate-100">{ciclo.turno || 'Por confirmar'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Horario</dt>
+                          <dd className="mt-1 text-sm font-semibold text-slate-100">{ciclo.horario || 'Por confirmar'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Días</dt>
+                          <dd className="mt-1 text-sm font-semibold text-slate-100">{ciclo.diasClase || 'Por confirmar'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Cursos</dt>
+                          <dd className="mt-1 text-sm font-semibold text-slate-100">
+                            {ciclo.totalCursos} {Number(ciclo.totalCursos) === 1 ? 'curso' : 'cursos'}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-4 pt-3.5 border-t border-blue-950/60">
+                        <p className="text-xs text-slate-400">
+                          <strong className="font-semibold text-slate-200">{inscritos}</strong> inscritos
+                          {capacidad > 0
+                            ? <> · <strong className="font-semibold text-slate-200">{vacantes}</strong> vacantes</>
+                            : <> · vacantes por confirmar</>}
+                        </p>
+                      </div>
+
+                      <div className="mt-auto pt-5 flex flex-col sm:flex-row gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => abrirDetalleCiclo(ciclo)}
+                          className="flex-1 py-2.5 rounded-xl border border-slate-600/70 text-slate-200 hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[#071a38] text-sm font-semibold transition-colors"
+                          aria-label={`Ver detalle del ciclo ${ciclo.nombre || ''}`}
+                        >
+                          Ver detalle
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => abrirCheckout(ciclo)}
+                          disabled={cupoCompleto}
+                          className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#071a38] text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {cupoCompleto ? 'Cupo completo' : 'Inscribirme'}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   </div>
 )}
 
         </section>
 
         {/*PROPUESTA DE VALOR */}
-        <section className="w-full mb-16">
+        <section id="nosotros" className="w-full scroll-mt-24 mb-16">
           <div className="text-center mb-8">
             <p className="text-blue-300 text-xs font-bold uppercase tracking-wider mb-2">Nuestra propuesta</p>
             <h2 className="text-2xl sm:text-3xl font-black text-white">Todo lo que necesitas para prepararte</h2>
@@ -748,19 +926,58 @@ export default function LandingPage({ onLoginSuccess }) {
         </section>
       </main>
 
-      <footer className="relative z-20 max-w-7xl mx-auto px-6 py-8 border-t border-slate-800/40 text-center text-xs text-slate-400">
+      <footer className="relative z-20 max-w-7xl mx-auto px-6 pt-8 pb-28 sm:pb-8 border-t border-slate-800/40 text-center text-xs text-slate-400">
         <p>© 2026 AcadeSys - Sistema de Gestión Académica e Inteligencia Artificial. Todos los derechos reservados.</p>
       </footer>
 
-      {/* MODAL DE INICIO DE SESIÓN */}
+      {/* WIDGET FLOTANTE DE CONTACTO (z-30: sobre el contenido, debajo de los modales z-40/z-50) */}
+      <div className="fixed z-30 right-4 bottom-4 sm:right-6 sm:bottom-6 flex flex-col items-end gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="hidden sm:inline-flex items-center rounded-xl bg-[#0B1528] border border-blue-950/80 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-black/30">
+            ¿Contáctanos?
+          </span>
+          <button
+            type="button"
+            onClick={contactarPorTelefono}
+            aria-label="Contactar con AcadeSys"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0B1528] hover:bg-blue-700 border border-blue-400/30 text-white flex items-center justify-center shadow-lg shadow-black/30 transition duration-200 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <Phone className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={contactarPorWhatsApp}
+          aria-label="Contactar por WhatsApp"
+          title="Contactar por WhatsApp"
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#1FBE5A] border border-white/15 text-white flex items-center justify-center shadow-lg shadow-black/30 transition duration-200 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-emerald-300"
+        >
+          <IconoWhatsApp className="w-5 h-5 sm:w-6 sm:h-6" />
+        </button>
+      </div>
+
+      {/* ACCESO / INICIO DE SESIÓN (pantalla completa) */}
       {authModal === 'login' && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#050B18] p-4 sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className="relative w-full max-w-md bg-[#0B1528] border border-blue-950/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          {/* Fondo académico provisional (sin fotografía por ahora) */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div className="absolute inset-0 bg-[linear-gradient(150deg,#050B18_0%,#0a1f45_46%,#0b2a5e_74%,#050B18_100%)]" />
+            <div className="absolute inset-0 opacity-[0.10] bg-[radial-gradient(#93c5fd_1px,transparent_1px)] [background-size:34px_34px]" />
+            <div className="absolute -left-28 top-1/4 h-[420px] w-[420px] rotate-45 rounded-[3rem] border border-blue-400/15" />
+            <div className="absolute -right-32 -top-24 h-[520px] w-[520px] rotate-12 rounded-[4rem] border border-sky-400/10" />
+            <div className="absolute -bottom-32 right-1/4 h-[360px] w-[360px] rotate-45 rounded-[3rem] border border-blue-300/10" />
+            <div className="absolute left-1/2 top-0 h-full w-px bg-gradient-to-b from-transparent via-blue-400/10 to-transparent" />
+          </div>
+          <div className="absolute inset-0 bg-[#050B18]/45 pointer-events-none" aria-hidden="true" />
+
+          {/* Panel de inicio de sesión */}
+          <div className="relative z-10 w-full max-w-[420px] rounded-3xl border border-blue-950/80 bg-[#0B1528]/95 p-6 sm:p-8 shadow-2xl shadow-black/50">
             <button
               type="button"
               onClick={closeModal}
@@ -769,17 +986,21 @@ export default function LandingPage({ onLoginSuccess }) {
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/15 border border-indigo-500/30 flex items-center justify-center text-blue-300">
-                  <ShieldCheck className="w-6 h-6" />
+            <div className="mb-7">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-600/25 border border-white/10">
+                  <ShieldCheck className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-blue-300">AcadeSys</p>
-                  <h2 className="text-2xl font-black text-white">Iniciar sesión</h2>
+                  <p className="text-base font-extrabold tracking-tight text-white">AcadeSys</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" aria-hidden="true" />
+                    Plataforma Pre-U
+                  </p>
                 </div>
               </div>
-              <p className="text-sm text-slate-400">Ingresa tus credenciales para acceder a tu panel.</p>
+              <h2 className="text-2xl font-black text-white">Bienvenido a AcadeSys</h2>
+              <p className="text-sm text-slate-400 mt-1.5">Ingresa tus datos para acceder a tu portal académico.</p>
               {rolEsperado && (
                 <div className="inline-flex mt-4 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs font-bold text-blue-300">
                   Acceso para: {rolEsperado === '4' ? 'Estudiante' : rolEsperado === '1' ? 'Administrador' : MAPA_ROLES[rolEsperado]}
@@ -853,11 +1074,11 @@ export default function LandingPage({ onLoginSuccess }) {
                 className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{loading ? 'Autenticando...' : 'Ingresar al sistema'}</span>
+                <span>{loading ? 'Autenticando...' : 'Iniciar sesión'}</span>
               </button>
             </form>
             <div className="mt-6 pt-5 border-t border-slate-800">
-              <p className="text-sm text-center text-slate-300">Las credenciales son asignadas según el perfil de tu cuenta.</p>
+              <p className="text-sm text-center text-slate-300">Acceso para estudiantes y personal autorizado.</p>
             </div>
           </div>
         </div>
@@ -881,45 +1102,54 @@ export default function LandingPage({ onLoginSuccess }) {
               <X className="w-5 h-5" />
             </button>
             <div className="pr-12">
-              <p className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">Detalle del ciclo</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">{cicloDetalle.nombre}</h2>
-              <p className="text-sm text-slate-300 mt-2">Revisa la programación y las condiciones de este ciclo antes de inscribirte.</p>
+              <span className={`inline-block px-3 py-1 rounded-xl border border-white/10 bg-white/5 text-[11px] font-black uppercase tracking-[0.16em] ${varianteUniversidad(cicloDetalle.universidadObjetivo || 'Ciclo').acento}`}>
+                {cicloDetalle.universidadObjetivo || 'Ciclo'}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white mt-3">{cicloDetalle.nombre}</h2>
+              {nombreUniversidad(cicloDetalle.universidadObjetivo) && (
+                <p className="text-sm text-slate-400 mt-1.5">{nombreUniversidad(cicloDetalle.universidadObjetivo)}</p>
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
-              <div className="rounded-2xl bg-slate-800/70 border border-slate-700 p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-indigo-400" />
-                  <p className="text-xs font-semibold text-slate-300">Turno</p>
-                </div>
-                <p className="text-sm font-bold text-white mt-2">{cicloDetalle.turno || 'Por confirmar'}</p>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 mt-6 pb-6 border-b border-blue-950/60">
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Turno</dt>
+                <dd className="mt-1 text-sm font-semibold text-white">{cicloDetalle.turno || 'Por confirmar'}</dd>
               </div>
-              <div className="rounded-2xl bg-slate-800/70 border border-slate-700 p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-400" />
-                  <p className="text-xs font-semibold text-slate-300">Horario</p>
-                </div>
-                <p className="text-sm font-bold text-white mt-2">{cicloDetalle.horario || 'Por confirmar'}</p>
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Horario</dt>
+                <dd className="mt-1 text-sm font-semibold text-white">{cicloDetalle.horario || 'Por confirmar'}</dd>
               </div>
-              <div className="rounded-2xl bg-slate-800/70 border border-slate-700 p-4">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-cyan-400" />
-                  <p className="text-xs font-semibold text-slate-300">Modalidad</p>
-                </div>
-                <p className="text-sm font-bold text-white mt-2">{cicloDetalle.modalidad || 'Preuniversitaria'}</p>
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Cursos</dt>
+                <dd className="mt-1 text-sm font-semibold text-white">
+                  {Array.isArray(cicloDetalle.cursos) ? cicloDetalle.cursos.length : cicloDetalle.cantidadCursos ?? 0} cursos
+                </dd>
               </div>
-            </div>
-            <div className="mt-6 rounded-2xl bg-slate-800/50 border border-slate-700 p-5">
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Días</dt>
+                <dd className="mt-1 text-sm font-semibold text-white">{cicloDetalle.diasClase || 'Por confirmar'}</dd>
+              </div>
+              {formatearFecha(cicloDetalle.fechaInicio) && (
                 <div>
-                  <h3 className="text-base font-bold text-white">Programación académica</h3>
-                  <p className="text-sm text-slate-300 mt-1">Cursos y docentes disponibles para este ciclo.</p>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Inicio</dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">{formatearFecha(cicloDetalle.fechaInicio)}</dd>
                 </div>
-                <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                  <span className="text-xs font-bold text-blue-300">
-                    {Array.isArray(cicloDetalle.cursos) ? cicloDetalle.cursos.length : cicloDetalle.cantidadCursos ?? 0} cursos
-                  </span>
+              )}
+              {formatearFecha(cicloDetalle.fechaFin) && (
+                <div>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Fin</dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">{formatearFecha(cicloDetalle.fechaFin)}</dd>
                 </div>
-              </div>
+              )}
+              {precioValido(cicloDetalle.precio) && (
+                <div>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Precio</dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">S/ {Number(cicloDetalle.precio).toFixed(2)}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="mt-6">
+              <h3 className="text-xs font-black uppercase tracking-[0.16em] text-blue-300 mb-3">Cursos del ciclo</h3>
               {cargandoDetalle ? (
                 <div className="rounded-2xl bg-slate-900/70 border border-slate-700 p-6 text-center">
                   <Loader2 className="w-7 h-7 mx-auto mb-2 text-blue-400 animate-spin" />
@@ -929,16 +1159,18 @@ export default function LandingPage({ onLoginSuccess }) {
               ) : Array.isArray(cicloDetalle.cursos) && cicloDetalle.cursos.length > 0 ? (
                 <div className="space-y-2">
                   {cicloDetalle.cursos.map((curso, index) => (
-                    <div key={curso.idCurso ?? curso.id ?? index} className="rounded-xl bg-slate-900/80 border border-slate-700 px-4 py-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div>
+                    <div key={curso.idCurso ?? curso.id ?? index} className="rounded-xl bg-slate-900/60 border border-slate-700 px-4 py-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-4">
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-white">{curso.nombre || curso.nombreCurso || curso.curso || 'Curso sin nombre'}</p>
-                          {curso.codigo && <p className="text-xs text-slate-300 mt-1">Código: {curso.codigo}</p>}
+                          {(curso.docente || curso.profesor) && (
+                            <p className="text-xs text-slate-400 mt-1">Docente: {curso.docente || curso.profesor}</p>
+                          )}
+                          {curso.codigo && <p className="text-xs text-slate-500 mt-1">Código: {curso.codigo}</p>}
                         </div>
-                        <div className="text-left sm:text-right">
+                        <div className="text-left sm:text-right shrink-0">
                           {(curso.horario || cicloDetalle.horario) && <p className="text-xs text-blue-300">{curso.horario || cicloDetalle.horario}</p>}
-                          {(curso.diasClase || cicloDetalle.diasClase) && <p className="text-xs text-slate-300 mt-1">Días: {curso.diasClase || cicloDetalle.diasClase}</p>}
-                          {(curso.docente || curso.profesor) && <p className="text-xs text-slate-300 mt-1">Docente: {curso.docente || curso.profesor}</p>}
+                          {(curso.diasClase || cicloDetalle.diasClase) && <p className="text-xs text-slate-400 mt-1">Días: {curso.diasClase || cicloDetalle.diasClase}</p>}
                         </div>
                       </div>
                     </div>
