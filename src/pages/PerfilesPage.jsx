@@ -160,11 +160,11 @@ export default function PerfilesPage() {
 
   const resolverBadgeColor = (nombre = '') => {
     const n = nombre.toLowerCase();
-    if (n.includes('admin')) return 'bg-purple-50 text-purple-700 border-purple-200';
-    if (n.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (n.includes('admin')) return 'bg-blue-700 text-white border-blue-700';
+    if (n.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-100';
     if (n.includes('padre')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     if (n.includes('alumno')) return 'bg-amber-50 text-amber-700 border-amber-200';
-    return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+    return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 
   const perfilesFiltrados = perfiles.filter((p) => {
@@ -175,16 +175,16 @@ export default function PerfilesPage() {
   });
 
   return (
-    <div className="p-4 sm:p-8 bg-slate-50 min-h-full">
+    <div className="p-6 md:p-8 bg-slate-50 min-h-full">
       {/* Encabezado */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
-              <Shield className="w-7 h-7" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-700 rounded-xl text-white">
+              <Shield className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Seguridad y Perfiles RBAC</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Seguridad y Perfiles RBAC</h1>
               <p className="text-slate-500 text-sm mt-0.5">
                 Administración de roles institucionales, privilegios de acceso y jerarquías
               </p>
@@ -197,71 +197,72 @@ export default function PerfilesPage() {
             type="button"
             onClick={cargarPerfiles}
             disabled={loading || saving}
-            className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition shadow-sm cursor-pointer"
+            className="p-2.5 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
             title="Sincronizar perfiles"
+            aria-label="Sincronizar perfiles"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-600' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-700' : ''}`} aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={abrirModalCrear}
             disabled={loading || saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition text-xs cursor-pointer"
+            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Nuevo Perfil
+            <Plus className="w-4 h-4" aria-hidden="true" /> Nuevo Perfil
           </button>
         </div>
       </div>
 
-      {errorAccion && <p role="alert" className="text-xs text-rose-500 mb-4">{errorAccion}</p>}
+      {errorAccion && <p role="alert" className="text-xs text-rose-600 mb-4">{errorAccion}</p>}
 
       {/* Buscador */}
-      <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex items-center gap-3">
-        <Search className="w-4 h-4 text-slate-400" />
+      <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 mb-6 flex items-center gap-3">
+        <Search className="w-4 h-4 text-slate-400" aria-hidden="true" />
         <input
           type="text"
           placeholder="Buscar rol por nombre o descripción de accesos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-500 text-xs"
+          className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 text-xs"
         />
       </div>
 
       {/* Tabla de Perfiles */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-            <p className="text-slate-700 font-medium text-xs">Cargando catálogo de perfiles...</p>
+            <Loader2 className="w-8 h-8 text-blue-700 animate-spin mb-3" aria-hidden="true" />
+            <p className="text-slate-500 font-medium text-xs">Cargando catálogo de perfiles...</p>
           </div>
         ) : error ? (
           <div role="alert" className="p-8 text-center flex flex-col items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-rose-500 mb-2" />
+            <AlertCircle className="w-8 h-8 text-rose-600 mb-2" aria-hidden="true" />
             <p className="text-slate-700 font-medium text-xs">{error}</p>
             <button
               type="button"
               onClick={cargarPerfiles}
-              className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition cursor-pointer"
+              className="mt-4 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer"
             >
               Reintentar
             </button>
           </div>
         ) : perfilesFiltrados.length === 0 ? (
-          <div className="p-10 text-center text-slate-400">
-            <Shield className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+          <div className="p-10 text-center text-slate-500">
+            <Shield className="w-10 h-10 mx-auto mb-2 text-slate-300" aria-hidden="true" />
             <h3 className="text-sm font-semibold text-slate-700">{perfiles.length === 0 ? 'No hay perfiles registrados' : 'Sin coincidencias'}</h3>
-            <p className="text-xs text-slate-400 mt-1">{perfiles.length === 0 ? 'El servidor no devolvió perfiles activos o inactivos.' : 'No hay roles que coincidan con la búsqueda ingresada.'}</p>
+            <p className="text-xs text-slate-500 mt-1">{perfiles.length === 0 ? 'El servidor no devolvió perfiles activos o inactivos.' : 'No hay roles que coincidan con la búsqueda ingresada.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-4 px-6">ID</th>
-                  <th className="py-4 px-6">Perfil Institucional</th>
-                  <th className="py-4 px-6">Descripción de Alcance</th>
-                  <th className="py-4 px-6 text-center">Estado</th>
-                  <th className="py-4 px-6 text-center">Acciones</th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="py-4 px-6 font-semibold">ID</th>
+                  <th className="py-4 px-6 font-semibold">Perfil Institucional</th>
+                  <th className="py-4 px-6 font-semibold">Descripción de Alcance</th>
+                  <th className="py-4 px-6 text-center font-semibold">Estado</th>
+                  <th className="py-4 px-6 text-center font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
@@ -273,14 +274,14 @@ export default function PerfilesPage() {
                   const activo = String(estado) === '1' || String(estado).toUpperCase() === 'ACTIVO';
 
                   return (
-                    <tr key={id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-400">#{id}</td>
+                    <tr key={id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-500">#{id}</td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2.5">
-                          <span className={`w-8 h-8 rounded-xl flex items-center justify-center border font-bold text-xs ${resolverBadgeColor(nombre)}`}>
-                            <Shield className="w-4 h-4" />
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center border font-bold text-xs ${resolverBadgeColor(nombre)}`}>
+                            <Shield className="w-4 h-4" aria-hidden="true" />
                           </span>
-                          <span className="font-bold text-slate-800 text-xs">{nombre}</span>
+                          <span className="font-bold text-slate-900 text-xs">{nombre}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-xs text-slate-600 max-w-md leading-relaxed">
@@ -288,13 +289,13 @@ export default function PerfilesPage() {
                       </td>
                       <td className="py-4 px-6 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
                             activo
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : 'bg-slate-100 text-slate-500 border border-slate-200'
                           }`}
                         >
-                          <CheckCircle2 className="w-3 h-3" />
+                          <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
                           {activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
@@ -305,9 +306,10 @@ export default function PerfilesPage() {
                             onClick={() => abrirModalEditar(p)}
                             disabled={loading || saving}
                             title="Editar perfil"
-                            className="p-1.5 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
+                            aria-label={`Editar ${nombre}`}
+                            className="p-1.5 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" aria-hidden="true" />
                           </button>
 
                           <button
@@ -315,13 +317,14 @@ export default function PerfilesPage() {
                             onClick={() => handleToggleEstado(p)}
                             disabled={loading || saving}
                             title={activo ? 'Desactivar perfil' : 'Activar perfil'}
-                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                              activo 
-                                ? 'hover:text-amber-600 hover:bg-amber-50' 
+                            aria-label={activo ? `Desactivar ${nombre}` : `Activar ${nombre}`}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              activo
+                                ? 'hover:text-amber-600 hover:bg-amber-50'
                                 : 'text-amber-500 hover:text-emerald-600 hover:bg-emerald-50'
                             }`}
                           >
-                            {activo ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                            {activo ? <Lock className="w-4 h-4" aria-hidden="true" /> : <Unlock className="w-4 h-4" aria-hidden="true" />}
                           </button>
 
                           <button
@@ -329,9 +332,10 @@ export default function PerfilesPage() {
                             onClick={() => handleEliminar(p)}
                             disabled={loading || saving}
                             title="Eliminar perfil"
-                            className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                            aria-label={`Eliminar ${nombre}`}
+                            className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -346,23 +350,24 @@ export default function PerfilesPage() {
 
       {/* Modal Crear / Editar Perfil */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h2 className="text-base font-bold text-slate-800">
+              <h2 className="text-base font-bold text-slate-900">
                 {editandoId ? 'Actualizar Perfil RBAC' : 'Registrar Nuevo Perfil'}
               </h2>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+                aria-label="Cerrar"
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
-              {errorAccion && <p role="alert" className="text-xs text-rose-500">{errorAccion}</p>}
+              {errorAccion && <p role="alert" className="text-xs text-rose-600">{errorAccion}</p>}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Nombre del Rol / Perfil
@@ -373,7 +378,7 @@ export default function PerfilesPage() {
                   placeholder="Ej: Coordinador Académico"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-500 outline-none focus:border-indigo-600 transition"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 transition-colors"
                 />
               </div>
 
@@ -386,7 +391,7 @@ export default function PerfilesPage() {
                   placeholder="Describe las atribuciones y módulos permitidos para este rol..."
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-500 outline-none focus:border-indigo-600 transition resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 transition-colors resize-none"
                 />
               </div>
 
@@ -394,16 +399,16 @@ export default function PerfilesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
                   {saving ? 'Guardando...' : editandoId ? 'Guardar Cambios' : 'Registrar Perfil'}
                 </button>
               </div>

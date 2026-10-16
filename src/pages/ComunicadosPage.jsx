@@ -17,6 +17,12 @@ import {
   confirmarLecturaComunicado
 } from '../services/api';
 
+// El backend puede devolver etiquetas de destinatarios pegadas entre sí
+// (p. ej. "Todos los NivelesAdministradores"). Esto es solo una separación
+// para visualización: no altera el dato, ni el formulario, ni la API.
+const separarEtiquetasPegadas = (valor) =>
+  String(valor ?? '').replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, '$1 $2');
+
 export default function ComunicadosPage({ user }) {
   const [comunicados, setComunicados] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -176,9 +182,9 @@ export default function ComunicadosPage({ user }) {
     const norm = normalizarTexto(cat);
     switch (norm) {
       case 'academico':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        return 'bg-blue-50 text-blue-700 border-blue-100';
       case 'reunion':
-        return 'bg-violet-50 text-violet-700 border-violet-200';
+        return 'bg-slate-50 text-slate-700 border-slate-200';
       case 'salud':
         return 'bg-rose-50 text-rose-700 border-rose-200';
       case 'feriado':
@@ -194,16 +200,16 @@ export default function ComunicadosPage({ user }) {
 
 
   return (
-    <div className="p-8 bg-slate-50 min-h-full">
+    <div className="p-6 md:p-8 bg-slate-50 min-h-full">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-sm">
-            <Megaphone className="w-7 h-7" />
+          <div className="p-2.5 bg-blue-700 rounded-xl text-white">
+            <Megaphone className="w-6 h-6" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Agenda y Comunicados Oficiales</h1>
-            <p className="text-slate-600 text-sm mt-0.5">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Agenda y Comunicados Oficiales</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
   Notificaciones institucionales, circulares pedagógicas y acuerdos directivos
 </p>
           </div>
@@ -213,16 +219,16 @@ export default function ComunicadosPage({ user }) {
           <button
             type="button"
             onClick={() => setModalAbierto(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition cursor-pointer"
+            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
-            <Plus className="w-4 h-4" /> Nuevo Comunicado
+            <Plus className="w-4 h-4" aria-hidden="true" /> Nuevo Comunicado
           </button>
         )}
       </div>
            {errorAccion && (
         <div
           role="alert"
-          className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+          className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
         >
           {errorAccion}
         </div>
@@ -231,7 +237,7 @@ export default function ComunicadosPage({ user }) {
       {mensajeExito && (
         <div
           role="status"
-          className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"
+          className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"
         >
           {mensajeExito}
         </div>
@@ -240,9 +246,9 @@ export default function ComunicadosPage({ user }) {
 
 
       {/* FILTROS Y BÚSQUEDA */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" aria-hidden="true" />
           <label htmlFor="buscar-comunicados" className="sr-only">
   Buscar comunicados por título o contenido
 </label>
@@ -253,19 +259,19 @@ export default function ComunicadosPage({ user }) {
             id="buscar-comunicados"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full text-sm text-slate-800 placeholder:text-slate-500 pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 focus:bg-white transition"
+            className="w-full text-sm text-slate-900 placeholder:text-slate-400 pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-600 transition-colors"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs font-medium">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs font-semibold">
           {categoriasFiltro.map((cat) => (
             <button
               key={cat.id}
               type="button"
               onClick={() => setFiltroCategoria(cat.id)}
-              className={`px-3 py-1.5 rounded-xl transition shrink-0 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg transition-colors shrink-0 cursor-pointer ${
                 filtroCategoria === cat.id
-                  ? 'bg-slate-900 text-white shadow-sm'
+                  ? 'bg-blue-700 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -277,13 +283,13 @@ export default function ComunicadosPage({ user }) {
 
       {/* LISTA DE COMUNICADOS */}
       {cargando ? (
-  <div className="py-12 text-center text-sm text-slate-600">
+  <div className="py-12 text-center text-sm text-slate-500">
     Cargando avisos de la institución...
   </div>
       ) : errorCarga ? (
         <div
           role="alert"
-          className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-8 text-center"
         >
           <p className="font-bold text-rose-700">
             No se pudieron cargar los comunicados
@@ -296,23 +302,23 @@ export default function ComunicadosPage({ user }) {
           <button
             type="button"
             onClick={cargarLista}
-            className="mt-4 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+            className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 transition-colors"
           >
             Reintentar
           </button>
         </div>
       ) : comunicadosFiltrados.length === 0 ? (
-<div className="bg-white rounded-2xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
+<div className="bg-white rounded-xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
 
-    <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-      <Bell className="w-7 h-7 text-indigo-500" />
+    <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+      <Bell className="w-7 h-7 text-blue-700" aria-hidden="true" />
     </div>
 
-    <p className="text-base font-bold text-slate-800">
+    <p className="text-base font-bold text-slate-900">
       No hay comunicados disponibles
     </p>
 
-    <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
+    <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
       Cuando la institución publique un nuevo aviso,
       comunicado o circular, aparecerá automáticamente en este espacio.
     </p>
@@ -326,48 +332,48 @@ export default function ComunicadosPage({ user }) {
             return (
               <div
                 key={item.id}
-                className={`bg-white rounded-2xl border p-6 shadow-sm transition hover:shadow-md ${
+                className={`bg-white rounded-xl border p-6 shadow-sm transition-shadow hover:shadow-md ${
                   esUrgente
-                    ? 'border-l-4 border-l-rose-500 border-rose-200 bg-rose-50/15'
-                    : 'border-slate-200/90'
+                    ? 'border-l-4 border-l-rose-500 border-rose-200'
+                    : 'border-slate-200'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getBadgeCategoria(item.categoria)}`}>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${getBadgeCategoria(item.categoria)}`}>
                       {item.categoria}
                     </span>
                     {esUrgente && (
-                      <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-sm">
-                        <AlertTriangle className="w-3 h-3" /> Prioridad Alta
+                      <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-md bg-rose-600 text-white">
+                        <AlertTriangle className="w-3 h-3" aria-hidden="true" /> Prioridad Alta
                       </span>
                     )}
-                   <span className="text-sm font-semibold text-slate-600">
-  Dirigido a: <strong className="text-slate-800">{item.dirigidoA}</strong>
+                   <span className="text-sm font-semibold text-slate-500">
+  Dirigido a: <strong className="text-slate-800 break-words">{separarEtiquetasPegadas(item.dirigidoA)}</strong>
 </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" /> {item.fecha}
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" /> {item.fecha}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" /> {item.hora}
+                      <Clock className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" /> {item.hora}
                     </span>
                   </div>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-800 mb-2 leading-snug">
+                <h3 className="text-base font-bold text-slate-900 mb-2 leading-snug">
                   {item.titulo}
                 </h3>
 
-                <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                <p className="text-sm text-slate-600 leading-relaxed mb-4">
                   {item.contenido}
                 </p>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                    <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
                       {(item.autor || 'DA').slice(0, 2).toUpperCase()}
                     </span>
                     <span>Emitido por: <strong className="text-slate-700">{item.autor}</strong></span>
@@ -375,16 +381,16 @@ export default function ComunicadosPage({ user }) {
 
                   <div>
                     {item.confirmado ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Lectura Confirmada
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" aria-hidden="true" /> Lectura Confirmada
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleConfirmar(item.id)}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200 px-3.5 py-1.5 rounded-xl transition cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
-                        <UserCheck className="w-4 h-4" /> Marcar como Enterado
+                        <UserCheck className="w-4 h-4" aria-hidden="true" /> Marcar como Enterado
                       </button>
                     )}
                   </div>
@@ -397,17 +403,17 @@ export default function ComunicadosPage({ user }) {
 
       {/* MODAL NUEVO COMUNICADO */}
       {modalAbierto && (
-  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-comunicado"
-      className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden"
+      className="bg-white rounded-xl w-full max-w-lg shadow-xl border border-slate-200 overflow-hidden"
     >
-            <div className="bg-slate-900 p-5 text-white flex items-center justify-between">
+            <div className="border-b border-slate-200 p-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-indigo-400" />
-                <h2 className="font-bold text-base" id="titulo-modal-comunicado">
+                <Megaphone className="w-5 h-5 text-blue-700" aria-hidden="true" />
+                <h2 className="font-bold text-base text-slate-900" id="titulo-modal-comunicado">
                   Redactar Circular Institucional
                 </h2>
               </div>
@@ -415,9 +421,9 @@ export default function ComunicadosPage({ user }) {
   type="button"
   aria-label="Cerrar formulario"
   onClick={() => setModalAbierto(false)}
-  className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+  className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1 rounded-lg transition-colors cursor-pointer"
 >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
@@ -437,7 +443,7 @@ export default function ComunicadosPage({ user }) {
     placeholder="Ej: Simulacro Oficial / Entrega de Boletas"
     value={titulo}
     onChange={(e) => setTitulo(e.target.value)}
-    className="w-full text-sm text-slate-900 placeholder:text-slate-500 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+    className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600"
   />
 </div>
 
@@ -453,7 +459,7 @@ export default function ComunicadosPage({ user }) {
   id="comunicado-categoria"
   value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer focus:border-indigo-600"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-blue-600"
                   >
                     <option value="Académico">Académico</option>
                     <option value="Reunión">Reunión de Padres</option>
@@ -473,7 +479,7 @@ export default function ComunicadosPage({ user }) {
   id="comunicado-prioridad"
   value={prioridad}
                     onChange={(e) => setPrioridad(e.target.value)}
-                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-200 rounded-xl outline-none bg-white cursor-pointer focus:border-indigo-600"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-blue-600"
                   >
                     <option value="baja">Informativa (Baja)</option>
                     <option value="media">Importante (Media)</option>
@@ -494,8 +500,8 @@ export default function ComunicadosPage({ user }) {
   type="text"
                   value={dirigidoA}
                   onChange={(e) => setDirigidoA(e.target.value)}
-                  placeholder="Ej: Todos los Niveles, 5to de Secundaria - Aula 101 UNI"
-                  className="w-full text-sm text-slate-900 placeholder:text-slate-500 px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-indigo-600"
+                  placeholder="Ej: Todos los Niveles, 5to de Secundaria"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600"
                 />
               </div>
 
@@ -513,7 +519,7 @@ export default function ComunicadosPage({ user }) {
                   placeholder="Redacta las instrucciones, fechas u orden del día..."
                   value={contenido}
                   onChange={(e) => setContenido(e.target.value)}
-                  className="w-full text-sm text-slate-900 placeholder:text-slate-500 p-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-600 resize-none"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 p-3 border border-slate-300 rounded-lg outline-none focus:border-blue-600 resize-none"
                 />
               </div>
 
@@ -521,14 +527,14 @@ export default function ComunicadosPage({ user }) {
                 <button
                   type="button"
                   onClick={() => setModalAbierto(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {guardando ? 'Publicando...' : 'Publicar Comunicado'}
                 </button>

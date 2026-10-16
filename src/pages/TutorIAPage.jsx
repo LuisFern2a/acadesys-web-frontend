@@ -88,7 +88,7 @@ export default function TutorIAPage() {
     }
   }, []);
 
-  const colorTema = sesion.colorTema || '#4f46e5';
+  const colorTema = sesion.colorTema || '#2563EB';
   const nombreAcademia = sesion.nombreAcademia || 'AcadeSys Pre-U';
 
   const cargarExpediente = useCallback(async () => {
@@ -221,9 +221,9 @@ export default function TutorIAPage() {
 
   if (cargandoExpediente) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-        <div className="flex items-center gap-3 text-sm text-slate-300">
-          <RefreshCw className="h-5 w-5 animate-spin text-indigo-400" />
+      <div className="min-h-full bg-slate-50 text-slate-900 flex items-center justify-center p-6">
+        <div className="flex items-center gap-3 text-sm text-slate-500">
+          <RefreshCw className="h-5 w-5 animate-spin text-blue-700" aria-hidden="true" />
           Cargando tu expediente académico...
         </div>
       </div>
@@ -232,14 +232,14 @@ export default function TutorIAPage() {
 
   if (errorExpediente || !expediente) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
-        <div className="mx-auto max-w-2xl rounded-2xl border border-rose-500/30 bg-slate-900 p-6">
+      <div className="min-h-full bg-slate-50 text-slate-900 p-6">
+        <div className="mx-auto max-w-2xl rounded-xl border border-rose-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-6 w-6 shrink-0 text-rose-400" />
+            <AlertCircle className="h-6 w-6 shrink-0 text-rose-600" aria-hidden="true" />
             <div className="flex-1">
-              <h1 className="text-lg font-bold">No se pudo cargar tu expediente</h1>
-              <p className="mt-2 text-sm text-slate-300">{errorExpediente || 'Intenta nuevamente.'}</p>
-              <button type="button" onClick={cargarExpediente} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500">
+              <h1 className="text-lg font-bold text-slate-900">No se pudo cargar tu expediente</h1>
+              <p className="mt-2 text-sm text-rose-700">{errorExpediente || 'Intenta nuevamente.'}</p>
+              <button type="button" onClick={cargarExpediente} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors">
                 Reintentar
               </button>
             </div>
@@ -252,27 +252,27 @@ export default function TutorIAPage() {
   const tieneEvaluaciones = historial.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 font-sans text-slate-100 sm:p-8">
-      <header className="mb-8 flex flex-col justify-between gap-4 border-b border-slate-800 pb-6 md:flex-row md:items-center">
+    <div className="min-h-full bg-slate-50 p-4 font-sans text-slate-900 sm:p-6 md:p-8">
+      <header className="mb-8 flex flex-col justify-between gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-center">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-2xl p-3 text-white shadow-lg" style={{ backgroundColor: colorTema }}>
-            <BrainCircuit className="h-7 w-7" />
+          <div className="flex items-center justify-center rounded-xl p-3 text-white" style={{ backgroundColor: colorTema }}>
+            <BrainCircuit className="h-6 w-6" aria-hidden="true" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-black tracking-tight text-white">Tutor Pedagógico IA</h1>
-              <span className="flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-xs font-bold text-indigo-300">
-                <Sparkles className="h-3 w-3" /> Gemini Pre-U
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tutor Pedagógico IA</h1>
+              <span className="flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                <Sparkles className="h-3 w-3" aria-hidden="true" /> Gemini Pre-U
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-              Alumno: <strong className="text-slate-200">{nombreAlumno}</strong>
-              {alumno.codigoUsuario ? <> · Código: <span className="font-mono text-indigo-300">{alumno.codigoUsuario}</span></> : null}
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+              Alumno: <strong className="text-slate-900">{nombreAlumno}</strong>
+              {alumno.codigoUsuario ? <> · Código: <span className="font-mono text-blue-700">{alumno.codigoUsuario}</span></> : null}
             </p>
           </div>
         </div>
-        <button type="button" onClick={generarPlanPedagogico} disabled={analizandoPlan} className="flex items-center justify-center gap-2 self-start rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 md:self-auto">
-          <RefreshCw className={`h-4 w-4 text-indigo-400 ${analizandoPlan ? 'animate-spin' : ''}`} />
+        <button type="button" onClick={generarPlanPedagogico} disabled={analizandoPlan} className="flex items-center justify-center gap-2 self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 md:self-auto">
+          <RefreshCw className={`h-4 w-4 text-blue-700 ${analizandoPlan ? 'animate-spin' : ''}`} aria-hidden="true" />
           Recalcular diagnóstico
         </button>
       </header>
@@ -281,67 +281,67 @@ export default function TutorIAPage() {
         <MetricCard icon={<TrendingUp className="h-6 w-6" />} label="Promedio registrado" value={promedioGeneral === null ? 'Sin datos' : promedioGeneral.toLocaleString('es-PE')} detail={promedioGeneral === null ? 'Aún no hay evaluaciones' : `Escala máxima: ${escalaMaxima}`} color="indigo" />
         <MetricCard icon={<Award className="h-6 w-6" />} label="Cuadro de mérito" value={puestoRanking == null ? 'Sin datos' : `Puesto #${puestoRanking}`} detail={puestoRanking == null ? 'No disponible' : (ciclo?.nombre || 'Ciclo actual')} color="amber" />
         <MetricCard icon={tieneEvaluaciones ? <CheckCircle2 className="h-6 w-6" /> : <AlertCircle className="h-6 w-6" />} label="Evaluaciones" value={String(historial.length)} detail={tieneEvaluaciones ? 'Datos del expediente' : 'No hay notas registradas'} color={tieneEvaluaciones ? 'emerald' : 'slate'} />
-        <MetricCard icon={<UserRound className="h-6 w-6" />} label="Ciclo activo" value={ciclo?.nombre || 'Sin matrícula activa'} detail={ciclo?.universidadObjetivo || 'Objetivo no registrado'} color="violet" />
+        <MetricCard icon={<UserRound className="h-6 w-6" />} label="Ciclo activo" value={ciclo?.nombre || 'Sin matrícula activa'} detail={ciclo?.universidadObjetivo || 'Objetivo no registrado'} color="indigo" />
       </section>
 
       <main className="grid grid-cols-1 gap-8 xl:grid-cols-5">
         <aside className="space-y-6 xl:col-span-2">
-          <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-300">
-              <Target className="h-4 w-4" /> Objetivo preuniversitario
+          <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
+              <Target className="h-4 w-4" aria-hidden="true" /> Objetivo preuniversitario
             </div>
             <div>
-              <p className="text-xs text-slate-400">Ciclo</p>
-              <p className="mt-1 text-sm font-semibold text-white">{ciclo?.nombre || 'No hay ciclo activo'}</p>
+              <p className="text-xs text-slate-500">Ciclo</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{ciclo?.nombre || 'No hay ciclo activo'}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400">Universidad objetivo</p>
-              <p className="mt-1 text-sm font-semibold text-white">{ciclo?.universidadObjetivo || 'No registrada'}</p>
+              <p className="text-xs text-slate-500">Universidad objetivo</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{ciclo?.universidadObjetivo || 'No registrada'}</p>
             </div>
-            <p className="text-xs leading-relaxed text-slate-400">Los datos mostrados proceden del expediente de tu sesión. El sistema no utiliza puntajes de ejemplo.</p>
+            <p className="text-xs leading-relaxed text-slate-500">Los datos mostrados proceden del expediente de tu sesión. El sistema no utiliza puntajes de ejemplo.</p>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-300" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white">Plan de estudio recomendado</h2>
+              <Sparkles className="h-4 w-4 text-blue-700" aria-hidden="true" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Plan de estudio recomendado</h2>
             </div>
             {analizandoPlan ? (
-              <div className="py-8 text-center text-xs text-slate-400">
-                <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-400" />
+              <div className="py-8 text-center text-xs text-slate-500">
+                <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-blue-700" aria-hidden="true" />
                 Analizando los datos disponibles...
               </div>
             ) : planEstudio ? (
               <div className="space-y-4">
-                <p className={`rounded-xl border p-4 text-sm leading-relaxed ${planEstudio.error ? 'border-rose-500/30 bg-rose-500/5 text-rose-200' : 'border-slate-800 bg-slate-950/70 text-slate-300'}`}>{planEstudio.diagnostico}</p>
+                <p className={`rounded-lg border p-4 text-sm leading-relaxed ${planEstudio.error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>{planEstudio.diagnostico}</p>
                 {planEstudio.puntosFuertes?.length > 0 && <BulletSection title="Puntos fuertes" items={planEstudio.puntosFuertes} />}
                 {planEstudio.areasMejora?.length > 0 && <BulletSection title="Áreas por reforzar" items={planEstudio.areasMejora} />}
                 {planEstudio.acciones?.length > 0 && <BulletSection title="Próximas acciones" items={planEstudio.acciones} />}
                 <p className="text-right text-[10px] text-slate-500">Actualizado: {planEstudio.fecha}</p>
               </div>
             ) : (
-              <p className="text-sm text-slate-400">Pulsa «Recalcular diagnóstico» para generar un plan.</p>
+              <p className="text-sm text-slate-500">Pulsa «Recalcular diagnóstico» para generar un plan.</p>
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-indigo-300" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white">Rendimiento por curso</h2>
+              <BookOpen className="h-4 w-4 text-blue-700" aria-hidden="true" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Rendimiento por curso</h2>
             </div>
             {!tieneEvaluaciones ? (
-              <p className="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">Todavía no existen evaluaciones para mostrar. Cuando se registren, aparecerán aquí.</p>
+              <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">Todavía no existen evaluaciones para mostrar. Cuando se registren, aparecerán aquí.</p>
             ) : cursos.length === 0 ? (
-              <p className="text-sm text-slate-400">Hay evaluaciones, pero no se pudieron agrupar por curso.</p>
+              <p className="text-sm text-slate-500">Hay evaluaciones, pero no se pudieron agrupar por curso.</p>
             ) : (
               <div className="space-y-2">
                 {cursos.map((curso) => (
-                  <div key={curso.curso} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+                  <div key={curso.curso} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-slate-200">{curso.curso}</p>
+                      <p className="truncate text-xs font-semibold text-slate-900">{curso.curso}</p>
                       <p className="mt-1 text-[10px] text-slate-500">{curso.evaluaciones} evaluación(es)</p>
                     </div>
-                    <span className="shrink-0 rounded-lg bg-indigo-500/15 px-2 py-1 font-mono text-sm font-bold text-indigo-200">
+                    <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-2 py-1 font-mono text-sm font-bold text-blue-700">
                       {curso.promedio.toLocaleString('es-PE')}
                     </span>
                   </div>
@@ -351,38 +351,38 @@ export default function TutorIAPage() {
           </section>
         </aside>
 
-        <section className="flex h-[620px] flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 shadow-xl xl:col-span-3">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/90 p-4">
+        <section className="flex h-[620px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ backgroundColor: colorTema }}><Bot className="h-5 w-5" /></div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-5 w-5" aria-hidden="true" /></div>
               <div className="min-w-0">
-                <h2 className="truncate text-sm font-bold text-white">Tutor virtual preuniversitario</h2>
-                <p className="truncate text-[11px] text-slate-400">Contexto asociado a tu sesión autenticada</p>
+                <h2 className="truncate text-sm font-bold text-slate-900">Tutor virtual preuniversitario</h2>
+                <p className="truncate text-[11px] text-slate-500">Contexto asociado a tu sesión autenticada</p>
               </div>
             </div>
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Listo
+            <span className="flex shrink-0 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" /> Listo
             </span>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-slate-950/40 p-4 sm:p-5" aria-live="polite">
+          <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4 sm:p-5" aria-live="polite">
             {mensajes.map((mensaje, indice) => {
               const esIA = mensaje.emisor === 'ia';
               return (
                 <div key={`${indice}-${mensaje.hora}`} className={`flex items-end gap-2.5 ${esIA ? 'justify-start' : 'justify-end'}`}>
-                  {esIA && <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-4 w-4" /></div>}
-                  <div className={`max-w-[88%] rounded-2xl p-4 text-xs leading-relaxed shadow-md sm:max-w-[82%] ${esIA ? 'rounded-bl-none border border-slate-800 bg-slate-900 text-slate-200' : 'rounded-br-none text-white'}`} style={!esIA ? { backgroundColor: colorTema } : undefined}>
+                  {esIA && <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-4 w-4" aria-hidden="true" /></div>}
+                  <div className={`max-w-[88%] rounded-xl p-4 text-xs leading-relaxed sm:max-w-[82%] ${esIA ? 'rounded-bl-none border border-slate-200 bg-white text-slate-700' : 'rounded-br-none text-white'}`} style={!esIA ? { backgroundColor: colorTema } : undefined}>
                     <p className="whitespace-pre-wrap">{mensaje.texto}</p>
                     <span className="mt-2 block text-right font-mono text-[10px] opacity-60">{mensaje.hora}</span>
                   </div>
                 </div>
               );
             })}
-            {cargandoRespuesta && <div className="flex items-center gap-2 text-xs text-slate-400"><RefreshCw className="h-4 w-4 animate-spin text-indigo-400" /> El tutor está preparando una respuesta...</div>}
+            {cargandoRespuesta && <div className="flex items-center gap-2 text-xs text-slate-500"><RefreshCw className="h-4 w-4 animate-spin text-blue-700" aria-hidden="true" /> El tutor está preparando una respuesta...</div>}
             <div ref={chatFinRef} />
           </div>
 
-          <form onSubmit={handleEnviarMensaje} className="border-t border-slate-800 bg-slate-900/90 p-3 sm:p-4">
+          <form onSubmit={handleEnviarMensaje} className="border-t border-slate-200 bg-white p-3 sm:p-4">
             <label htmlFor="pregunta-tutor" className="sr-only">Pregunta para el tutor pedagógico</label>
             <div className="flex items-end gap-2">
               <textarea id="pregunta-tutor" value={inputMensaje} onChange={(event) => setInputMensaje(event.target.value)} onKeyDown={(event) => {
@@ -390,9 +390,9 @@ export default function TutorIAPage() {
                   event.preventDefault();
                   event.currentTarget.form?.requestSubmit();
                 }
-              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-xs text-slate-100 outline-none placeholder:text-slate-400 focus:border-indigo-500" />
-              <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: colorTema }}>
-                <Send className="h-4 w-4" />
+              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600" />
+              <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: colorTema }}>
+                <Send className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
             <p className="mt-2 text-[10px] text-slate-500">Enter para enviar · Shift + Enter para una nueva línea</p>
@@ -405,19 +405,18 @@ export default function TutorIAPage() {
 
 function MetricCard({ icon, label, value, detail, color }) {
   const colors = {
-    indigo: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300',
-    amber: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
-    emerald: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
-    slate: 'border-slate-700 bg-slate-800 text-slate-300',
-    violet: 'border-violet-500/20 bg-violet-500/10 text-violet-300',
+    indigo: 'border-blue-100 bg-blue-50 text-blue-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    slate: 'border-slate-200 bg-slate-50 text-slate-500',
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${colors[color] || colors.indigo}`}>{icon}</div>
+    <div className="flex min-w-0 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border ${colors[color] || colors.indigo}`}>{icon}</div>
       <div className="min-w-0">
-        <p className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
-        <p className="mt-1 truncate text-lg font-black text-white">{value}</p>
+        <p className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+        <p className="mt-1 truncate text-lg font-bold text-slate-900">{value}</p>
         <p className="mt-1 truncate text-[10px] text-slate-500">{detail}</p>
       </div>
     </div>
@@ -427,11 +426,11 @@ function MetricCard({ icon, label, value, detail, color }) {
 function BulletSection({ title, items }) {
   return (
     <div>
-      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">{title}</h3>
+      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{title}</h3>
       <ul className="space-y-2">
         {items.map((item, index) => (
-          <li key={`${title}-${index}`} className="flex items-start gap-2 text-xs leading-relaxed text-slate-300">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+          <li key={`${title}-${index}`} className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" aria-hidden="true" />
             <span>{typeof item === 'string' ? item : JSON.stringify(item)}</span>
           </li>
         ))}

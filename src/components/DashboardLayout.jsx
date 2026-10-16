@@ -23,6 +23,13 @@ import {
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 import { obtenerPerfiles, obtenerMenusPorPerfil } from '../services/api';
+import logoAcadeSys from '../assets/acadesys-logo.png';
+import simboloAcadeSys from '../assets/acadesys-symbol.png';
+
+// El PNG del logo oficial es un lienzo cuadrado (347x347) con ~40% de aire
+// arriba y abajo. Se recorta de forma NO destructiva con `object-cover` sobre una
+// caja con el aspecto real del contenido (277x66 px ≈ 4.2:1, medido del archivo).
+const LOGO_ASPECT = '4.2 / 1';
 
 const normalizeRole = (user) =>
   String(user?.rol || user?.Perfil || '')
@@ -154,6 +161,10 @@ export default function DashboardLayout({
   }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
   const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
   const colorTema = user?.colorTema || '#2563eb';
+  // El estado ACTIVO del menú lateral usa siempre el azul institucional de
+  // AcadeSys: la identidad visual no debe depender del color de tema que
+  // provenga de la academia (podía llegar naranja y romper el diseño).
+  const colorActivo = '#1D4ED8';
 
   const nombreDisplay =
     user?.nombre ||
@@ -397,33 +408,43 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-slate-950 font-sans text-slate-100 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
 
       {/* SIDEBAR */}
       <aside
         className={`${
           collapsed ? 'w-20' : 'w-64'
-        } bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 print:hidden`}
+        } bg-[#0F172A] border-r border-white/10 flex flex-col shrink-0 transition-all duration-300 print:hidden`}
       >
 
         {/* CABECERA */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
+        <div className={`h-16 flex items-center border-b border-white/10 shrink-0 ${collapsed ? 'justify-center gap-1 px-1.5' : 'justify-between px-4'}`}>
 
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div
-              className="p-2 rounded-xl text-white shrink-0 shadow-md flex items-center justify-center"
-              style={{ backgroundColor: colorTema }}
-            >
-              <GraduationCap className="w-5 h-5" />
-            </div>
+          <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+            {collapsed ? (
+              <span className="shrink-0 w-9 h-9 rounded-lg bg-white ring-1 ring-black/5 flex items-center justify-center overflow-hidden">
+                <img
+                  src={simboloAcadeSys}
+                  alt="AcadeSys"
+                  className="w-full h-full object-contain"
+                />
+              </span>
+            ) : (
+              <img
+                src={logoAcadeSys}
+                alt="AcadeSys"
+                style={{ aspectRatio: LOGO_ASPECT }}
+                className="shrink-0 h-7 w-auto object-cover rounded-md ring-1 ring-black/5"
+              />
+            )}
 
             {!collapsed && (
-              <div className="leading-tight truncate">
-                <span className="font-extrabold text-sm text-white tracking-wide block truncate">
+              <div className="leading-tight truncate min-w-0">
+                <span className="font-bold text-sm text-white tracking-wide block truncate">
                   {nombreAcademia}
                 </span>
 
-                <span className="text-sm text-slate-300 font-medium block">
+                <span className="text-[11px] text-slate-400 font-medium block truncate">
                   Plataforma Pre-U
                 </span>
               </div>
@@ -433,7 +454,7 @@ export default function DashboardLayout({
           <button
             type="button"
             onClick={() => setCollapsed((prev) => !prev)}
-            className="text-slate-300 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
             {collapsed ? (
@@ -475,10 +496,10 @@ export default function DashboardLayout({
                   <button
                     type="button"
                     onClick={() => toggleAccordion(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                       esSubmenuActivo
-                        ? 'text-white bg-slate-800/80 border border-slate-700/60'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                        ? 'text-white bg-white/10 border border-white/10'
+                        : 'text-slate-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <div className="flex items-center gap-3 truncate">
@@ -503,7 +524,7 @@ export default function DashboardLayout({
                   </button>
 
                   {!collapsed && estaAbierto && (
-                    <div className="pl-6 space-y-1 border-l-2 border-slate-800 ml-4 py-1">
+                    <div className="pl-6 space-y-1 border-l border-white/10 ml-4 py-1">
 
                       {item.submenus.map((sub) => {
                         const SubIcon = sub.icon;
@@ -515,14 +536,14 @@ export default function DashboardLayout({
                             type="button"
                             key={sub.id}
                             onClick={() => cambiarTab(sub.id)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                               isSubActive
-                                ? 'text-white font-bold shadow-sm'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                                ? 'text-white font-bold'
+                                : 'text-slate-300 hover:text-white hover:bg-white/5'
                             }`}
                             style={
                               isSubActive
-                                ? { backgroundColor: colorTema }
+                                ? { backgroundColor: colorActivo }
                                 : {}
                             }
                           >
@@ -546,14 +567,14 @@ export default function DashboardLayout({
                 type="button"
                 key={item.id}
                 onClick={() => cambiarTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   isActive
                     ? 'text-white shadow-sm'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
                 style={
                   isActive
-                    ? { backgroundColor: colorTema }
+                    ? { backgroundColor: colorActivo }
                     : {}
                 }
               >
@@ -571,11 +592,11 @@ export default function DashboardLayout({
         </nav>
 
         {/* CERRAR SESIÓN */}
-        <div className="p-3 border-t border-slate-800 shrink-0">
+        <div className="p-3 border-t border-white/10 shrink-0">
           <button
             type="button"
             onClick={cerrarSesion}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             <LogOut className="w-4 h-4 shrink-0" />
 
@@ -588,26 +609,26 @@ export default function DashboardLayout({
       </aside>
 
       {/* CONTENIDO */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
 
         {/* HEADER */}
-        <header className="h-16 bg-slate-900/80 border-b border-slate-800/80 px-6 flex items-center justify-between backdrop-blur-md print:hidden shrink-0">
+        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between print:hidden shrink-0">
 
-          <div className="text-sm text-slate-300 font-medium flex items-center gap-2">
-            <span>Portal Preuniversitario</span>
+          <div className="text-sm text-slate-500 font-medium flex items-center gap-2 min-w-0">
+            <span className="hidden sm:inline">Portal Preuniversitario</span>
 
-            <span className="text-slate-500">
+            <span className="hidden sm:inline text-slate-300">
               /
             </span>
 
-            <span className="text-slate-200 font-bold">
+            <span className="text-slate-900 font-semibold truncate">
               {titulosTabs[activeTab] || activeTab}
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
 
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-sm font-semibold text-slate-300">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
               <span
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: colorTema }}
@@ -620,7 +641,7 @@ export default function DashboardLayout({
               type="button"
               onClick={() => cambiarTab('comunicados')}
               title="Avisos y Comunicados"
-              className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
               <Bell className="w-4 h-4" />
 
@@ -636,11 +657,11 @@ export default function DashboardLayout({
               onClick={() =>
                 setModalPerfilAbierto(true)
               }
-              className="flex items-center gap-3 pl-3 border-l border-slate-800 hover:bg-slate-800/50 p-1.5 rounded-xl transition text-left cursor-pointer"
+              className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:bg-slate-50 p-1.5 rounded-lg transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
 
               <div
-                className="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs uppercase shadow-inner"
+                className="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs uppercase"
                 style={{ backgroundColor: colorTema }}
               >
                 {user?.foto ? (
@@ -655,11 +676,11 @@ export default function DashboardLayout({
               </div>
 
               <div className="hidden sm:block leading-tight">
-                <span className="block text-sm font-bold text-slate-200">
+                <span className="block text-sm font-semibold text-slate-900">
                   {nombreDisplay}
                 </span>
 
-                <span className="block text-sm text-slate-300 capitalize">
+                <span className="block text-xs text-slate-500 capitalize">
                   {user?.rol ||
                     user?.Perfil ||
                     'Administrador'}
@@ -672,12 +693,23 @@ export default function DashboardLayout({
 
         {/* VISTA ACTIVA */}
         <main className="flex-1 overflow-y-auto print:overflow-visible">
-          {(!navegacion.completa || navegacion.omitidos > 0) && (
-            <div role={configuracionActual?.error ? 'alert' : 'status'} className="px-6 py-2 text-xs text-slate-300 print:hidden">
-              {!navegacion.completa && 'Navegación en compatibilidad temporal: se conservan las opciones actuales. '}
-              {configuracionActual?.cargando || !configuracionActual ? 'Consultando asignaciones del servidor. ' : configuracionActual.error || (!navegacion.completa ? 'Las asignaciones de BD aún no cubren todas las vistas actuales. ' : '')}
-              {navegacion.omitidos > 0 && ` Se omitieron ${navegacion.omitidos} opciones sin una vista compatible para este perfil. `}
-              {configuracionActual?.error && <button type="button" onClick={() => setRevisionMenu((n) => n + 1)} className="text-indigo-300">Reintentar</button>}
+          {/*
+            El respaldo de navegación (menú en "compatibilidad") sigue activo:
+            si la BD aún no cubre todas las vistas, se conservan las opciones
+            actuales. Ese aviso era informativo y solo se muestra ahora cuando
+            existe un error real de servidor, para no exponer mensajes técnicos
+            durante la operación normal.
+          */}
+          {configuracionActual?.error && (
+            <div role="alert" className="mx-4 sm:mx-6 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-700 print:hidden">
+              {configuracionActual.error}
+              <button
+                type="button"
+                onClick={() => setRevisionMenu((n) => n + 1)}
+                className="ml-2 font-semibold text-blue-700 hover:text-blue-800"
+              >
+                Reintentar
+              </button>
             </div>
           )}
           {children}

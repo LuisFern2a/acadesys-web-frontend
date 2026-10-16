@@ -91,39 +91,39 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
       titulo: 'Estudiantes Registrados',
       valor: cargando ? '...' : totalEstudiantes.toString(),
       icono: Users,
-      color: 'indigo'
+      tono: 'bg-blue-50 text-blue-700 border-blue-100'
     },
     {
       titulo: 'Ciclos Académicos',
       valor: cargando ? '...' : ciclos.length.toString(),
       icono: School,
-      color: 'emerald'
+      tono: 'bg-blue-50 text-blue-700 border-blue-100'
     },
     {
       titulo: 'Promedio Institucional',
       valor: cargando ? '...' : (promedioGeneral !== '--' ? `${promedioGeneral} / 20` : 'Sin registros'),
       icono: TrendingUp,
-      color: 'violet'
+      tono: 'bg-slate-100 text-slate-700 border-slate-200'
     },
     {
       titulo: 'Estudiantes Morosos',
       valor: cargando ? '...' : totalMorosos.toString(),
       icono: DollarSign,
-      color: 'rose'
+      tono: 'bg-rose-50 text-rose-700 border-rose-100'
     }
   ];
 
   return (
-    <div className="p-8 bg-slate-50 min-h-full">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div className="p-6 sm:p-8 bg-slate-50 min-h-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-7">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Panel General AcadeSys</h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Panel General AcadeSys</h1>
+          <p className="text-slate-500 text-sm mt-1">
             Métricas institucionales consolidadas en tiempo real
           </p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-xl shadow-sm">
-          <span className="text-xs font-bold text-slate-700">Consolidado Institucional</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+          <span className="text-xs font-semibold text-slate-700">Consolidado Institucional</span>
         </div>
       </div>
 
@@ -131,19 +131,15 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icono;
           return (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{kpi.titulo}</span>
-                <span className={`p-2 rounded-xl text-white ${
-                  kpi.color === 'indigo' ? 'bg-indigo-600' :
-                  kpi.color === 'emerald' ? 'bg-emerald-600' :
-                  kpi.color === 'violet' ? 'bg-violet-600' : 'bg-rose-600'
-                }`}>
-                  <Icon className="w-4 h-4" />
+            <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{kpi.titulo}</span>
+                <span className={`p-2 rounded-lg border ${kpi.tono}`}>
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                 </span>
               </div>
               <div className="mt-2">
-                <span className="text-2xl font-bold text-slate-800">{kpi.valor}</span>
+                <span className="text-2xl font-bold text-slate-900">{kpi.valor}</span>
               </div>
             </div>
           );
@@ -151,35 +147,35 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <School className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-slate-800 text-base">Ciclos del Sistema</h2>
+              <School className="w-5 h-5 text-blue-700" aria-hidden="true" />
+              <h2 className="font-bold text-slate-900">Ciclos del Sistema</h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('academico-ciclos')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 rounded"
             >
               <span>Gestionar Ciclos</span>
-              <span>→</span>
+              <span aria-hidden="true">→</span>
             </button>
           </div>
 
           {ciclos.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm">
+            <div className="py-12 text-center text-slate-500 text-sm">
               No hay ciclos registrados actualmente en la base de datos.
             </div>
           ) : (
             <div className="space-y-3">
               {ciclos.map((c, i) => (
-                <div key={c.idCiclo || c.id || i} className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex justify-between items-center text-xs">
-                  <div>
-                    <span className="font-bold text-slate-700 block text-sm">{c.nombre || c.Nombre}</span>
-                    <span className="text-slate-400">Turno: {c.turno || c.Turno || 'General'}</span>
+                <div key={c.idCiclo || c.id || i} className="p-4 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center gap-3 text-xs">
+                  <div className="min-w-0">
+                    <span className="font-semibold text-slate-900 block text-sm truncate">{c.nombre || c.Nombre}</span>
+                    <span className="text-slate-500">Turno: {c.turno || c.Turno || 'General'}</span>
                   </div>
-                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 font-semibold rounded-lg border border-indigo-100">
+                  <span className="px-2.5 py-1 bg-white text-slate-700 font-semibold rounded-md border border-slate-200 shrink-0">
                     {c.estado || 'Activo'}
                   </span>
                 </div>
@@ -189,35 +185,35 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-2xl text-white shadow-sm flex flex-col justify-between">
+          <div className="bg-[#0F172A] p-6 rounded-xl text-white shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-2">
-                <Sparkles className="w-4 h-4" /> Diagnóstico Predictivo
+              <div className="flex items-center gap-2 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-2">
+                <Sparkles className="w-4 h-4" aria-hidden="true" /> Diagnóstico Predictivo
               </div>
               <h3 className="font-bold text-base text-white mb-2">Tutor IA Institucional</h3>
-              <p className="text-xs text-indigo-100 leading-relaxed">
+              <p className="text-xs text-slate-300 leading-relaxed">
                 Genera estrategias pedagógicas personalizadas a partir de los simulacros vigentes.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('tutor-ia')}
-              className="mt-6 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-medium text-xs shadow-md transition cursor-pointer"
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
-              <BrainCircuit className="w-4 h-4" /> Abrir Tutor IA
+              <BrainCircuit className="w-4 h-4" aria-hidden="true" /> Abrir Tutor IA
             </button>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-indigo-600" />
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <Award className="w-4 h-4 text-blue-700" aria-hidden="true" />
               Acciones Rápidas
             </h3>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('calificaciones')}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
               >
                 Revisar Boletas y Ranking
               </button>
@@ -225,10 +221,10 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
                 <button
                   type="button"
                   onClick={() => setActiveTab('academico')}
-                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition border border-transparent hover:border-indigo-100 flex justify-between items-center cursor-pointer"
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
                 >
                   Asignar Carga Docente
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
             </div>

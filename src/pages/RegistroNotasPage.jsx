@@ -666,13 +666,13 @@ export default function RegistroNotasPage() {
 
   return (
 
-    <div className="p-6 md:p-10 font-sans text-slate-100 bg-slate-950 min-h-screen space-y-8">
+    <div className="p-6 md:p-8 font-sans text-slate-900 bg-slate-50 min-h-full space-y-8">
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
 
         <div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold mb-2">
 
             <Sparkles className="w-3.5 h-3.5" />
 
@@ -682,7 +682,7 @@ export default function RegistroNotasPage() {
 
 
 
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
 
             Registro de Evaluaciones
 
@@ -690,7 +690,7 @@ export default function RegistroNotasPage() {
 
 
 
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
 
             {escalaLista
 
@@ -722,7 +722,7 @@ export default function RegistroNotasPage() {
 
           onClick={handleGuardar}
 
-          className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 
           style={{ backgroundColor: colorTema }}
 
@@ -738,15 +738,15 @@ export default function RegistroNotasPage() {
 
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
 
         <div className="flex items-center gap-3">
 
-          <School className="w-5 h-5 text-indigo-400 shrink-0" />
+          <School className="w-5 h-5 text-blue-700 shrink-0" />
 
           <div className="w-full">
 
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
 
               Ciclo
 
@@ -760,7 +760,7 @@ export default function RegistroNotasPage() {
 
               disabled={cargando || guardando}
 
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-600 transition disabled:opacity-50"
 
             >
 
@@ -786,11 +786,11 @@ export default function RegistroNotasPage() {
 
         <div className="flex items-center gap-3">
 
-          <ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0" />
+          <ShieldCheck className="w-5 h-5 text-blue-700 shrink-0" />
 
           <div className="w-full">
 
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
 
               Tipo de evaluación
 
@@ -804,7 +804,7 @@ export default function RegistroNotasPage() {
 
               disabled={cargando || guardando || !idCiclo}
 
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer focus:border-indigo-500 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-600 transition disabled:opacity-50"
 
             >
 
@@ -826,7 +826,7 @@ export default function RegistroNotasPage() {
 
         <div className="flex items-center gap-3">
           <div className="w-full">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="periodo-evaluacion">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1" htmlFor="periodo-evaluacion">
               Periodo académico
             </label>
             <input
@@ -837,7 +837,7 @@ export default function RegistroNotasPage() {
               disabled={cargando || guardando || !idCiclo}
               maxLength={50}
               placeholder="Ej. General, Parcial 1, Simulacro octubre"
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-indigo-500 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-blue-600 transition disabled:opacity-50"
             />
           </div>
         </div>
@@ -848,13 +848,13 @@ export default function RegistroNotasPage() {
 
       {errorCarga && (
 
-        <div className="flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">
+        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
 
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
 
           <div>
 
-            <strong className="block text-rose-200">No se pudo sincronizar el registro.</strong>
+            <strong className="block text-rose-800">No se pudo sincronizar el registro.</strong>
 
             <span>{errorCarga}</span>
 
@@ -868,19 +868,19 @@ export default function RegistroNotasPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
 
-          <Users className="w-5 h-5 text-indigo-400" />
+          <Users className="w-5 h-5 text-blue-700" />
 
           <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-500 block">
 
               Matriculados
 
             </span>
 
-            <span className="text-xl font-black text-white">
+            <span className="text-xl font-bold text-slate-900">
 
               {estudiantes.length}
 
@@ -892,19 +892,19 @@ export default function RegistroNotasPage() {
 
 
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
 
-          <TrendingUp className="w-5 h-5 text-violet-400" />
+          <TrendingUp className="w-5 h-5 text-blue-700" />
 
           <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-500 block">
 
               Puntaje promedio
 
             </span>
 
-            <span className="text-xl font-black text-white font-mono">
+            <span className="text-xl font-bold text-slate-900 font-mono">
 
               {promedioGeneral}
 
@@ -922,19 +922,19 @@ export default function RegistroNotasPage() {
 
 
 
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
 
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-700" />
 
           <div>
 
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase text-slate-500 block">
 
               Escala activa
 
             </span>
 
-            <span className="text-xl font-black text-emerald-400 font-mono">
+            <span className="text-xl font-bold text-emerald-700 font-mono">
 
               {escalaLista ? `0 - ${escalaMaxima}` : 'No disponible'}
 
@@ -948,15 +948,15 @@ export default function RegistroNotasPage() {
 
 
 
-      <div className="bg-slate-900/60 rounded-3xl shadow-xl border border-slate-800/80 overflow-hidden backdrop-blur-xl">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
 
-        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-slate-900/80">
+        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-slate-50">
 
           <div className="flex items-center gap-2">
 
-            <ShieldCheck className="w-4 h-4 text-indigo-400" />
+            <ShieldCheck className="w-4 h-4 text-blue-700" />
 
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
 
               {cicloSeleccionado?.nombre || 'Registro oficial'} • {tipoEvaluacion}
 
@@ -966,7 +966,7 @@ export default function RegistroNotasPage() {
 
 
 
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-500">
 
             {escalaLista
 
@@ -986,7 +986,7 @@ export default function RegistroNotasPage() {
 
             <thead>
 
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
 
                 <th className="py-4 px-6">Estudiante</th>
 
@@ -1002,7 +1002,7 @@ export default function RegistroNotasPage() {
 
 
 
-            <tbody className="divide-y divide-slate-800/60 text-xs text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
 
               {cargando ? (
 
@@ -1052,19 +1052,19 @@ export default function RegistroNotasPage() {
 
                       key={estudiante.idMatricula}
 
-                      className="hover:bg-slate-800/30 transition-colors"
+                      className="hover:bg-slate-50 transition-colors"
 
                     >
 
                       <td className="py-4 px-6">
 
-                        <span className="font-bold text-white block">
+                        <span className="font-bold text-slate-900 block">
 
                           {estudiante.nombre}
 
                         </span>
 
-                        <span className="text-[11px] font-mono text-indigo-400">
+                        <span className="text-[11px] font-mono text-blue-700">
 
                           {estudiante.codigo || 'Sin código'}
 
@@ -1074,7 +1074,7 @@ export default function RegistroNotasPage() {
 
 
 
-                      <td className="py-4 px-6 text-center font-mono text-slate-400">
+                      <td className="py-4 px-6 text-center font-mono text-slate-500">
 
                         #{estudiante.idMatricula}
 
@@ -1112,7 +1112,7 @@ export default function RegistroNotasPage() {
 
                           placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
 
-                          className="w-24 text-center py-2 px-2 border rounded-xl text-sm font-bold font-mono outline-none transition bg-slate-950 border-slate-700 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 disabled:placeholder:text-slate-200 disabled:cursor-not-allowed"
+                          className="w-24 text-center py-2 px-2 border rounded-lg text-sm font-bold font-mono outline-none transition bg-white border-slate-300 text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
 
                         />
 
@@ -1124,13 +1124,13 @@ export default function RegistroNotasPage() {
 
                         <span
 
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold ${
 
                             tieneNota
 
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
 
-                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              : 'bg-slate-50 text-slate-500 border border-slate-300'
 
                           }`}
 

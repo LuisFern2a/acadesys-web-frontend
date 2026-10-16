@@ -258,9 +258,9 @@ export default function AdminMaterialesPage() {
 
     return (
 
-      <div className="min-h-full bg-slate-950 flex items-center justify-center">
+      <div className="min-h-full bg-slate-50 flex items-center justify-center">
 
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-700" aria-hidden="true" />
 
       </div>
 
@@ -270,7 +270,7 @@ export default function AdminMaterialesPage() {
 
   return (
 
-    <div className="min-h-full bg-slate-950 text-slate-100 p-6 md:p-10">
+    <div className="min-h-full bg-slate-50 text-slate-900 p-6 md:p-8">
 
       <div className="max-w-7xl mx-auto">
 
@@ -278,9 +278,9 @@ export default function AdminMaterialesPage() {
 
           <div>
 
-            <p className="text-blue-300 text-[10px] font-bold uppercase tracking-[0.16em]">Administración</p>
+            <p className="text-blue-700 text-[11px] font-bold uppercase tracking-[0.16em]">Administración</p>
 
-            <h1 className="text-3xl font-black mt-1">Materiales Académicos</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-1">Materiales Académicos</h1>
 
             <p className="text-sm text-slate-500 mt-2">
 
@@ -296,11 +296,11 @@ export default function AdminMaterialesPage() {
 
             onClick={cargar}
 
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 text-xs font-bold text-slate-300 hover:bg-slate-800"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50"
 
           >
 
-            <RefreshCcw className="w-3.5 h-3.5" />
+            <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
 
             Actualizar
 
@@ -310,9 +310,9 @@ export default function AdminMaterialesPage() {
 
         {mensaje && (
 
-          <div className="mb-5 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300 flex items-center gap-2">
+          <div role="status" className="mb-5 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700 flex items-center gap-2">
 
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
 
             {mensaje}
 
@@ -322,9 +322,9 @@ export default function AdminMaterialesPage() {
 
         {error && (
 
-          <div className="mb-5 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 flex items-center gap-2">
+          <div role="alert" className="mb-5 p-4 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-700 flex items-center gap-2">
 
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4" aria-hidden="true" />
 
             {error}
 
@@ -334,11 +334,11 @@ export default function AdminMaterialesPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
 
-          <form onSubmit={handleSubmit} className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 h-fit">
+          <form onSubmit={handleSubmit} className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4 h-fit">
 
-            <div className="flex items-center gap-2 text-white font-black">
+            <div className="flex items-center gap-2 text-slate-900 font-bold">
 
-              <Plus className="w-4 h-4 text-blue-400" />
+              <Plus className="w-4 h-4 text-blue-700" aria-hidden="true" />
 
               Nuevo material PDF
 
@@ -354,7 +354,7 @@ export default function AdminMaterialesPage() {
 
                 onChange={(e) => cambiarCiclo(e.target.value)}
 
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-blue-600"
 
               >
 
@@ -378,7 +378,7 @@ export default function AdminMaterialesPage() {
 
                 onChange={(e) => setIdCurso(e.target.value)}
 
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-blue-600"
 
               >
 
@@ -404,7 +404,7 @@ export default function AdminMaterialesPage() {
 
                 placeholder="Ej. Semana 4 - Álgebra"
 
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-blue-500"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600"
 
               />
 
@@ -424,7 +424,7 @@ export default function AdminMaterialesPage() {
 
                 placeholder="Material de refuerzo..."
 
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white outline-none focus:border-blue-500 resize-none"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 resize-none"
 
               />
 
@@ -434,7 +434,7 @@ export default function AdminMaterialesPage() {
 
               <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Archivo PDF</span>
 
-              <div className="mt-1 p-4 rounded-2xl border border-dashed border-slate-700 bg-slate-950">
+              <div className="mt-1 p-4 rounded-lg border border-dashed border-slate-300 bg-slate-50">
 
                 <input
 
@@ -446,11 +446,11 @@ export default function AdminMaterialesPage() {
 
                   onChange={(e) => setArchivo(e.target.files?.[0] || null)}
 
-                  className="w-full text-xs text-slate-400"
+                  className="w-full text-xs text-slate-600"
 
                 />
 
-                <p className="text-[10px] text-slate-600 mt-2">Máximo 10 MB.</p>
+                <p className="text-[10px] text-slate-500 mt-2">Máximo 10 MB.</p>
 
               </div>
 
@@ -462,11 +462,11 @@ export default function AdminMaterialesPage() {
 
               disabled={guardando}
 
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-sm font-black text-white"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-700 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 text-sm font-bold text-white"
 
             >
 
-              {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+              {guardando ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <UploadCloud className="w-4 h-4" aria-hidden="true" />}
 
               {guardando ? 'Publicando...' : 'Publicar PDF'}
 
@@ -474,7 +474,7 @@ export default function AdminMaterialesPage() {
 
           </form>
 
-          <section className="p-6 rounded-3xl bg-slate-900 border border-slate-800">
+          <section className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm">
 
             <div className="flex items-center justify-between gap-3 mb-5">
 
@@ -482,21 +482,21 @@ export default function AdminMaterialesPage() {
 
                 <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Materiales del ciclo</p>
 
-                <h2 className="text-xl font-black text-white mt-1">{ciclos.find((c) => String(c.idCiclo) === String(idCiclo))?.nombre || '-'}</h2>
+                <h2 className="text-xl font-bold text-slate-900 mt-1">{ciclos.find((c) => String(c.idCiclo) === String(idCiclo))?.nombre || '-'}</h2>
 
               </div>
 
-              <BookOpen className="w-5 h-5 text-blue-400" />
+              <BookOpen className="w-5 h-5 text-blue-700" aria-hidden="true" />
 
             </div>
 
             {materiales.length === 0 ? (
 
-              <div className="p-8 text-center border border-slate-800 rounded-2xl">
+              <div className="p-8 text-center border border-dashed border-slate-300 rounded-xl">
 
-                <FileText className="w-8 h-8 mx-auto text-slate-700" />
+                <FileText className="w-8 h-8 mx-auto text-slate-300" aria-hidden="true" />
 
-                <p className="text-sm font-bold text-white mt-3">No hay materiales publicados.</p>
+                <p className="text-sm font-bold text-slate-900 mt-3">No hay materiales publicados.</p>
 
                 <p className="text-xs text-slate-500 mt-1">Sube el primer PDF para este ciclo.</p>
 
@@ -508,17 +508,17 @@ export default function AdminMaterialesPage() {
 
                 {materiales.map((material) => (
 
-                  <div key={material.idMaterial ?? material.IdMaterial} className="p-4 rounded-2xl border border-slate-800 bg-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div key={material.idMaterial ?? material.IdMaterial} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
                     <div className="min-w-0">
 
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-blue-300">{material.curso || 'Curso'}</p>
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-blue-700">{material.curso || 'Curso'}</p>
 
-                      <h3 className="text-sm font-black text-white mt-1 truncate">{material.titulo}</h3>
+                      <h3 className="text-sm font-bold text-slate-900 mt-1 truncate">{material.titulo}</h3>
 
                       <p className="text-xs text-slate-500 mt-1">{material.descripcion || 'Sin descripción'}</p>
 
-                      <p className="text-[10px] text-slate-600 mt-2">{material.nombreArchivo || 'PDF'} · {String(material.fechaPublicacion || '').slice(0, 10)}</p>
+                      <p className="text-[10px] text-slate-500 mt-2">{material.nombreArchivo || 'PDF'} · {String(material.fechaPublicacion || '').slice(0, 10)}</p>
 
                     </div>
 
@@ -534,7 +534,7 @@ export default function AdminMaterialesPage() {
 
                           rel="noreferrer"
 
-                          className="px-3 py-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                          className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100"
 
                         >
 
@@ -550,13 +550,15 @@ export default function AdminMaterialesPage() {
 
                         onClick={() => handleEliminar(material)}
 
-                        className="p-2 rounded-xl text-red-400 hover:bg-red-500/10"
+                        className="p-2 rounded-lg text-rose-600 hover:bg-rose-50"
 
                         title="Eliminar"
 
+                        aria-label={`Eliminar ${material.titulo}`}
+
                       >
 
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
 
                       </button>
 
