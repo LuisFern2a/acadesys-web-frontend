@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -44,21 +45,9 @@ const NOTA_MINIMA = 0;
 
 
 
-const TIPOS_EVALUACION = [
+const TIPOS_EVALUACION = ['Práctica', 'Evaluación', 'Examen', 'Simulacro'];
 
-  'Simulacro',
-
-  'Examen',
-
-  'Tarea',
-
-  'Practica',
-
-  'Oral',
-
-  'Participacion'
-
-];
+const normalizarTipoEvaluacion = (valor) => String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
 
 
@@ -87,6 +76,7 @@ export default function RegistroNotasPage() {
   const [ciclos, setCiclos] = useState([]);
 
   const [idCiclo, setIdCiclo] = useState('');
+  const [periodo, setPeriodo] = useState('General');
 
   const [tipoEvaluacion, setTipoEvaluacion] = useState('Simulacro');
 
@@ -282,7 +272,8 @@ export default function RegistroNotasPage() {
 
             Number(nota.IdMatricula ?? nota.idMatricula) === Number(estudiante.idMatricula) &&
 
-            String(nota.TipoEvaluacion ?? nota.tipoEvaluacion) === tipoEvaluacion
+            normalizarTipoEvaluacion(nota.TipoEvaluacion ?? nota.tipoEvaluacion) === normalizarTipoEvaluacion(tipoEvaluacion) &&
+            String(nota.Periodo ?? nota.periodo ?? 'General') === periodo
 
           )
 
@@ -314,7 +305,7 @@ export default function RegistroNotasPage() {
 
     );
 
-  }, [tipoEvaluacion, evaluaciones, escalaLista]);
+  }, [tipoEvaluacion, periodo, evaluaciones, escalaLista]);
 
 
 
@@ -538,7 +529,8 @@ export default function RegistroNotasPage() {
 
             Calificacion: Number(estudiante.calificacion)
 
-          }))
+          })),
+          periodo
 
         );
 
@@ -830,6 +822,24 @@ export default function RegistroNotasPage() {
 
           </div>
 
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-full">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1" htmlFor="periodo-evaluacion">
+              Periodo académico
+            </label>
+            <input
+              id="periodo-evaluacion"
+              type="text"
+              value={periodo}
+              onChange={(event) => setPeriodo(event.target.value.slice(0, 50))}
+              disabled={cargando || guardando || !idCiclo}
+              maxLength={50}
+              placeholder="Ej. General, Parcial 1, Simulacro octubre"
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-indigo-500 transition disabled:opacity-50"
+            />
+          </div>
         </div>
 
       </div>

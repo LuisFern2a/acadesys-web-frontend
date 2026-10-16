@@ -1,3 +1,4 @@
+
 // âœ… DEBE LLEVAR "export":
 export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
 
@@ -865,11 +866,12 @@ export async function obtenerMatriculasNotas(idCiclo) {
   return Array.isArray(data) ? data : (data.data || data.matriculas || []);
 }
 
-export async function guardarNotasDocente(idCiclo, notas) {
+export async function guardarNotasDocente(idCiclo, notas, periodo = 'General') {
   const response = await fetchWithAuth('/api/notas', {
     method: 'POST',
     body: JSON.stringify({
       idCiclo: Number(idCiclo),
+      periodo: String(periodo || 'General').trim(),
       notas
     })
   });
@@ -1322,5 +1324,3 @@ export async function eliminarCicloAdmin(idCiclo) {
 
   return data;
 }
-
-

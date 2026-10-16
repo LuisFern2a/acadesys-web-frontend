@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import {
@@ -319,7 +320,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
     Swal.fire({
       title: 'Procesando matrícula...',
-      text: 'Por favor espera un momento',
+      text: 'Modo demostración: no se realizará ningún cobro real. Espera mientras registramos la matrícula de prueba.',
       allowOutsideClick: false,
       allowEscapeKey: false,
       showConfirmButton: false,
@@ -336,15 +337,14 @@ export default function LandingPage({ onLoginSuccess }) {
         nombres: checkoutData.nombres.trim(),
         apellidos: checkoutData.apellidos.trim(),
         correo: correoNormalizado,
-        monto: 1.0
       });
 
       await Swal.fire({
-        icon: 'success',
-        title: resultado.esReinscripcion ? '¡Reinscripción exitosa!' : '¡Inscripción exitosa!',
+        icon: 'info',
+        title: resultado.esReinscripcion ? 'Reinscripción registrada' : 'Matrícula registrada',
         text: resultado.esReinscripcion
-          ? 'Tu matrícula fue registrada usando tu cuenta existente. Revisa tu correo para generar una contraseña temporal nueva y acceder.'
-          : 'Revisa tu correo para obtener tus accesos.',
+          ? 'La matrícula quedó registrada y el pago figura pendiente. Este flujo es una demostración: no se realizó un cobro real. Revisa tu correo para recuperar el acceso.'
+          : 'La matrícula quedó registrada y el pago figura pendiente. Este flujo es una demostración: no se realizó un cobro real. Revisa tu correo para obtener tus accesos.',
         confirmButtonText: 'Ir al inicio',
         confirmButtonColor: '#2563eb',
         background: '#0a192f',
@@ -992,6 +992,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-2xl font-black text-white mb-1">Inscripción</h2>
+            <p className="text-xs text-slate-300 mb-3">Modo demostración: esta pantalla no procesa pagos reales. La matrícula de prueba se registra con pago pendiente.</p>
             <p className="text-xs text-slate-400 mb-6">
               Ciclo: <span className="text-blue-300 font-semibold">{cicloSeleccionado.nombre}</span>{cicloSeleccionado.turno ? ` · ${cicloSeleccionado.turno}` : ''}
             </p>
@@ -1071,7 +1072,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 className="w-full mt-2 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 {(procesandoPago || verificandoCorreo) && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{verificandoCorreo ? 'Verificando correo...' : 'Pagar S/ 1.00'}</span>
+                <span>{verificandoCorreo ? 'Verificando correo...' : 'Simular matrícula (sin cobro)'}</span>
               </button>
             </form>
           </div>
