@@ -279,7 +279,7 @@ export default function TutorIAPage() {
 
       <section className="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={<TrendingUp className="h-6 w-6" />} label="Promedio registrado" value={promedioGeneral === null ? 'Sin datos' : promedioGeneral.toLocaleString('es-PE')} detail={promedioGeneral === null ? 'Aún no hay evaluaciones' : `Escala máxima: ${escalaMaxima}`} color="indigo" />
-        <MetricCard icon={<Award className="h-6 w-6" />} label="Cuadro de mérito" value={puestoRanking == null ? 'Sin datos' : `Puesto #${puestoRanking}`} detail={puestoRanking == null ? 'No disponible' : (ciclo?.nombre || 'Ciclo actual')} color="amber" />
+        <MetricCard icon={<Award className="h-6 w-6" />} label="Cuadro de mérito" value={puestoRanking == null ? 'Sin datos' : `Puesto #${puestoRanking}`} detail={puestoRanking == null ? 'No disponible' : (ciclo?.nombre || 'Ciclo actual')} color="indigo" />
         <MetricCard icon={tieneEvaluaciones ? <CheckCircle2 className="h-6 w-6" /> : <AlertCircle className="h-6 w-6" />} label="Evaluaciones" value={String(historial.length)} detail={tieneEvaluaciones ? 'Datos del expediente' : 'No hay notas registradas'} color={tieneEvaluaciones ? 'emerald' : 'slate'} />
         <MetricCard icon={<UserRound className="h-6 w-6" />} label="Ciclo activo" value={ciclo?.nombre || 'Sin matrícula activa'} detail={ciclo?.universidadObjetivo || 'Objetivo no registrado'} color="indigo" />
       </section>
@@ -351,7 +351,7 @@ export default function TutorIAPage() {
           </section>
         </aside>
 
-        <section className="flex h-[620px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
+        <section className="flex flex-col self-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-5 w-5" aria-hidden="true" /></div>
@@ -365,7 +365,7 @@ export default function TutorIAPage() {
             </span>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4 sm:p-5" aria-live="polite">
+          <div className="max-h-[520px] min-h-[280px] flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4 sm:p-5" aria-live="polite">
             {mensajes.map((mensaje, indice) => {
               const esIA = mensaje.emisor === 'ia';
               return (
@@ -406,7 +406,6 @@ export default function TutorIAPage() {
 function MetricCard({ icon, label, value, detail, color }) {
   const colors = {
     indigo: 'border-blue-100 bg-blue-50 text-blue-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     slate: 'border-slate-200 bg-slate-50 text-slate-500',
   };
@@ -416,7 +415,7 @@ function MetricCard({ icon, label, value, detail, color }) {
       <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border ${colors[color] || colors.indigo}`}>{icon}</div>
       <div className="min-w-0">
         <p className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
-        <p className="mt-1 truncate text-lg font-bold text-slate-900">{value}</p>
+        <p className="mt-1 line-clamp-2 text-lg font-bold text-slate-900">{value}</p>
         <p className="mt-1 truncate text-[10px] text-slate-500">{detail}</p>
       </div>
     </div>

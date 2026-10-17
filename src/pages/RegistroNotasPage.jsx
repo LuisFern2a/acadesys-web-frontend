@@ -69,7 +69,7 @@ export default function RegistroNotasPage() {
 
 
 
-  const colorTema = sessionData.colorTema || '#4f46e5';
+  const colorTema = sessionData.colorTema || '#2563EB';
 
 
 
@@ -682,7 +682,7 @@ export default function RegistroNotasPage() {
 
 
 
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl">
 
             Registro de Evaluaciones
 

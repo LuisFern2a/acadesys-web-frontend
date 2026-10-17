@@ -62,13 +62,11 @@ const normalizarRol = (texto) => {
 // Identidad visual determinista por universidad objetivo.
 // La variante se elige por hash estable del nombre: nunca cambia entre recargas
 // y no usa Math.random(). Todas las variantes se mantienen dentro de la paleta
-// azul institucional de AcadeSys, en tonos legibles sobre fondos claros.
+// institucional de AcadeSys (azul + slate), en tonos legibles sobre fondos claros.
 const VARIANTES_UNIVERSIDAD = [
   { acento: 'text-blue-700', linea: 'from-blue-600/40' },
-  { acento: 'text-indigo-700', linea: 'from-indigo-600/40' },
-  { acento: 'text-sky-700', linea: 'from-sky-600/40' },
-  { acento: 'text-cyan-700', linea: 'from-cyan-600/40' },
   { acento: 'text-blue-800', linea: 'from-blue-700/40' },
+  { acento: 'text-blue-900', linea: 'from-blue-800/40' },
   { acento: 'text-slate-700', linea: 'from-slate-400/50' }
 ];
 
@@ -1419,7 +1417,7 @@ export default function LandingPage({ onLoginSuccess }) {
       {/* MODAL DETALLE DE CICLO */}
       {cicloDetalle && (
         <div
-          className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/70"
+          className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#0F172A]/80"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setCicloDetalle(null);
           }}
@@ -1550,7 +1548,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
       {/* MODAL CHECKOUT DE MATRÍCULA */}
       {cicloSeleccionado && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/70">
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#0F172A]/80">
           <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl p-8 shadow-xl">
             <button type="button" onClick={cerrarCheckout} className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 rounded-lg transition-colors" aria-label="Cerrar inscripción">
               <X className="w-5 h-5" />

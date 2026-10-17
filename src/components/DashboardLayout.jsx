@@ -119,7 +119,7 @@ export default function DashboardLayout({
   onLogout,
   onUpdateUser
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
   const [configuracionMenu, setConfiguracionMenu] = useState(null);
   const [revisionMenu, setRevisionMenu] = useState(0);
@@ -162,9 +162,10 @@ export default function DashboardLayout({
   const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
   const colorTema = user?.colorTema || '#2563eb';
   // El estado ACTIVO del menú lateral usa siempre el azul institucional de
-  // AcadeSys: la identidad visual no debe depender del color de tema que
-  // provenga de la academia (podía llegar naranja y romper el diseño).
-  const colorActivo = '#1D4ED8';
+  // AcadeSys (clase `bg-blue-700`): la identidad visual no debe depender del
+  // color de tema de la academia (podía llegar naranja y romper el diseño).
+  // `colorTema` se conserva solo para acentos puntuales (punto de academia,
+  // campana de notificaciones y avatar).
 
   const nombreDisplay =
     user?.nombre ||
@@ -180,7 +181,7 @@ export default function DashboardLayout({
     setActiveTab(tab);
 
     if (window.innerWidth < 1024) {
-      setCollapsed(false);
+      setCollapsed(true);
     }
   };
 
@@ -413,7 +414,7 @@ export default function DashboardLayout({
       {/* SIDEBAR */}
       <aside
         className={`${
-          collapsed ? 'w-20' : 'w-64'
+          collapsed ? 'w-20' : 'w-60'
         } bg-[#0F172A] border-r border-white/10 flex flex-col shrink-0 transition-all duration-300 print:hidden`}
       >
 
@@ -436,18 +437,6 @@ export default function DashboardLayout({
                 style={{ aspectRatio: LOGO_ASPECT }}
                 className="shrink-0 h-7 w-auto object-cover rounded-md ring-1 ring-black/5"
               />
-            )}
-
-            {!collapsed && (
-              <div className="leading-tight truncate min-w-0">
-                <span className="font-bold text-sm text-white tracking-wide block truncate">
-                  {nombreAcademia}
-                </span>
-
-                <span className="text-[11px] text-slate-400 font-medium block truncate">
-                  Plataforma Pre-U
-                </span>
-              </div>
             )}
           </div>
 
@@ -538,14 +527,9 @@ export default function DashboardLayout({
                             onClick={() => cambiarTab(sub.id)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                               isSubActive
-                                ? 'text-white font-bold'
+                                ? 'bg-blue-700 text-white font-bold'
                                 : 'text-slate-300 hover:text-white hover:bg-white/5'
                             }`}
-                            style={
-                              isSubActive
-                                ? { backgroundColor: colorActivo }
-                                : {}
-                            }
                           >
                             <SubIcon className="w-3.5 h-3.5 shrink-0" />
 
@@ -569,14 +553,9 @@ export default function DashboardLayout({
                 onClick={() => cambiarTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   isActive
-                    ? 'text-white shadow-sm'
+                    ? 'bg-blue-700 text-white shadow-sm'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
-                style={
-                  isActive
-                    ? { backgroundColor: colorActivo }
-                    : {}
-                }
               >
                 <Icon className="w-4 h-4 shrink-0" />
 

@@ -152,8 +152,8 @@ export default function UsuariosPage() {
     const r = rolTexto.toLowerCase();
     if (r.includes('admin') || r.includes('rrhh') || r.includes('recursos humanos')) return 'bg-blue-700 text-white border-blue-700';
     if (r.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (r.includes('tutor') || r.includes('padre')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (r.includes('alumno') || r.includes('estudiante')) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (r.includes('tutor') || r.includes('padre')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (r.includes('alumno') || r.includes('estudiante')) return 'bg-slate-100 text-slate-700 border-slate-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 

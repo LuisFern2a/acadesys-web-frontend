@@ -481,7 +481,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
 
               <label className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
+                  <div className="p-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
                     <CalendarCheck className="w-4 h-4" aria-hidden="true" />
                   </div>
                   <div>

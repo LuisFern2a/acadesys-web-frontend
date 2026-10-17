@@ -17,11 +17,13 @@ import {
   confirmarLecturaComunicado
 } from '../services/api';
 
-// El backend puede devolver etiquetas de destinatarios pegadas entre sí
-// (p. ej. "Todos los NivelesAdministradores"). Esto es solo una separación
-// para visualización: no altera el dato, ni el formulario, ni la API.
-const separarEtiquetasPegadas = (valor) =>
-  String(valor ?? '').replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, '$1 $2');
+// El backend puede devolver destinatarios como varios valores o como etiquetas
+// pegadas entre sí (p. ej. "Todos los NivelesAdministradores"). Esto es solo una
+// separación para visualización: no altera el dato, ni el formulario, ni la API.
+const separarEtiquetasPegadas = (valor) => {
+  if (Array.isArray(valor)) return valor.map(separarEtiquetasPegadas).join(', ');
+  return String(valor ?? '').replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, '$1 $2');
+};
 
 export default function ComunicadosPage({ user }) {
   const [comunicados, setComunicados] = useState([]);
