@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+/* ============================================================
+   IDENTIDAD TIPOGRÁFICA DE ACADESYS (centralizada)
+   ------------------------------------------------------------
+   Una sola variable (--font-acadesys) controla la fuente global.
+   Fuente actual: "Archivo" (libre, Google Fonts) — grotesca, alta,
+   limpia y ligeramente estrecha; cercana en personalidad a
+   Geogrotesque.
+   Geogrotesque es una fuente COMERCIAL y NO se usa ni se descarga.
+
+   Para adoptar Geogrotesque con una licencia legítima:
+     1) coloca tus archivos en /public/fonts/ (p. ej. Geogrotesque-Rg.woff2)
+     2) descomenta el bloque @font-face de abajo
+     3) cambia --font-acadesys por: "Geogrotesque", sans-serif;
+   ============================================================ */
+@theme {
+  --font-acadesys: "Archivo", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Se reutiliza la identidad en la utilidad `font-sans` de Tailwind para
+     que los contenedores que la aplican hereden la MISMA familia global. */
+  --font-sans: var(--font-acadesys);
+
+  /* ------------------------------------------------------------
+     SOMBRAS (tokens globales)
+     Identidad editorial/académica: sombras muy tenues en lugar de
+     las sombras marcadas tipo "dashboard SaaS". Al redefinir la
+     escala, TODA la aplicación (shadow-sm/md/lg/xl… ) queda más
+     ligera sin editar cada componente.
+     ------------------------------------------------------------ */
+  --shadow-2xs: 0 1px 1px 0 rgb(15 23 42 / 0.03);
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-md: 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 2px 6px -1px rgb(15 23 42 / 0.07);
+  --shadow-xl: 0 4px 10px -2px rgb(15 23 42 / 0.08);
+  --shadow-2xl: 0 8px 16px -4px rgb(15 23 42 / 0.09);
+
+  /* ------------------------------------------------------------
+     RADIOS (tokens globales)
+     Se suavizan únicamente los radios más "burbuja" para que la
+     interfaz deje de verse excesivamente redondeada, conservando
+     rounded-lg / rounded-xl como base moderna.
+     ------------------------------------------------------------ */
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
+}
+
+/* Geogrotesque (comercial). Activar SOLO con archivos legítimos:
+@font-face {
+  font-family: "Geogrotesque";
+  src: url("/fonts/Geogrotesque-Rg.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geogrotesque";
+  src: url("/fonts/Geogrotesque-SmBd.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+*/
+
+html,
+body,
+#root {
+  font-family: var(--font-acadesys);
+}
+
+/* ============================================================
+   HERO — "FORMA ORGÁNICA SUAVE" (fotografía principal de la Landing)
+   ------------------------------------------------------------
+   Silueta deliberadamente asimétrica: sigue aprovechando la
+   fotografía como un rectángulo, pero rompe su rigidez con curvas
+   amplias y no simétricas. No es blob, ni círculo, ni óvalo.
+
+   Criterio de las curvas:
+     · superior izquierda  -> amplia
+     · superior derecha    -> distinta (más contenida)
+     · inferior derecha    -> la más orgánica (diagonal)
+     · inferior izquierda  -> suave
+   Los radios son elípticos (horizontal / vertical, separados por "/")
+   para que la curva acompañe de forma natural al tamaño de la caja.
+
+   La MISMA clase se usa en la capa azul situada detrás, de modo que
+   ambas formas son idénticas y la azul sólo queda desplazada.
+   ============================================================ */
+.forma-organica-hero {
+  border-radius: 4.75rem 1.5rem 5.5rem 2.25rem / 3.25rem 1.25rem 4.25rem 2.5rem;
+}
+
+@media (max-width: 640px) {
+  /* En móvil la caja es más estrecha y más baja: se suavizan un poco las
+     curvas para conservar la identidad orgánica sin comerse la foto. */
+  .forma-organica-hero {
+    border-radius: 3rem 1.25rem 3.75rem 1.75rem / 2.25rem 1rem 3rem 2rem;
+  }
+}

@@ -53,23 +53,9 @@ const normalizarTipoEvaluacion = (valor) => String(valor ?? '').normalize('NFD')
 
 export default function RegistroNotasPage() {
 
-  const sessionData = (() => {
-
-    try {
-
-      return JSON.parse(localStorage.getItem('acadesys_session') || '{}');
-
-    } catch {
-
-      return {};
-
-    }
-
-  })();
-
-
-
-  const colorTema = sessionData.colorTema || '#2563EB';
+  // Identidad institucional AcadeSys: el acento de la pantalla usa siempre el
+  // azul de la marca (el color de tema de la academia podía llegar naranja).
+  const acentoAcadesys = '#2563EB';
 
 
 
@@ -724,7 +710,7 @@ export default function RegistroNotasPage() {
 
           className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 
-          style={{ backgroundColor: colorTema }}
+          style={{ backgroundColor: acentoAcadesys }}
 
         >
 

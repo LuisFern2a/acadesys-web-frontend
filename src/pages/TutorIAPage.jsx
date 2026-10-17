@@ -88,7 +88,9 @@ export default function TutorIAPage() {
     }
   }, []);
 
-  const colorTema = sesion.colorTema || '#2563EB';
+  // Identidad institucional AcadeSys: el acento de esta pantalla usa siempre el
+  // azul de la marca (el color de tema de la academia podía llegar naranja).
+  const acentoAcadesys = '#2563EB';
   const nombreAcademia = sesion.nombreAcademia || 'AcadeSys Pre-U';
 
   const cargarExpediente = useCallback(async () => {
@@ -233,7 +235,7 @@ export default function TutorIAPage() {
   if (errorExpediente || !expediente) {
     return (
       <div className="min-h-full bg-slate-50 text-slate-900 p-6">
-        <div className="mx-auto max-w-2xl rounded-xl border border-rose-200 bg-white p-6 shadow-sm">
+        <div className="mx-auto max-w-2xl rounded-xl border border-rose-200 bg-white p-6">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-6 w-6 shrink-0 text-rose-600" aria-hidden="true" />
             <div className="flex-1">
@@ -255,7 +257,7 @@ export default function TutorIAPage() {
     <div className="min-h-full bg-slate-50 p-4 font-sans text-slate-900 sm:p-6 md:p-8">
       <header className="mb-8 flex flex-col justify-between gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-center">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl p-3 text-white" style={{ backgroundColor: colorTema }}>
+          <div className="flex items-center justify-center rounded-xl p-3 text-white" style={{ backgroundColor: acentoAcadesys }}>
             <BrainCircuit className="h-6 w-6" aria-hidden="true" />
           </div>
           <div>
@@ -286,7 +288,7 @@ export default function TutorIAPage() {
 
       <main className="grid grid-cols-1 gap-8 xl:grid-cols-5">
         <aside className="space-y-6 xl:col-span-2">
-          <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
               <Target className="h-4 w-4" aria-hidden="true" /> Objetivo preuniversitario
             </div>
@@ -301,7 +303,7 @@ export default function TutorIAPage() {
             <p className="text-xs leading-relaxed text-slate-500">Los datos mostrados proceden del expediente de tu sesión. El sistema no utiliza puntajes de ejemplo.</p>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-blue-700" aria-hidden="true" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Plan de estudio recomendado</h2>
@@ -324,7 +326,7 @@ export default function TutorIAPage() {
             )}
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-blue-700" aria-hidden="true" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Rendimiento por curso</h2>
@@ -351,10 +353,10 @@ export default function TutorIAPage() {
           </section>
         </aside>
 
-        <section className="flex flex-col self-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
+        <section className="flex flex-col self-start overflow-hidden rounded-xl border border-slate-200 bg-white xl:col-span-3">
           <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-5 w-5" aria-hidden="true" /></div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: acentoAcadesys }}><Bot className="h-5 w-5" aria-hidden="true" /></div>
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-bold text-slate-900">Tutor virtual preuniversitario</h2>
                 <p className="truncate text-[11px] text-slate-500">Contexto asociado a tu sesión autenticada</p>
@@ -370,8 +372,8 @@ export default function TutorIAPage() {
               const esIA = mensaje.emisor === 'ia';
               return (
                 <div key={`${indice}-${mensaje.hora}`} className={`flex items-end gap-2.5 ${esIA ? 'justify-start' : 'justify-end'}`}>
-                  {esIA && <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: colorTema }}><Bot className="h-4 w-4" aria-hidden="true" /></div>}
-                  <div className={`max-w-[88%] rounded-xl p-4 text-xs leading-relaxed sm:max-w-[82%] ${esIA ? 'rounded-bl-none border border-slate-200 bg-white text-slate-700' : 'rounded-br-none text-white'}`} style={!esIA ? { backgroundColor: colorTema } : undefined}>
+                  {esIA && <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: acentoAcadesys }}><Bot className="h-4 w-4" aria-hidden="true" /></div>}
+                  <div className={`max-w-[88%] rounded-xl p-4 text-xs leading-relaxed sm:max-w-[82%] ${esIA ? 'rounded-bl-none border border-slate-200 bg-white text-slate-700' : 'rounded-br-none text-white'}`} style={!esIA ? { backgroundColor: acentoAcadesys } : undefined}>
                     <p className="whitespace-pre-wrap">{mensaje.texto}</p>
                     <span className="mt-2 block text-right font-mono text-[10px] opacity-60">{mensaje.hora}</span>
                   </div>
@@ -391,7 +393,7 @@ export default function TutorIAPage() {
                   event.currentTarget.form?.requestSubmit();
                 }
               }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600" />
-              <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: colorTema }}>
+              <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: acentoAcadesys }}>
                 <Send className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
@@ -405,14 +407,14 @@ export default function TutorIAPage() {
 
 function MetricCard({ icon, label, value, detail, color }) {
   const colors = {
-    indigo: 'border-blue-100 bg-blue-50 text-blue-700',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    slate: 'border-slate-200 bg-slate-50 text-slate-500',
+    indigo: 'text-blue-600',
+    emerald: 'text-emerald-600',
+    slate: 'text-slate-400',
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border ${colors[color] || colors.indigo}`}>{icon}</div>
+    <div className="flex min-w-0 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div className={`shrink-0 ${colors[color] || colors.indigo}`}>{icon}</div>
       <div className="min-w-0">
         <p className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
         <p className="mt-1 line-clamp-2 text-lg font-bold text-slate-900">{value}</p>

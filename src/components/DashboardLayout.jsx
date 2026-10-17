@@ -156,12 +156,11 @@ export default function DashboardLayout({
     };
   }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
   const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
-  const colorTema = user?.colorTema || '#2563eb';
-  // El estado ACTIVO del menú lateral usa siempre el azul institucional de
-  // AcadeSys (clase `bg-blue-700`): la identidad visual no debe depender del
-  // color de tema de la academia (podía llegar naranja y romper el diseño).
-  // `colorTema` se conserva solo para acentos puntuales (punto de academia,
-  // campana de notificaciones y avatar).
+  // Identidad institucional AcadeSys: todos los acentos de la interfaz (menú
+  // activo, punto de academia, campana y avatar) usan el azul de la marca. El
+  // color de tema de la academia podía llegar naranja y rompía la identidad,
+  // por lo que ya no se usa como color decorativo.
+  const acentoAcadesys = '#2563EB';
 
   const nombreDisplay =
     user?.nombre ||
@@ -523,7 +522,7 @@ export default function DashboardLayout({
                             onClick={() => cambiarTab(sub.id)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                               isSubActive
-                                ? 'bg-blue-700 text-white font-bold'
+                                ? 'bg-blue-700 text-white font-semibold'
                                 : 'text-slate-300 hover:text-white hover:bg-white/5'
                             }`}
                           >
@@ -549,7 +548,7 @@ export default function DashboardLayout({
                 onClick={() => cambiarTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   isActive
-                    ? 'bg-blue-700 text-white shadow-sm'
+                    ? 'bg-blue-700 text-white'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -606,7 +605,7 @@ export default function DashboardLayout({
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colorTema }}
+                style={{ backgroundColor: acentoAcadesys }}
               />
 
               <span>{nombreAcademia}</span>
@@ -622,7 +621,7 @@ export default function DashboardLayout({
 
               <span
                 className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                style={{ backgroundColor: colorTema }}
+                style={{ backgroundColor: acentoAcadesys }}
               />
             </button>
 
@@ -637,7 +636,7 @@ export default function DashboardLayout({
 
               <div
                 className="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs uppercase"
-                style={{ backgroundColor: colorTema }}
+                style={{ backgroundColor: acentoAcadesys }}
               >
                 {user?.foto ? (
                   <img

@@ -697,7 +697,7 @@ export default function LandingPage({ onLoginSuccess }) {
             />
           </a>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
+          <nav className="hidden md:flex items-center gap-5 lg:gap-7 text-sm font-semibold uppercase tracking-[0.05em] text-slate-300">
             <a href="#inicio" className="hover:text-white transition-colors">Inicio</a>
             <a href="#ciclos" className="hover:text-white transition-colors">Ciclos</a>
             <a href="#preparacion" className="hover:text-white transition-colors">Beneficios</a>
@@ -731,7 +731,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] text-blue-300 mb-4">
                 Preparación preuniversitaria
               </p>
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl leading-[1.12] tracking-[-0.01em] text-white">
+              <h1 className="font-bold text-3xl sm:text-4xl lg:text-5xl leading-[1.12] tracking-[-0.01em] text-white">
                 Tu camino a la universidad
                 <span className="block text-blue-300">empieza aquí</span>
               </h1>
@@ -773,12 +773,23 @@ export default function LandingPage({ onLoginSuccess }) {
               </ul>
             </div>
 
-            <div className="order-2">
+            <div className="order-2 relative">
+              {/* Capa azul institucional: UNA sola forma con la MISMA silueta
+                  orgánica que la fotografía. Se desplaza hacia la izquierda y
+                  hacia abajo para asomar por detrás (nunca la rodea), y se mete
+                  unos píxeles por dentro en las caras superior y derecha para
+                  que su borde no se transparente a través del antialiasado de la
+                  foto y no parezca un marco. Azul real de AcadeSys (blue-600). */}
+              <div
+                aria-hidden="true"
+                className="forma-organica-hero pointer-events-none absolute top-1 right-1 -bottom-4 -left-4 bg-blue-600/45 sm:-bottom-5 sm:-left-5"
+              />
+
               <img
                 src={heroAcademico}
                 alt="Estudiantes en una sesión de clase preuniversitaria"
                 style={{ objectPosition: '50% 35%' }}
-                className="w-full h-64 sm:h-80 lg:h-[420px] object-cover rounded-2xl border border-white/10"
+                className="forma-organica-hero relative w-full h-64 sm:h-80 lg:h-[420px] object-cover border border-white/10"
               />
             </div>
           </div>
@@ -792,7 +803,7 @@ export default function LandingPage({ onLoginSuccess }) {
         <section className="scroll-mt-24" id="ciclos">
           <div className="text-center mb-8">
             <p className="text-blue-700 text-xs font-bold uppercase tracking-[0.16em] mb-2">Oferta académica</p>
-            <h2 className="font-serif text-2xl sm:text-3xl text-slate-900">Nuestros ciclos</h2>
+            <h2 className="font-bold text-2xl sm:text-3xl text-slate-900">Nuestros ciclos</h2>
             <p className="text-slate-600 text-sm mt-2 max-w-2xl mx-auto">Elige tu universidad objetivo y encuentra el programa de preparación adecuado.</p>
           </div>
           {loadingCiclos ? (
@@ -900,12 +911,12 @@ export default function LandingPage({ onLoginSuccess }) {
                   <p className={`text-[11px] font-bold uppercase tracking-[0.14em] ${variante.acento}`}>
                     {universidad.clave}
                   </p>
-                  <h3 className="font-serif text-lg sm:text-xl text-slate-900 leading-tight mt-1">
+                  <h3 className="font-semibold text-lg sm:text-xl text-slate-900 leading-tight mt-1">
                     {nombreCompleto}
                   </h3>
                 </>
               ) : (
-                <h3 className="font-serif text-lg sm:text-xl text-slate-900 leading-tight">
+                <h3 className="font-semibold text-lg sm:text-xl text-slate-900 leading-tight">
                   {universidad.clave}
                 </h3>
               )}
@@ -925,7 +936,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 return (
                   <article
                     key={ciclo.idCiclo ?? ciclo.id}
-                    className="rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-shadow flex flex-col shadow-sm"
+                    className="rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors flex flex-col"
                   >
                     {/* CABECERA: universidad objetivo + disponibilidad */}
                     <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-3.5 border-b border-slate-100">
@@ -1018,7 +1029,7 @@ export default function LandingPage({ onLoginSuccess }) {
         <section id="preparacion" className="scroll-mt-24 text-left">
           <div className="text-center mb-10">
             <p className="text-blue-700 text-xs font-bold uppercase tracking-[0.16em] mb-2">Tu preparación</p>
-            <h2 className="font-serif text-2xl sm:text-3xl text-slate-900">Todo lo que incluye tu preparación</h2>
+            <h2 className="font-bold text-2xl sm:text-3xl text-slate-900">Todo lo que incluye tu preparación</h2>
             <p className="text-slate-600 text-sm mt-2 max-w-2xl mx-auto">
               Herramientas y servicios que acompañan tu ciclo dentro de tu cuenta de AcadeSys.
             </p>
@@ -1059,7 +1070,7 @@ export default function LandingPage({ onLoginSuccess }) {
               const Icono = item.icono;
               return (
                 <div key={item.titulo} className="flex gap-4">
-                  <div className="shrink-0 w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700">
+                  <div className="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700">
                     <Icono className="w-5 h-5" aria-hidden="true" />
                   </div>
                   <div>
@@ -1077,7 +1088,7 @@ export default function LandingPage({ onLoginSuccess }) {
           <section id="areas" ref={areasRef} className="scroll-mt-24 text-left">
             <div className="text-center mb-10">
               <p className="text-blue-700 text-xs font-bold uppercase tracking-[0.16em] mb-2">Áreas de estudio</p>
-              <h2 className="font-serif text-2xl sm:text-3xl text-slate-900">Áreas académicas</h2>
+              <h2 className="font-bold text-2xl sm:text-3xl text-slate-900">Áreas académicas</h2>
               <p className="text-slate-600 text-sm mt-2 max-w-2xl mx-auto">
                 Materias que forman parte de los ciclos publicados, agrupadas por área.
               </p>
@@ -1096,7 +1107,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 {areasAcademicas.map((grupo) => {
                   const Icono = grupo.icono;
                   return (
-                    <div key={grupo.area} className="rounded-xl bg-white border border-slate-200 p-5 shadow-sm">
+                    <div key={grupo.area} className="rounded-xl bg-white border border-slate-200 p-5">
                       <div className="flex items-center gap-2.5 mb-3">
                         <Icono className="w-4 h-4 text-blue-700" aria-hidden="true" />
                         <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-900">{grupo.area}</h3>
@@ -1117,7 +1128,7 @@ export default function LandingPage({ onLoginSuccess }) {
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-10 items-start">
             <div>
               <p className="text-blue-700 text-xs font-bold uppercase tracking-[0.16em] mb-2">La plataforma</p>
-              <h2 className="font-serif text-2xl sm:text-3xl text-slate-900 leading-tight">¿Por qué elegir AcadeSys?</h2>
+              <h2 className="font-bold text-2xl sm:text-3xl text-slate-900 leading-tight">¿Por qué elegir AcadeSys?</h2>
               <p className="text-slate-600 text-sm mt-4 leading-relaxed">
                 AcadeSys reúne la preparación preuniversitaria y la gestión académica en una sola
                 plataforma: tu ciclo, tus cursos, tus horarios y tus resultados en un mismo lugar.
@@ -1149,7 +1160,7 @@ export default function LandingPage({ onLoginSuccess }) {
         <section id="inscripcion" className="scroll-mt-24 text-left">
           <div className="text-center mb-10">
             <p className="text-blue-700 text-xs font-bold uppercase tracking-[0.16em] mb-2">Matrícula</p>
-            <h2 className="font-serif text-2xl sm:text-3xl text-slate-900">¿Cómo inscribirte?</h2>
+            <h2 className="font-bold text-2xl sm:text-3xl text-slate-900">¿Cómo inscribirte?</h2>
             <p className="text-slate-600 text-sm mt-2 max-w-2xl mx-auto">
               El proceso de inscripción en AcadeSys, paso a paso.
             </p>
@@ -1179,7 +1190,7 @@ export default function LandingPage({ onLoginSuccess }) {
             ].map((paso) => (
               <li key={paso.n} className="border-t border-slate-200 pt-5">
                 <span
-                  className="block font-serif text-3xl sm:text-4xl text-blue-700 leading-none"
+                  className="block font-bold text-3xl sm:text-4xl text-blue-700 leading-none"
                   aria-hidden="true"
                 >
                   {paso.n}
@@ -1197,7 +1208,7 @@ export default function LandingPage({ onLoginSuccess }) {
         {/* CTA FINAL (banda azul marino) */}
         <section className="bg-[#0F172A] text-white">
           <div className="max-w-7xl mx-auto px-5 sm:px-6 py-14 sm:py-16 text-center">
-            <h2 className="font-serif text-2xl sm:text-3xl text-white">¿Listo para comenzar tu preparación?</h2>
+            <h2 className="font-bold text-2xl sm:text-3xl text-white">¿Listo para comenzar tu preparación?</h2>
             <p className="text-slate-300 text-sm mt-3 max-w-xl mx-auto">
               Encuentra el ciclo adecuado para tu universidad objetivo.
             </p>
@@ -1316,7 +1327,7 @@ export default function LandingPage({ onLoginSuccess }) {
                   Plataforma Preuniversitaria
                 </p>
               </div>
-              <h2 className="font-serif text-2xl text-slate-900 text-center">Iniciar sesión</h2>
+              <h2 className="font-bold text-2xl text-slate-900 text-center">Iniciar sesión</h2>
               <p className="text-sm text-slate-600 mt-1.5 text-center">Ingresa tus datos para acceder a tu portal académico.</p>
               {rolEsperado && (
                 <div className="flex justify-center mt-4">
@@ -1424,7 +1435,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <span className={`inline-block px-3 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-[0.16em] ${varianteUniversidad(cicloDetalle.universidadObjetivo || 'Ciclo').acento}`}>
                 {cicloDetalle.universidadObjetivo || 'Ciclo'}
               </span>
-              <h2 className="font-serif text-2xl sm:text-3xl text-slate-900 mt-3">{cicloDetalle.nombre}</h2>
+              <h2 className="font-bold text-2xl sm:text-3xl text-slate-900 mt-3">{cicloDetalle.nombre}</h2>
               {nombreUniversidad(cicloDetalle.universidadObjetivo) && (
                 <p className="text-sm text-slate-600 mt-1.5">{nombreUniversidad(cicloDetalle.universidadObjetivo)}</p>
               )}
@@ -1542,7 +1553,7 @@ export default function LandingPage({ onLoginSuccess }) {
             <button type="button" onClick={cerrarCheckout} className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 rounded-lg transition-colors" aria-label="Cerrar inscripción">
               <X className="w-5 h-5" />
             </button>
-            <h2 className="font-serif text-2xl text-slate-900 mb-1">Inscripción</h2>
+            <h2 className="font-bold text-2xl text-slate-900 mb-1">Inscripción</h2>
             <p className="text-xs text-slate-500 mb-3">Modo demostración: esta pantalla no procesa pagos reales. La matrícula de prueba se registra con pago pendiente.</p>
             <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Resumen de inscripción</p>

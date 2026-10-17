@@ -112,7 +112,7 @@ export default function MorosidadPage() {
     <div className="min-h-full space-y-6 bg-slate-50 p-6 text-slate-900 md:p-8">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700"><BadgeAlert className="h-4 w-4" aria-hidden="true"/> FINANZAS DE LA ACADEMIA</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700"><BadgeAlert className="h-4 w-4" aria-hidden="true"/> FINANZAS DE LA ACADEMIA</div>
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Pagos y morosidad por ciclo</h1>
           <p className="mt-1 text-sm text-slate-500">Consulta a los alumnos matriculados y el estado de sus pagos en cada ciclo.</p>
         </div>

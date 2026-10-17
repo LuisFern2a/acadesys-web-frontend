@@ -41,6 +41,8 @@ import {
   eliminarHorario
 } from '../services/api';
 import { esDocente, esTutor } from '../utils/roles';
+import UniversidadLogo from '../components/UniversidadLogo';
+import CursoIcon from '../components/CursoIcon';
 function CampoCiclo({ label, children }) {
   return (
     <label className="block">
@@ -85,7 +87,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     horario: '08:00 - 13:00',
     fechaInicio: '',
     fechaFin: '',
-    capacidad: 100,
+    capacidad: 250,
     precio: '',
     diasClase: 'Lunes a Viernes',
     prefijoCodigo: '',
@@ -147,7 +149,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       nombre: c.nombre ?? c.Nombre ?? '',
       turno: c.turno ?? c.Turno ?? '',
       horario: c.horario ?? c.Horario ?? '',
-      capacidad: Math.min(100, Number(c.capacidad ?? c.Capacidad ?? 100) || 100),
+      capacidad: Number(c.capacidad ?? c.Capacidad ?? 0),
       universidadObjetivo: c.universidadObjetivo ?? c.UniversidadObjetivo ?? '',
       diasClase: c.diasClase ?? c.DiasClase ?? '',
       fechaInicio: c.fechaInicio ?? c.FechaInicio ?? null,
@@ -207,7 +209,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       horario: '08:00 - 13:00',
       fechaInicio: '',
       fechaFin: '',
-      capacidad: 100,
+      capacidad: 250,
       precio: '',
       diasClase: 'Lunes a Viernes',
       prefijoCodigo: '',
@@ -263,7 +265,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       horario: ciclo.horario || '08:00 - 13:00',
       fechaInicio: String(ciclo.fechaInicio || '').slice(0, 10),
       fechaFin: String(ciclo.fechaFin || '').slice(0, 10),
-      capacidad: Math.min(100, Number(ciclo.capacidad || 100)),
+      capacidad: Number(ciclo.capacidad || 250),
       precio: Number(ciclo.precio || 0),
       diasClase: ciclo.diasClase || 'Lunes a Viernes',
       prefijoCodigo: ciclo.prefijoCodigo || '',
@@ -422,7 +424,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     if (paso === 3) {
       if (!formCiclo.fechaInicio || !formCiclo.fechaFin) return 'Completa las fechas del ciclo.';
       if (new Date(formCiclo.fechaFin) <= new Date(formCiclo.fechaInicio)) return 'La fecha final debe ser posterior a la fecha de inicio.';
-      if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 100) return 'La capacidad del ciclo debe estar entre 1 y 100 alumnos.';
+      if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 500) return 'La capacidad del ciclo debe estar entre 1 y 500 alumnos.';
       if (formCiclo.precio === '' || !Number.isFinite(Number(formCiclo.precio)) || Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
     }
     if (paso === 4 && cursos.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
@@ -655,15 +657,13 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             </div>
           ) : (
             ciclosFiltrados.map((ciclo) => {
-              const capacidad = Math.min(100, Number(ciclo.capacidad || 100));
+              const capacidad = Number(ciclo.capacidad || 0);
               const totalAlumnos = Number(ciclo.totalAlumnos ?? ciclo.alumnos ?? 0);
               const vacantes = Math.max(capacidad - totalAlumnos, 0);
               return (
                 <div key={ciclo.idCiclo} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-                      <GraduationCap className="w-5 h-5" />
-                    </div>
+                    <UniversidadLogo ciclo={ciclo} />
                     <div className="flex items-center gap-1">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${ciclo.estado === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                         {ciclo.estado}
@@ -681,7 +681,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                     <div className="flex items-center justify-between"><span>Turno</span><strong className="text-slate-900">{ciclo.turno}</strong></div>
                     <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-900">{ciclo.horario}</strong></div>
                     <div className="flex items-center justify-between"><span>Estudiantes</span><strong className="text-slate-900">{totalAlumnos}</strong></div>
-                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-blue-700">{vacantes} / {capacidad}</strong></div>
+                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-blue-700">{capacidad > 0 ? `${vacantes} / ${capacidad}` : 'Sin límite'}</strong></div>
                     <div className="flex items-center justify-between"><span>Cursos</span><strong className="text-slate-900">{ciclo.cursos}</strong></div>
                   </div>
                 </div>
@@ -706,7 +706,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
               <div key={turno.idHorario} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
                 <div className="flex items-start justify-between">
                   <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-                    <CalendarClock className="w-5 h-5" />
+                    <CursoIcon nombre={turno.curso} className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-1">
                     <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
@@ -840,9 +840,14 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             cursosFiltrados.map((c) => (
               <div key={c.idCurso} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-blue-700 rounded-md">{c.codigo}</span>
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                        <CursoIcon nombre={c.nombre} className="w-5 h-5" />
+                      </span>
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-blue-700 rounded-md">{c.codigo}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer">
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -944,7 +949,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Fecha de inicio"><input type="date" value={formCiclo.fechaInicio} onChange={(e) => setFormCiclo({ ...formCiclo, fechaInicio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Fecha de fin"><input type="date" value={formCiclo.fechaFin} onChange={(e) => setFormCiclo({ ...formCiclo, fechaFin: e.target.value })} className="campo-ciclo" /></CampoCiclo>
-                      <CampoCiclo label="Capacidad"><input type="number" min="1" max="100" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
+                      <CampoCiclo label="Capacidad"><input type="number" min="1" max="500" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Precio (S/)"><input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precio} onChange={(e) => setFormCiclo({ ...formCiclo, precio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                     </div>
                   )}
