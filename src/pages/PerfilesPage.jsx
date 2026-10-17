@@ -14,6 +14,7 @@ import {
   Unlock 
 } from 'lucide-react';
 import { obtenerPerfiles, crearPerfil, actualizarPerfil, eliminarPerfil } from '../services/api';
+import { grupoDeRol, GRUPO_ADMIN, GRUPO_DOCENTE, GRUPO_PADRE, GRUPO_ALUMNO } from '../utils/roles';
 
 export default function PerfilesPage() {
   const [perfiles, setPerfiles] = useState([]);
@@ -159,11 +160,12 @@ export default function PerfilesPage() {
   };
 
   const resolverBadgeColor = (nombre = '') => {
-    const n = nombre.toLowerCase();
-    if (n.includes('admin')) return 'bg-blue-700 text-white border-blue-700';
-    if (n.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-100';
-    if (n.includes('padre')) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (n.includes('alumno')) return 'bg-slate-100 text-slate-700 border-slate-200';
+    // Color de etiqueta por perfil exacto (solo presentación, no autorización).
+    const grupo = grupoDeRol(nombre);
+    if (grupo === GRUPO_ADMIN) return 'bg-blue-700 text-white border-blue-700';
+    if (grupo === GRUPO_DOCENTE) return 'bg-blue-50 text-blue-700 border-blue-100';
+    if (grupo === GRUPO_PADRE) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (grupo === GRUPO_ALUMNO) return 'bg-slate-100 text-slate-700 border-slate-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 

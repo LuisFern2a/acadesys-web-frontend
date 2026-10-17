@@ -97,8 +97,8 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
   }, [idUsuario]);
 
   const iniciales = nombre ? nombre.trim().slice(0, 2).toUpperCase() : 'US';
-  const rol = user?.rol || user?.Perfil || 'Docente';
-  const codigo = registroActual?.CodigoUsuario || user?.codigoUsuario || user?.codigo || (idUsuario ? `ACAD-USR-${idUsuario}` : 'Sin código');
+  const rol = user?.rol || user?.Perfil || 'Sin perfil';
+  const codigo = registroActual?.CodigoUsuario || user?.codigoUsuario || user?.codigo || 'Sin código';
   const nombreCompleto = registroActual
     ? [nombre.trim(), registroActual.ApellidoPaterno, registroActual.ApellidoMaterno].filter(Boolean).join(' ')
     : (user?.nombre || user?.NombreCompleto || user?.Nombre || 'Usuario');
@@ -214,7 +214,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
                 </span>
                 <span className="text-slate-500 font-mono">{codigo}</span>
                 <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" /> Activo
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" /> Sesión iniciada
                 </span>
               </div>
             </div>

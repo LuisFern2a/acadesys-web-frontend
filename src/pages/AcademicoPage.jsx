@@ -40,6 +40,7 @@ import {
   actualizarHorario,
   eliminarHorario
 } from '../services/api';
+import { esDocente, esTutor } from '../utils/roles';
 function CampoCiclo({ label, children }) {
   return (
     <label className="block">
@@ -160,10 +161,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       alumnos: Number(c.totalAlumnos ?? c.TotalAlumnos ?? 0),
       cursos: Number(c.totalCursos ?? c.TotalCursos ?? 0),
     }));
-    const listaDocentes = (Array.isArray(usuariosRaw) ? usuariosRaw : []).filter((u) => {
-      const perfil = String(u.Perfil ?? u.NombrePerfil ?? u.perfil ?? '').toLowerCase();
-      return perfil.includes('docente') || perfil.includes('tutor');
-    });
+    const listaDocentes = (Array.isArray(usuariosRaw) ? usuariosRaw : []).filter((u) =>
+      // Perfil real, comparación exacta (sin `includes`).
+      esDocente(u) || esTutor(u)
+    );
     setAulas(listaAulas);
     setCursos(listaCursos);
     setAsignaciones(Array.isArray(asignacionesRaw) ? asignacionesRaw : []);

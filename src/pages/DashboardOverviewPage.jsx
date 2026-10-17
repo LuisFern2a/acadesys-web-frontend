@@ -14,6 +14,7 @@ import {
   obtenerCiclosPublicos,
   obtenerPagosPorCiclo 
 } from '../services/api';
+import { esAlumno } from '../utils/roles';
 
 export default function DashboardOverviewPage({ setActiveTab, user }) {
   const [cargando, setCargando] = useState(true);
@@ -36,11 +37,8 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         const listUsuarios = resUsuarios.status === 'fulfilled' && Array.isArray(resUsuarios.value) ? resUsuarios.value : [];
         const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value) ? resCiclos.value : [];
 
-        // Filtro real de alumnos
-        const estudiantes = listUsuarios.filter((u) => {
-          const rol = String(u.rol || u.Rol || u.Perfil || u.NombrePerfil || u.perfil || '').trim().toLowerCase();
-          return rol.includes('alumno') || rol.includes('estudiante');
-        });
+        // Filtro real de alumnos (perfil exacto, sin `includes`).
+        const estudiantes = listUsuarios.filter((u) => esAlumno(u));
         setTotalEstudiantes(estudiantes.length);
         setCiclos(listCiclos);
 
@@ -217,7 +215,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
               >
                 Revisar Boletas y Ranking
               </button>
-              {Number(user?.idPerfil) !== 4 && user?.rol?.toLowerCase() !== 'alumno' && (
+              {!esAlumno(user) && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('academico')}

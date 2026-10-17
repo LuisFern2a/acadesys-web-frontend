@@ -33,30 +33,18 @@ import {
   obtenerCiclosPublicos,
   obtenerCursosCiclo,
   verificarMatriculaExistente,
-  procesarCheckoutMatricula
+  procesarCheckoutMatricula,
+  guardarSesion
 } from '../services/api';
+import { grupoDeRol } from '../utils/roles';
 
+// El perfil real de la cuenta se resuelve con la normalización central
+// (comparación EXACTA por perfil, sin `includes`). Mapas cerrados y seguros.
 const MAPA_ROLES = {
   '1': 'Administrador',
   '2': 'Docente',
   '3': 'Tutor de Aula',
   '4': 'Estudiante'
-};
-
-// Normaliza nombres/alias de rol para compatibilidad (Admin≈Administrador,
-// Estudiante≈Alumno, Tutor≈Tutor de Aula, RRHH≈Recursos Humanos).
-// No se hardcodean IDs: el backend entrega el perfil real.
-const normalizarRol = (texto) => {
-  const t = String(texto || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-  if (t.includes('admin') || t.includes('recursos humanos') || t === 'rrhh') return 'administrador';
-  if (t.includes('docente')) return 'docente';
-  if (t.includes('tutor')) return 'tutor de aula';
-  if (t.includes('alumno') || t.includes('estudiante')) return 'alumno';
-  return t;
 };
 
 // Identidad visual determinista por universidad objetivo.
@@ -504,8 +492,8 @@ export default function LandingPage({ onLoginSuccess }) {
           text: resultado.message || 'Este correo ya está registrado y no corresponde a una cuenta de estudiante.',
           confirmButtonText: 'Entendido',
           confirmButtonColor: '#2563eb',
-          background: '#0a192f',
-          color: '#fff'
+          background: '#ffffff',
+          color: '#0f172a'
         });
         return false;
       }
@@ -518,8 +506,8 @@ export default function LandingPage({ onLoginSuccess }) {
           text: resultado.message || 'Ya estás matriculado en este ciclo.',
           confirmButtonText: 'Entendido',
           confirmButtonColor: '#2563eb',
-          background: '#0a192f',
-          color: '#fff'
+          background: '#ffffff',
+          color: '#0f172a'
         });
         return false;
       }
@@ -537,8 +525,8 @@ export default function LandingPage({ onLoginSuccess }) {
         confirmButtonText: 'Sí, continuar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#2563eb',
-        background: '#0a192f',
-        color: '#fff'
+        background: '#ffffff',
+        color: '#0f172a'
       });
 
       setVerificacionMatricula({
@@ -555,8 +543,8 @@ export default function LandingPage({ onLoginSuccess }) {
         text: err.message || 'Ocurrió un error al verificar la matrícula.',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#2563eb',
-        background: '#0a192f',
-        color: '#fff'
+        background: '#ffffff',
+        color: '#0f172a'
       });
       return false;
     } finally {
@@ -589,8 +577,8 @@ export default function LandingPage({ onLoginSuccess }) {
       allowOutsideClick: false,
       allowEscapeKey: false,
       showConfirmButton: false,
-      background: '#0a192f',
-      color: '#fff',
+      background: '#ffffff',
+      color: '#0f172a',
       didOpen: () => Swal.showLoading()
     });
 
@@ -612,8 +600,8 @@ export default function LandingPage({ onLoginSuccess }) {
           : 'La matrícula quedó registrada y el pago figura pendiente. Este flujo es una demostración: no se realizó un cobro real. Revisa tu correo para obtener tus accesos.',
         confirmButtonText: 'Ir al inicio',
         confirmButtonColor: '#2563eb',
-        background: '#0a192f',
-        color: '#fff'
+        background: '#ffffff',
+        color: '#0f172a'
       });
 
       setVerificacionMatricula(null);
@@ -649,13 +637,13 @@ export default function LandingPage({ onLoginSuccess }) {
       if (!res.ok) {
         throw new Error(data.error || data.mensaje || data.message || 'Credenciales inválidas.');
       }
-      const perfilNormalizado = normalizarRol(data.rol || data.perfil || data.NombrePerfil);
+      const grupoRecibido = grupoDeRol(data.rol || data.perfil || data.NombrePerfil);
       const idPerfilRecibido = (data.idPerfil || data.IdPerfil || data.id_perfil || '').toString();
       
       if (rolEsperado) {
-        const perfilEsperado = normalizarRol(MAPA_ROLES[rolEsperado]);
+        const grupoEsperado = grupoDeRol(MAPA_ROLES[rolEsperado]);
         const coincideId = idPerfilRecibido === rolEsperado;
-        const coincideNombre = perfilNormalizado !== '' && perfilNormalizado === perfilEsperado;
+        const coincideNombre = grupoRecibido !== null && grupoRecibido === grupoEsperado;
         if (!coincideId && !coincideNombre) {
           const perfilCuenta = data.rol || data.perfil || data.NombrePerfil || 'Usuario';
           throw new Error(
@@ -674,7 +662,7 @@ export default function LandingPage({ onLoginSuccess }) {
         rol: data.rol || data.perfil || data.NombrePerfil || '',
         idPerfil: idPerfilRecibido || null,
         token: data.token || data.jwt || data.accessToken,
-        idAcademia: data.idAcademia || academia.idAcademia || academia.id || 1,
+        idAcademia: data.idAcademia || academia.idAcademia || academia.id || null,
         colorTema: academia.colorTema || data.colorTema || '#2563eb',
         logoUrl: academia.logoUrl || data.logoUrl || null,
         nombreAcademia: academia.nombreAcademia || data.nombreAcademia || 'AcadeSys'
@@ -685,8 +673,9 @@ export default function LandingPage({ onLoginSuccess }) {
       if (!sessionUser.rol) {
         throw new Error('El servidor no devolvió un perfil válido para tu cuenta.');
       }
-      localStorage.setItem('acadesys_token', sessionUser.token);
-      localStorage.setItem('acadesys_session', JSON.stringify(sessionUser));
+      // Persistencia coherente: el token va a `acadesys_token` y el objeto de
+      // sesión (sin token duplicado) a `acadesys_session`.
+      guardarSesion(sessionUser);
       onLoginSuccess(sessionUser);
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión con el servidor.');

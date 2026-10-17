@@ -23,21 +23,17 @@ import {
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 import { obtenerPerfiles, obtenerMenusPorPerfil } from '../services/api';
+import { normalizarRol, grupoDeRol, rolDeUsuario } from '../utils/roles';
 import logoAcadeSys from '../assets/acadesys-logo.png';
 import simboloAcadeSys from '../assets/acadesys-symbol.png';
+
 
 // El PNG del logo oficial es un lienzo cuadrado (347x347) con ~40% de aire
 // arriba y abajo. Se recorta de forma NO destructiva con `object-cover` sobre una
 // caja con el aspecto real del contenido (277x66 px ≈ 4.2:1, medido del archivo).
 const LOGO_ASPECT = '4.2 / 1';
 
-const normalizeRole = (user) =>
-  String(user?.rol || user?.Perfil || '')
-    .trim()
-    .toLowerCase();
-
-const normalizarNombrePerfil = (nombre) => String(nombre || '').normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizeRole = (user) => normalizarRol(rolDeUsuario(user));
 
 function resolverPerfilNavegacion(data, idPerfil, rol) {
   const lista = Array.isArray(data) ? data : data?.data ?? data?.perfiles;
@@ -52,15 +48,15 @@ function resolverPerfilNavegacion(data, idPerfil, rol) {
     return perfil;
   }
   // Compatibilidad con sesiones existentes que no conservan idPerfil. Nunca se adivina un ID.
-  const nombre = normalizarNombrePerfil(rol);
+  const nombre = normalizarRol(rol);
   const alias = (n) => ({ estudiante: 'alumno', admin: 'administrador', rrhh: 'recursos humanos' }[n] || n);
-  const exactos = activos.filter((p) => normalizarNombrePerfil(p.Nombre) === nombre);
-  const candidatos = exactos.length ? exactos : activos.filter((p) => alias(normalizarNombrePerfil(p.Nombre)) === alias(nombre));
+  const exactos = activos.filter((p) => normalizarRol(p.Nombre) === nombre);
+  const candidatos = exactos.length ? exactos : activos.filter((p) => alias(normalizarRol(p.Nombre)) === alias(nombre));
   if (candidatos.length !== 1) throw new Error('No se pudo identificar de forma única el perfil de la sesión.');
   return candidatos[0];
 }
 
-function resolverVistaMenu(ruta, rol) {
+function resolverVistaMenu(ruta, grupoRol) {
   // Lista cerrada de vistas que App.jsx ya renderiza. No evalúa rutas, HTML ni importaciones.
   const clave = String(ruta || '').trim().toLowerCase().replace(/^\//, '').replace(/\/$/, '');
   const vistas = {
@@ -74,22 +70,22 @@ function resolverVistaMenu(ruta, rol) {
     'student-materiales': 'student-materiales', 'student-perfil': 'student-perfil'
   };
   if (!Object.hasOwn(vistas, clave)) return null;
-  const alumno = rol.includes('alumno') || rol.includes('estudiante');
+  const alumno = grupoRol === 'alumno';
   if (alumno && clave === 'dashboard') return 'student-home';
   if (alumno && clave === 'calificaciones') return 'student-notas';
   return vistas[clave];
 }
 
-function integrarMenusNavegacion(items, rol, menusBD) {
-  const anteriores = items.filter((item) => item.rolesPermitidos.some((r) => rol.includes(r)));
+function integrarMenusNavegacion(items, grupoRol, menusBD) {
+  const anteriores = items.filter((item) => item.rolesPermitidos.some((r) => grupoDeRol(r) === grupoRol));
   const hojas = anteriores.flatMap((item) => item.submenus || [item]);
   const catalogo = new Map(hojas.map((item) => [item.id, item]));
-  const staff = ['admin', 'docente', 'tutor'].some((r) => rol.includes(r));
+  const staff = ['administrador', 'docente', 'tutor'].includes(grupoRol);
   if (staff) catalogo.set('academico', { id: 'academico', label: 'Cargas Docentes por Ciclo', icon: Layers });
   const asignados = new Map();
   let omitidos = 0;
   for (const menu of menusBD || []) {
-    const vista = resolverVistaMenu(menu.UrlMenu, rol);
+    const vista = resolverVistaMenu(menu.UrlMenu, grupoRol);
     if (!vista || !catalogo.has(vista)) { omitidos += 1; continue; }
     if (!asignados.has(vista)) asignados.set(vista, menu);
   }
@@ -130,9 +126,9 @@ export default function DashboardLayout({
   });
 
   const rolSesion = normalizeRole(user);
-  // Solo compatibilidad de navegación; no sustituye las comprobaciones de App ni del backend.
-  const rolUsuario = rolSesion.includes('recursos humanos') || rolSesion === 'rrhh'
-    ? 'administrador' : rolSesion === 'tutor' ? 'tutor de aula' : rolSesion;
+  // Grupo canónico seguro ('administrador' | 'docente' | 'tutor' | 'alumno' | 'padre' | null).
+  // Solo controla la navegación visible; no sustituye las comprobaciones de App ni del backend.
+  const grupoRol = grupoDeRol(rolDeUsuario(user));
   const idPerfilSesion = user?.idPerfil ?? user?.IdPerfil;
   const claveSesion = `${user?.idUsuario ?? user?.IdUsuario ?? user?.id ?? ''}:${idPerfilSesion ?? ''}:${rolSesion}`;
 
@@ -204,8 +200,8 @@ export default function DashboardLayout({
 
   const itemsNavegacion = [
     {
-      id: (rolUsuario.includes('alumno') || rolUsuario.includes('estudiante')) ? 'student-home' : 'dashboard',
-      label: (rolUsuario.includes('alumno') || rolUsuario.includes('estudiante')) ? 'Inicio del Alumno' : 'Resumen de la Academia',
+      id: grupoRol === 'alumno' ? 'student-home' : 'dashboard',
+      label: grupoRol === 'alumno' ? 'Inicio del Alumno' : 'Resumen de la Academia',
       icon: LayoutDashboard,
       rolesPermitidos: [
         'administrador',
@@ -378,7 +374,7 @@ export default function DashboardLayout({
   ];
 
   const configuracionActual = configuracionMenu?.clave === claveSesion ? configuracionMenu : null;
-  const navegacion = integrarMenusNavegacion(itemsNavegacion, rolUsuario, configuracionActual?.menus);
+  const navegacion = integrarMenusNavegacion(itemsNavegacion, grupoRol, configuracionActual?.menus);
   const menuItemsFiltrados = navegacion.items;
   const idsNavegacion = new Set(menuItemsFiltrados.flatMap((item) => item.submenus || [item]).map((item) => item.id));
 

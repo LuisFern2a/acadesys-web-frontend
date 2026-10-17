@@ -16,6 +16,7 @@ import {
   crearComunicado,
   confirmarLecturaComunicado
 } from '../services/api';
+import { esAdmin, esDocente } from '../utils/roles';
 
 // El backend puede devolver destinatarios como varios valores o como etiquetas
 // pegadas entre sí (p. ej. "Todos los NivelesAdministradores"). Esto es solo una
@@ -43,8 +44,8 @@ export default function ComunicadosPage({ user }) {
   const [errorAccion, setErrorAccion] = useState('');
   const [mensajeExito, setMensajeExito] = useState('');
 
-  const rol = (user?.rol || user?.Perfil || '').toLowerCase();
-  const puedePublicar = rol.includes('admin') || rol.includes('docente');
+  // Autorización visual por perfil real (comparación exacta, sin `includes`).
+  const puedePublicar = esAdmin(user) || esDocente(user);
 
   const categoriasFiltro = [
     { id: 'todos', label: 'Todos' },

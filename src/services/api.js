@@ -3,39 +3,78 @@
 export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
 
 // ==========================================
-// CONTROL DE TOKEN JWT Y SESIÃ“N
+// CONTROL DE TOKEN JWT Y SESIÓN (representación única)
 // ==========================================
+// Convención ÚNICA y coherente de sesión en localStorage:
+//   - `acadesys_token`   : cadena JWT (única fuente del token).
+//   - `acadesys_session` : objeto JSON de sesión (perfil, nombre, academia...).
+// El objeto de sesión nunca guarda el token suelto, y `acadesys_session` nunca
+// guarda una cadena suelta: así no conviven dos formatos bajo la misma clave.
 
+const CLAVE_TOKEN = 'acadesys_token';
+const CLAVE_SESION = 'acadesys_session';
+
+// Persiste el token JWT en su clave dedicada.
 export function guardarToken(token) {
-  localStorage.setItem('acadesys_session', token);
-  localStorage.setItem('acadesys_token', token);
+  if (token) localStorage.setItem(CLAVE_TOKEN, String(token));
 }
 
-export function obtenerToken() {
-  const sessionToken = localStorage.getItem('acadesys_session');
-  if (sessionToken) {
-    try {
-      const parsed = JSON.parse(sessionToken);
-      return parsed.token || parsed.jwt || parsed.accessToken || sessionToken;
-    } catch {
-      return sessionToken;
-    }
+// Persiste el objeto de sesión sin duplicar el token dentro del objeto.
+export function guardarSesion(sesion) {
+  if (!sesion || typeof sesion !== 'object') return null;
+  const { token, ...resto } = sesion;
+  if (token) guardarToken(token);
+  localStorage.setItem(CLAVE_SESION, JSON.stringify(resto));
+  return resto;
+}
+
+// Lectura DEFENSIVA del objeto de sesión. Si la clave contiene un formato
+// antiguo (cadena suelta) se ignora en lugar de romper la aplicación.
+export function obtenerSesion() {
+  const bruto = localStorage.getItem(CLAVE_SESION);
+  if (!bruto) return null;
+  try {
+    const datos = JSON.parse(bruto);
+    return datos && typeof datos === 'object' && !Array.isArray(datos) ? datos : null;
+  } catch {
+    return null;
   }
-  return localStorage.getItem('acadesys_token') || null;
 }
 
-export function cerrarSesion() {
-  localStorage.removeItem('acadesys_session');
-  localStorage.removeItem('acadesys_token');
+// Lectura defensiva del token: primero la clave dedicada; si solo existe dentro
+// de un objeto de sesión antiguo, se migra a `acadesys_token`.
+export function obtenerToken() {
+  const directo = localStorage.getItem(CLAVE_TOKEN);
+  if (directo) return directo;
+
+  const sesion = obtenerSesion();
+  const anidado = sesion?.token || sesion?.jwt || sesion?.accessToken;
+  if (anidado) {
+    localStorage.setItem(CLAVE_TOKEN, String(anidado));
+    return String(anidado);
+  }
+  return null;
+}
+
+// Limpia por completo el estado de sesión (sin redirigir).
+export function limpiarSesion() {
+  localStorage.removeItem(CLAVE_SESION);
+  localStorage.removeItem(CLAVE_TOKEN);
   localStorage.removeItem('usuario');
   localStorage.removeItem('acadesys_user');
+}
+
+// Cierra la sesión y vuelve al inicio.
+export function cerrarSesion() {
+  limpiarSesion();
   window.location.href = '/';
 }
 
-// Interceptor centralizado para inyectar JWT en cabeceras y capturar 401/403
+// Interceptor centralizado: inyecta el JWT y normaliza la respuesta de error.
+// 401 -> cierra sesión; 403 -> mensaje de permisos; 5xx -> mensaje genérico.
 export async function fetchWithAuth(endpoint, options = {}) {
   const token = obtenerToken();
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -48,10 +87,24 @@ export async function fetchWithAuth(endpoint, options = {}) {
   });
 
   if (response.status === 401) {
-    console.warn('[Auth] SesiÃ³n expirada. Cerrando sesiÃ³n.');
+    console.warn('[Auth] Sesión expirada. Cerrando sesión.');
     cerrarSesion();
-    const error = new Error('SesiÃ³n no autorizada o expirada.');
+    const error = new Error('Sesión no autorizada o expirada.');
     error.status = 401;
+    throw error;
+  }
+
+  // 403: autenticado pero sin permiso. No se cierra la sesión.
+  if (response.status === 403) {
+    const error = new Error('No tienes permisos para realizar esta acción.');
+    error.status = 403;
+    throw error;
+  }
+
+  // 5xx: mensaje genérico, sin exponer detalles internos del servidor.
+  if (response.status >= 500) {
+    const error = new Error('Ocurrió un error en el servidor. Inténtalo de nuevo más tarde.');
+    error.status = response.status;
     throw error;
   }
 
@@ -77,7 +130,7 @@ export async function iniciarSesion(codigoOUsuario, password) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.error || 'Credenciales invÃ¡lidas');
+    throw new Error(errorData.message || errorData.error || 'Credenciales inválidas');
   }
 
   const data = await response.json();
@@ -87,8 +140,10 @@ export async function iniciarSesion(codigoOUsuario, password) {
     guardarToken(tokenRecibido);
   }
 
-  if (data.usuario || data.user) {
-    localStorage.setItem('usuario', JSON.stringify(data.usuario || data.user));
+  const usuarioSesion = data.usuario || data.user;
+  if (usuarioSesion) {
+    // Se guarda en la clave única de sesión (objeto), no en una clave paralela.
+    guardarSesion(usuarioSesion);
   }
 
   return data;

@@ -15,13 +15,33 @@ import MorosidadPage from './pages/MorosidadPage';
 import OfflineFallback from './components/OfflineFallback';
 import StudentIntranetPage from './pages/StudentIntranetPage';
 import AdminMaterialesPage from './pages/AdminMaterialesPage';
-import { obtenerMiIntranetAlumno, obtenerMiUsuario } from './services/api';
+import {
+  obtenerMiIntranetAlumno,
+  obtenerMiUsuario,
+  guardarSesion,
+  obtenerSesion,
+  limpiarSesion
+} from './services/api';
+import {
+  esAlumno as esAlumnoRol,
+  esAdmin as esAdminRol,
+  esDocente as esDocenteRol,
+  esTutor as esTutorRol,
+  claveRol,
+  grupoDeRol
+} from './utils/roles';
 
 const leerSesionGuardada = () => {
-  const saved = localStorage.getItem('acadesys_session') || localStorage.getItem('usuario');
-  if (!saved) return null;
+  // Lectura defensiva: la sesión vive en `acadesys_session` como objeto JSON.
+  // La clave legada `usuario` se admite únicamente como respaldo de migración.
+  const sesion = obtenerSesion();
+  if (sesion) return sesion;
+
+  const legado = localStorage.getItem('usuario');
+  if (!legado) return null;
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(legado);
+    return parsed && typeof parsed === 'object' ? parsed : null;
   } catch {
     return null;
   }
@@ -34,18 +54,8 @@ export default function App() {
   const [studentBootstrapped, setStudentBootstrapped] = useState(false);
   const revalidandoSesionRef = useRef(0);
 
-  const esAlumnoRol = (user) => {
-    const rol = String(user?.rol || user?.Perfil || '').toLowerCase();
-    return rol.includes('alumno') || rol.includes('estudiante');
-  };
-
-  const esAdminRol = (user) => {
-    const rol = String(user?.rol || user?.Perfil || '').toLowerCase();
-    return rol.includes('admin') || rol.includes('administrador') || rol.includes('recursos humanos') || rol === 'rrhh';
-  };
-
-  const esTutorRol = (user) => String(user?.rol || user?.Perfil || '').toLowerCase().includes('tutor');
-  const esDocenteRol = (user) => String(user?.rol || user?.Perfil || '').toLowerCase().includes('docente');
+  // Autorización visual por perfil REAL, con comparación exacta (nunca `includes`).
+  // La seguridad efectiva reside en el backend; esto solo decide qué se muestra.
 
   useEffect(() => {
     const savedUser = leerSesionGuardada();
@@ -56,9 +66,8 @@ export default function App() {
     }
 
     setSession(savedUser);
-    const rol = String(savedUser?.rol || savedUser?.Perfil || '').toLowerCase();
 
-    if (rol.includes('alumno') || rol.includes('estudiante')) {
+    if (esAlumnoRol(savedUser)) {
       setActiveTab('student-home');
       setStudentBootstrapped(false);
     } else {
@@ -83,7 +92,7 @@ export default function App() {
               ciclo: data.ciclo,
             };
             setSession(sessionActualizada);
-            localStorage.setItem('acadesys_session', JSON.stringify(sessionActualizada));
+            guardarSesion(sessionActualizada);
           }
         })
         .catch((error) => {
@@ -101,20 +110,6 @@ export default function App() {
   useEffect(() => {
     if (!session) return undefined;
 
-    const normalizarRol = (valor) => {
-      const base = String(valor || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim()
-        .toLowerCase();
-      if (!base) return '';
-      if (base === 'admin' || base.includes('administrador')) return 'administrador';
-      if (base === 'rrhh' || base.includes('recursos humanos')) return 'administrador';
-      if (base.includes('estudiante')) return 'alumno';
-      if (base.includes('alumno')) return 'alumno';
-      return base;
-    };
-
     const revalidarSesion = async () => {
       const ahora = Date.now();
       if (ahora - revalidandoSesionRef.current < 5000) return; // evita ráfagas de foco
@@ -130,7 +125,7 @@ export default function App() {
 
         const idDisponibles = idNuevo != null && idActual != null;
         const cambioId = idDisponibles && String(idNuevo) !== String(idActual);
-        const cambioRol = !idDisponibles && normalizarRol(rolNuevo) !== normalizarRol(rolActual);
+        const cambioRol = !idDisponibles && claveRol(rolNuevo) !== claveRol(rolActual);
         if (!cambioId && !cambioRol) return;
 
         const actualizada = {
@@ -140,11 +135,11 @@ export default function App() {
           idPerfil: idNuevo ?? session.idPerfil,
         };
         setSession(actualizada);
-        localStorage.setItem('acadesys_session', JSON.stringify(actualizada));
+        guardarSesion(actualizada);
         setStudentBootstrapped(false);
 
         // La pestaña actual pudo dejar de ser válida para el nuevo perfil.
-        const esAlumnoNuevo = normalizarRol(rolNuevo) === 'alumno';
+        const esAlumnoNuevo = grupoDeRol(rolNuevo) === 'alumno';
         setActiveTab(esAlumnoNuevo ? 'student-home' : 'dashboard');
         localStorage.setItem('acadesys_tab', esAlumnoNuevo ? 'student-home' : 'dashboard');
       } catch {
@@ -170,9 +165,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('acadesys_session');
-    localStorage.removeItem('acadesys_token');
-    localStorage.removeItem('usuario');
+    limpiarSesion();
     localStorage.removeItem('acadesys_tab');
     setSession(null);
     setActiveTab('dashboard');
@@ -204,7 +197,7 @@ export default function App() {
           onLogout={handleLogout}
           onUpdateUser={(nuevoUsuario) => {
             setSession(nuevoUsuario);
-            localStorage.setItem('acadesys_session', JSON.stringify(nuevoUsuario));
+            guardarSesion(nuevoUsuario);
           }}
         >
           {esAlumno ? (
@@ -237,7 +230,7 @@ export default function App() {
           ) : (
             <>
               {activeTab === 'dashboard' && (
-                <DashboardOverviewPage setActiveTab={handleTabChange} />
+                <DashboardOverviewPage setActiveTab={handleTabChange} user={session} />
               )}
 
               {activeTab === 'comunicados' && (

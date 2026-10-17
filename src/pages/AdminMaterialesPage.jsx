@@ -532,7 +532,7 @@ export default function AdminMaterialesPage() {
 
                           target="_blank"
 
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
 
                           className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100"
 

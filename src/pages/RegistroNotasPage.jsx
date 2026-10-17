@@ -447,11 +447,11 @@ export default function RegistroNotasPage() {
 
         icon: 'info',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: '#2563eb',
 
-        background: '#0f172a',
+        background: '#ffffff',
 
-        color: '#f8fafc'
+        color: '#0f172a'
 
       });
 
@@ -489,11 +489,11 @@ export default function RegistroNotasPage() {
 
         icon: 'error',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: '#2563eb',
 
-        background: '#0f172a',
+        background: '#ffffff',
 
-        color: '#f8fafc'
+        color: '#0f172a'
 
       });
 
@@ -572,11 +572,11 @@ export default function RegistroNotasPage() {
 
         icon: 'success',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: '#2563eb',
 
-        background: '#0f172a',
+        background: '#ffffff',
 
-        color: '#f8fafc'
+        color: '#0f172a'
 
       });
 
@@ -598,11 +598,11 @@ export default function RegistroNotasPage() {
 
         icon: 'error',
 
-        confirmButtonColor: colorTema,
+        confirmButtonColor: '#2563eb',
 
-        background: '#0f172a',
+        background: '#ffffff',
 
-        color: '#f8fafc'
+        color: '#0f172a'
 
       });
 

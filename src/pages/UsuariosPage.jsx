@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Users, Search, Loader2, X, AlertCircle, Pencil, Trash2, Lock, Unlock } from 'lucide-react';
 import { obtenerPerfiles, obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../services/api';
+import { grupoDeRol, GRUPO_ADMIN, GRUPO_DOCENTE, GRUPO_TUTOR, GRUPO_ALUMNO, GRUPO_PADRE } from '../utils/roles';
 
 export default function UsuariosPage() {
   const [perfiles, setPerfiles] = useState([]);
@@ -149,11 +150,12 @@ export default function UsuariosPage() {
   };
 
   const resolverBadgeRol = (rolTexto = '') => {
-    const r = rolTexto.toLowerCase();
-    if (r.includes('admin') || r.includes('rrhh') || r.includes('recursos humanos')) return 'bg-blue-700 text-white border-blue-700';
-    if (r.includes('docente')) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (r.includes('tutor') || r.includes('padre')) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (r.includes('alumno') || r.includes('estudiante')) return 'bg-slate-100 text-slate-700 border-slate-200';
+    // Color de etiqueta por perfil exacto (no es autorización; solo presentación).
+    const grupo = grupoDeRol(rolTexto);
+    if (grupo === GRUPO_ADMIN) return 'bg-blue-700 text-white border-blue-700';
+    if (grupo === GRUPO_DOCENTE) return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (grupo === GRUPO_TUTOR || grupo === GRUPO_PADRE) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (grupo === GRUPO_ALUMNO) return 'bg-slate-100 text-slate-700 border-slate-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 
