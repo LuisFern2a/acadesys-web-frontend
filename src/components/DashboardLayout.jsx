@@ -155,7 +155,6 @@ export default function DashboardLayout({
       window.removeEventListener('focus', cargar);
     };
   }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
-  const nombreAcademia = user?.nombreAcademia || 'AcadeSys Pre-U';
   // Identidad institucional AcadeSys: todos los acentos de la interfaz (menú
   // activo, punto de academia, campana y avatar) usan el azul de la marca. El
   // color de tema de la academia podía llegar naranja y rompía la identidad,
@@ -600,15 +599,6 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: acentoAcadesys }}
-              />
-
-              <span>{nombreAcademia}</span>
-            </div>
 
             <button
               type="button"
