@@ -24,14 +24,14 @@ import {
 import ModalMiPerfil from './ModalMiPerfil';
 import { obtenerPerfiles, obtenerMenusPorPerfil } from '../services/api';
 import { normalizarRol, grupoDeRol, rolDeUsuario } from '../utils/roles';
-import logoAcadeSys from '../assets/acadesys-logo.png';
 import simboloAcadeSys from '../assets/acadesys-symbol.png';
 
 
-// El PNG del logo oficial es un lienzo cuadrado (347x347) con ~40% de aire
-// arriba y abajo. Se recorta de forma NO destructiva con `object-cover` sobre una
-// caja con el aspecto real del contenido (277x66 px ≈ 4.2:1, medido del archivo).
-const LOGO_ASPECT = '4.2 / 1';
+// Logo institucional: vive en `public/` y se sirve tal cual. El PNG (2172x724,
+// ~3:1) ya trae el símbolo (A azul + birrete) y el texto "AcadeSys", con fondo
+// transparente pensado para el azul oscuro del sidebar; por eso se muestra sin
+// recortes, sin fondo y sin borde (object-contain).
+const LOGO_INSTITUCIONAL = '/acadesys-logo-new.png';
 
 const normalizeRole = (user) => normalizarRol(rolDeUsuario(user));
 
@@ -427,10 +427,9 @@ export default function DashboardLayout({
               </span>
             ) : (
               <img
-                src={logoAcadeSys}
+                src={LOGO_INSTITUCIONAL}
                 alt="AcadeSys"
-                style={{ aspectRatio: LOGO_ASPECT }}
-                className="shrink-0 h-7 w-auto object-cover rounded-md ring-1 ring-black/5"
+                className="shrink-0 h-9 w-auto max-w-full object-contain"
               />
             )}
           </div>

@@ -690,10 +690,9 @@ export default function LandingPage({ onLoginSuccess }) {
         <div className="max-w-7xl mx-auto px-5 sm:px-6 h-16 sm:h-[70px] flex items-center justify-between gap-3 sm:gap-4">
           <a href="#inicio" className="flex items-center shrink-0" aria-label="AcadeSys, ir al inicio">
             <img
-              src={logoAcadeSys}
+              src="/acadesys-logo-new.png"
               alt="AcadeSys"
-              style={{ aspectRatio: LOGO_ASPECT }}
-              className="h-9 sm:h-10 w-auto object-cover rounded-lg ring-1 ring-black/5"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
           </a>
 
@@ -1236,10 +1235,9 @@ export default function LandingPage({ onLoginSuccess }) {
       <footer className="bg-[#0B1220] border-t border-white/10 text-slate-400">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 pt-10 pb-28 sm:pb-10 flex flex-col items-center gap-5 text-center">
           <img
-            src={logoAcadeSys}
+            src="/acadesys-logo-new.png"
             alt="AcadeSys"
-            style={{ aspectRatio: LOGO_ASPECT }}
-            className="h-9 w-auto object-cover rounded-lg ring-1 ring-black/5"
+            className="h-9 w-auto object-contain"
           />
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-300">
             <a href="#inicio" className="hover:text-white transition-colors">Inicio</a>
