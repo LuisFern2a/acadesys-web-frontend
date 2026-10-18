@@ -1358,6 +1358,32 @@ export async function actualizarCicloAdmin(idCiclo, datosCiclo) {
   return data;
 }
 
+// El PUT de un ciclo no modifica EstadoRegistro: la visibilidad se cambia con el
+// endpoint existente PATCH /api/admin/ciclos/:id/estado (Activo / Cerrado).
+export async function actualizarEstadoCicloAdmin(idCiclo, estado) {
+  if (!idCiclo) throw new Error('Debe indicar el ciclo.');
+
+  const response = await fetchWithAuth(
+    `/api/admin/ciclos/${encodeURIComponent(idCiclo)}/estado`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ estado })
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw crearErrorApiCiclo(
+      data,
+      response.status,
+      'No se pudo cambiar la visibilidad del ciclo'
+    );
+  }
+
+  return data;
+}
+
 export async function eliminarCicloAdmin(idCiclo) {
   if (!idCiclo) throw new Error('Debe indicar un ciclo.');
 

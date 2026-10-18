@@ -138,7 +138,7 @@ export default function RegistroNotasPage() {
 
   const cargarRegistro = useCallback(async () => {
 
-    if (!idCiclo) return;
+    if (!idCiclo) return false;
 
 
 
@@ -204,6 +204,8 @@ export default function RegistroNotasPage() {
 
       );
 
+      return true;
+
     } catch (error) {
 
       console.error(error);
@@ -215,6 +217,8 @@ export default function RegistroNotasPage() {
       setEstudiantes([]);
 
       setEvaluaciones([]);
+
+      return false;
 
     } finally {
 
@@ -572,15 +576,23 @@ export default function RegistroNotasPage() {
 
 
 
+      // Si una parte del lote falla (POST ok / PUT con error), la memoria local
+      // puede quedar con notas nuevas sin idEvaluacion y un reintento volvería a
+      // hacer POST generando duplicados. Recargamos el registro real antes de
+      // avisar al usuario para sincronizar la UI con lo persistido.
+      const resincronizado = await cargarRegistro();
+
+
+
       await Swal.fire({
 
         title: 'No se pudieron guardar las calificaciones',
 
-        text:
+        text: resincronizado
 
-          error.message ||
+          ? `${error.message || 'La API rechazó la operación.'} El registro se recargó con las calificaciones guardadas en el servidor.`
 
-          'La API rechazó la operación. No se registró un guardado local alternativo.',
+          : error.message || 'La API rechazó la operación. No se registró un guardado local alternativo.',
 
         icon: 'error',
 

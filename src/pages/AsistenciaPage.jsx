@@ -46,7 +46,7 @@ export default function AsistenciaPage() {
   }, []);
 
   const cargarAsistencia = useCallback(async () => {
-    if (!idCiclo || !fecha) { setAlumnos([]); return; }
+    if (!idCiclo || !fecha) { setAlumnos([]); return false; }
     setCargando(true);
     setMensaje(null);
     try {
@@ -59,9 +59,11 @@ export default function AsistenciaPage() {
         estado: String(alumno.estado ?? alumno.Estado ?? 'pendiente').toLowerCase(),
         horaLlegada: ['--', '—'].includes(String(alumno.horaLlegada ?? alumno.HoraLlegada ?? '')) ? '' : String(alumno.horaLlegada ?? alumno.HoraLlegada ?? '')
       })));
+      return true;
     } catch (error) {
       setAlumnos([]);
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudo cargar la asistencia del ciclo.' });
+      return false;
     } finally {
       setCargando(false);
     }
@@ -96,8 +98,10 @@ export default function AsistenciaPage() {
         estado: a.estado,
         horaLlegada: a.horaLlegada || null
       })));
-      setMensaje({ tipo: 'exito', texto: `Asistencia guardada para ${alumnos.length} alumnos del ciclo ${cicloActual?.nombre || ''}.` });
-      await cargarAsistencia();
+      // Se recarga primero (el loader limpia el mensaje) y luego se confirma,
+      // para que la confirmación no quede borrada de inmediato.
+      const ok = await cargarAsistencia();
+      if (ok) setMensaje({ tipo: 'exito', texto: `Asistencia guardada para ${alumnos.length} alumnos del ciclo ${cicloActual?.nombre || ''}.` });
     } catch (error) {
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudo guardar la asistencia.' });
     } finally {

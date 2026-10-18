@@ -253,10 +253,6 @@ export default function App() {
                 <CalificacionesPage />
               )}
 
-              {activeTab === 'tutor-ia' && esStaff && (
-                <TutorIAPage />
-              )}
-
               {(activeTab === 'academico' ||
                 activeTab === 'academico-ciclos' ||
                 activeTab === 'academico-turnos') && esStaff && (

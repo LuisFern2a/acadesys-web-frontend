@@ -42,6 +42,7 @@ export default function ComunicadosPage({ user }) {
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
   const [errorAccion, setErrorAccion] = useState('');
+  const [errorModal, setErrorModal] = useState('');
   const [mensajeExito, setMensajeExito] = useState('');
 
   // Autorización visual por perfil real (comparación exacta, sin `includes`).
@@ -123,11 +124,17 @@ export default function ComunicadosPage({ user }) {
 
   if (guardando) return;
 
-  if (!titulo.trim() || !contenido.trim()) {
-    setErrorAccion('Completa el título y el contenido del comunicado.');
+  if (titulo.trim().length < 3) {
+    setErrorModal('El título debe tener al menos 3 caracteres.');
     return;
   }
 
+  if (!contenido.trim()) {
+    setErrorModal('Completa el contenido del comunicado.');
+    return;
+  }
+
+  setErrorModal('');
   setGuardando(true);
   setErrorAccion('');
   setMensajeExito('');
@@ -159,7 +166,7 @@ export default function ComunicadosPage({ user }) {
   } catch (err) {
     console.error('Error creando comunicado:', err);
 
-    setErrorAccion(
+    setErrorModal(
       err.message || 'No se pudo publicar el comunicado.'
     );
   } finally {
@@ -221,7 +228,10 @@ export default function ComunicadosPage({ user }) {
         {puedePublicar && (
           <button
             type="button"
-            onClick={() => setModalAbierto(true)}
+            onClick={() => {
+              setErrorModal('');
+              setModalAbierto(true);
+            }}
             className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             <Plus className="w-4 h-4" aria-hidden="true" /> Nuevo Comunicado
@@ -525,6 +535,15 @@ export default function ComunicadosPage({ user }) {
                   className="w-full text-sm text-slate-900 placeholder:text-slate-400 p-3 border border-slate-300 rounded-lg outline-none focus:border-blue-600 resize-none"
                 />
               </div>
+
+              {errorModal && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700"
+                >
+                  {errorModal}
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button

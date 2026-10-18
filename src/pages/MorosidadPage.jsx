@@ -31,7 +31,7 @@ export default function MorosidadPage() {
   }, []);
 
   const cargarDatos = useCallback(async () => {
-    if (!idCiclo) { setPagos([]); return; }
+    if (!idCiclo) { setPagos([]); return false; }
     setLoading(true);
     setMensaje(null);
     try {
@@ -51,9 +51,11 @@ export default function MorosidadPage() {
           fechaPago: p.FechaPago ?? p.fechaPago ?? null
         };
       }));
+      return true;
     } catch (error) {
       setPagos([]);
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudieron cargar los pagos del ciclo.' });
+      return false;
     } finally {
       setLoading(false);
     }
@@ -92,8 +94,10 @@ export default function MorosidadPage() {
     setPagos((actuales) => actuales.map((p) => p.idPago === item.idPago ? { ...p, estado: nuevoEstado } : p));
     try {
       await actualizarEstadoPago(item.idPago, nuevoEstado);
-      setMensaje({ tipo: 'exito', texto: `Estado de pago actualizado para ${item.alumno}.` });
-      await cargarDatos();
+      // Se recarga primero (el loader limpia el mensaje) y luego se confirma,
+      // para que la confirmación no quede borrada de inmediato.
+      const ok = await cargarDatos();
+      if (ok) setMensaje({ tipo: 'exito', texto: `Estado de pago actualizado para ${item.alumno}.` });
     } catch (error) {
       setPagos((actuales) => actuales.map((p) => p.idPago === item.idPago ? { ...p, estado: anterior } : p));
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudo actualizar el pago.' });

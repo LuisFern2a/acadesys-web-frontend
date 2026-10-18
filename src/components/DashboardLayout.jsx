@@ -310,12 +310,8 @@ export default function DashboardLayout({
       label: 'Tutor Pedagógico IA',
       icon: BrainCircuit,
       rolesPermitidos: [
-        'administrador',
-        'admin',
-        'docente',
         'alumno',
-        'estudiante',
-        'tutor de aula'
+        'estudiante'
       ]
     },
 

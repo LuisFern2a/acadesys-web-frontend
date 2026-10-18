@@ -3,8 +3,6 @@ import {
   Users, 
   TrendingUp, 
   School, 
-  Sparkles, 
-  BrainCircuit, 
   Award, 
   ChevronRight,
   DollarSign
@@ -183,25 +181,6 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-[#0F172A] p-6 rounded-xl text-white flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-2">
-                <Sparkles className="w-4 h-4" aria-hidden="true" /> Diagnóstico Predictivo
-              </div>
-              <h3 className="font-bold text-base text-white mb-2">Tutor IA Institucional</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Genera estrategias pedagógicas personalizadas a partir de los simulacros vigentes.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('tutor-ia')}
-              className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            >
-              <BrainCircuit className="w-4 h-4" aria-hidden="true" /> Abrir Tutor IA
-            </button>
-          </div>
-
           <div className="bg-white p-6 rounded-xl border border-slate-200">
             <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <Award className="w-4 h-4 text-blue-700" aria-hidden="true" />

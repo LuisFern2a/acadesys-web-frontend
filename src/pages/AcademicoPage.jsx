@@ -34,6 +34,7 @@ import {
   obtenerDetalleCicloAdmin,
   crearCicloAdmin,
   actualizarCicloAdmin,
+  actualizarEstadoCicloAdmin,
   eliminarCicloAdmin,
   obtenerHorarios,
   crearHorario,
@@ -52,6 +53,61 @@ function CampoCiclo({ label, children }) {
       })}
     </label>
   );
+}
+
+// --- Horario del ciclo -----------------------------------------------------
+// El backend exige exactamente "HH:mm - HH:mm" y que la hora final sea mayor
+// que la inicial. Estas utilidades sólo traducen el horario heredado (por
+// ejemplo "Lunes a Jueves 3pm-10pm") al formulario; el formato "HH:mm - HH:mm"
+// se construye al enviar, así que el contrato de la API no cambia.
+function normalizarHoraSuelta(hora, minutos, sufijo) {
+  let h = Number(hora);
+  const m = minutos === undefined || minutos === null || minutos === '' ? 0 : Number(minutos);
+  if (!Number.isInteger(h) || h < 0 || h > 23) return null;
+  if (!Number.isInteger(m) || m < 0 || m > 59) return null;
+  const marca = String(sufijo || '').replace(/[.\s]/g, '');
+  if (marca === 'pm') {
+    if (h > 12) return null;
+    h = h === 12 ? 12 : h + 12;
+  } else if (marca === 'am') {
+    if (h > 12) return null;
+    h = h === 12 ? 0 : h;
+  }
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function extraerHorasDeHorario(texto) {
+  const limpio = String(texto ?? '').toLowerCase();
+  const encontradas = [];
+  const patron = /(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|am|pm|a|p|h(?:rs?)?)?/g;
+  let coincidencia = patron.exec(limpio);
+  while (coincidencia) {
+    const hora = normalizarHoraSuelta(coincidencia[1], coincidencia[2], coincidencia[3]);
+    if (hora) encontradas.push(hora);
+    if (encontradas.length === 2) break;
+    coincidencia = patron.exec(limpio);
+  }
+  return encontradas;
+}
+
+// Devuelve { horaInicio, horaFin, crudo }. `crudo` sólo se rellena cuando el
+// valor guardado no se pudo interpretar, para poder avisar al administrador.
+function normalizarHorarioParaFormulario(valor) {
+  const original = String(valor ?? '').trim();
+  if (!original) return { horaInicio: '', horaFin: '', crudo: '' };
+
+  const exacto = original.replace(/\s+/g, ' ').match(/^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/);
+  if (exacto) {
+    const inicio = `${exacto[1]}:${exacto[2]}`;
+    const fin = `${exacto[3]}:${exacto[4]}`;
+    if (fin > inicio) return { horaInicio: inicio, horaFin: fin, crudo: '' };
+  }
+
+  const horas = extraerHorasDeHorario(original);
+  if (horas.length === 2 && horas[1] > horas[0]) {
+    return { horaInicio: horas[0], horaFin: horas[1], crudo: '' };
+  }
+  return { horaInicio: '', horaFin: '', crudo: original };
 }
 export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [tabActiva, setTabActiva] = useState(vistaInicial);
@@ -73,6 +129,9 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [pasoCiclo, setPasoCiclo] = useState(1);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
+  const [guardandoDatos, setGuardandoDatos] = useState(false);
+  const [avisoHorario, setAvisoHorario] = useState('');
+  const [publicadoOriginal, setPublicadoOriginal] = useState(null);
   // Formularios
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
@@ -84,14 +143,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     periodo: String(new Date().getFullYear()),
     nombre: '',
     turno: 'Mañana',
-    horario: '08:00 - 13:00',
+    horaInicio: '08:00',
+    horaFin: '13:00',
     fechaInicio: '',
     fechaFin: '',
     capacidad: 250,
     precio: '',
     diasClase: 'Lunes a Viernes',
     prefijoCodigo: '',
-    publicar: false,
+    publicar: true,
     cursosSeleccionados: []
   });
   const [formTurno, setFormTurno] = useState({
@@ -206,18 +266,21 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       periodo: String(new Date().getFullYear()),
       nombre: '',
       turno: 'Mañana',
-      horario: '08:00 - 13:00',
+      horaInicio: '08:00',
+      horaFin: '13:00',
       fechaInicio: '',
       fechaFin: '',
       capacidad: 250,
       precio: '',
       diasClase: 'Lunes a Viernes',
       prefijoCodigo: '',
-      publicar: false,
+      publicar: true,
       cursosSeleccionados: []
     });
     setPasoCiclo(1);
     setErrorCiclo('');
+    setAvisoHorario('');
+    setPublicadoOriginal(null);
     setFormTurno({
       idCiclo: String(ciclos[0]?.idCiclo ?? ''),
       idCurso: String(cursos[0]?.idCurso ?? ''),
@@ -245,6 +308,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   };
   const abrirEditarCiclo = async (ciclo) => {
     setEditandoId(ciclo.idCiclo);
+    setPublicadoOriginal(Boolean(ciclo.publicar));
     setErrorCiclo('');
     let cursosSeleccionados = [];
     try {
@@ -255,6 +319,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     } catch (error) {
       setErrorCiclo(error.message || 'No se pudo cargar la oferta de cursos de este ciclo.');
     }
+    const horarioNormalizado = normalizarHorarioParaFormulario(ciclo.horario);
     setFormCiclo({
       tipo: ciclo.nombre?.includes('Semestral') ? 'Semestral' : ciclo.nombre?.includes('Intensivo') ? 'Intensivo' : ciclo.nombre?.includes('Repaso') ? 'Repaso' : 'Anual',
       universidadObjetivo: ciclo.universidadObjetivo || 'UNMSM',
@@ -262,7 +327,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       periodo: String(new Date(ciclo.fechaInicio || Date.now()).getFullYear()),
       nombre: ciclo.nombre || '',
       turno: ciclo.turno || 'Mañana',
-      horario: ciclo.horario || '08:00 - 13:00',
+      horaInicio: horarioNormalizado.horaInicio,
+      horaFin: horarioNormalizado.horaFin,
       fechaInicio: String(ciclo.fechaInicio || '').slice(0, 10),
       fechaFin: String(ciclo.fechaFin || '').slice(0, 10),
       capacidad: Number(ciclo.capacidad || 250),
@@ -272,6 +338,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       publicar: Boolean(ciclo.publicar),
       cursosSeleccionados
     });
+    setAvisoHorario(
+      horarioNormalizado.crudo
+        ? `El horario guardado («${horarioNormalizado.crudo}») no tiene formato HH:mm. Selecciona la hora de inicio y la hora de fin para actualizarlo.`
+        : ''
+    );
     setPasoCiclo(1);
     setModalAbierto(true);
   };
@@ -317,7 +388,9 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   })();
   const handleGuardar = async (e) => {
     e.preventDefault();
+    if (guardandoDatos) return;
     setErrorDatos('');
+    setGuardandoDatos(true);
     try {
       if (tabActiva === 'aulas') {
         if (!nombreValido(formAula.nombre)) throw new Error('Ingresa un nombre válido para el aula.');
@@ -363,6 +436,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       setEditandoId(null);
     } catch (err) {
       window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
+    } finally {
+      setGuardandoDatos(false);
     }
   };
   const handleEliminarAula = async (id, nombre) => {
@@ -430,8 +505,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     if (paso === 4 && cursos.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
       return 'Selecciona al menos un curso para continuar.';
     }
-    if (paso === 5 && (!formCiclo.turno || !formCiclo.horario.trim() || !formCiclo.diasClase.trim())) {
-      return 'Completa turno, horario y días de clase.';
+    if (paso === 5) {
+      if (!formCiclo.turno || !formCiclo.diasClase.trim()) return 'Completa turno y días de clase.';
+      if (!formCiclo.horaInicio || !formCiclo.horaFin) return 'Selecciona la hora de inicio y la hora de fin del ciclo.';
+      if (formCiclo.horaFin <= formCiclo.horaInicio) return 'La hora final debe ser mayor a la hora inicial.';
     }
     return '';
   };
@@ -462,6 +539,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setErrorCiclo('');
   };
   const guardarCiclo = async () => {
+    if (guardandoCiclo) return;
     for (let paso = 1; paso <= 5; paso += 1) {
       const error = validarPasoCiclo(paso);
       if (error) {
@@ -479,7 +557,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       nombre: formCiclo.nombre.trim(),
       universidadObjetivo: formCiclo.universidadObjetivo,
       turno: formCiclo.turno,
-      horario: formCiclo.horario.trim(),
+      horario: `${formCiclo.horaInicio} - ${formCiclo.horaFin}`,
       fechaInicio: formCiclo.fechaInicio,
       fechaFin: formCiclo.fechaFin,
       capacidad: Number(formCiclo.capacidad),
@@ -492,8 +570,24 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     try {
       setGuardandoCiclo(true);
       setErrorCiclo('');
-      if (editandoId) await actualizarCicloAdmin(editandoId, payload);
-      else await crearCicloAdmin(payload);
+      if (editandoId) {
+        await actualizarCicloAdmin(editandoId, payload);
+        // El PUT no cambia la visibilidad: si el administrador la modificó se
+        // usa el PATCH de estado ya existente en el backend.
+        if (publicadoOriginal !== null && Boolean(formCiclo.publicar) !== publicadoOriginal) {
+          try {
+            await actualizarEstadoCicloAdmin(editandoId, formCiclo.publicar ? 'Activo' : 'Cerrado');
+          } catch (errorVisibilidad) {
+            await cargarDatos();
+            setModalAbierto(false);
+            setEditandoId(null);
+            window.alert(`El ciclo se actualizó, pero no se pudo cambiar su visibilidad: ${errorVisibilidad?.message || 'error desconocido'}`);
+            return;
+          }
+        }
+      } else {
+        await crearCicloAdmin(payload);
+      }
       await cargarDatos();
       setModalAbierto(false);
       setEditandoId(null);
@@ -983,10 +1077,21 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                         <CampoCiclo label="Turno">
                           <select value={formCiclo.turno} onChange={(e) => setFormCiclo({ ...formCiclo, turno: e.target.value })} className="campo-ciclo"><option>Mañana</option><option>Tarde</option><option>Noche</option></select>
                         </CampoCiclo>
-                        <CampoCiclo label="Horario general"><input value={formCiclo.horario} onChange={(e) => setFormCiclo({ ...formCiclo, horario: e.target.value })} className="campo-ciclo" placeholder="08:00 - 13:00" /></CampoCiclo>
+                        <CampoCiclo label="Hora de inicio">
+                          <input type="time" required value={formCiclo.horaInicio} onChange={(e) => { setFormCiclo({ ...formCiclo, horaInicio: e.target.value }); setAvisoHorario(''); }} />
+                        </CampoCiclo>
+                        <CampoCiclo label="Hora de fin">
+                          <input type="time" required value={formCiclo.horaFin} onChange={(e) => { setFormCiclo({ ...formCiclo, horaFin: e.target.value }); setAvisoHorario(''); }} />
+                        </CampoCiclo>
                         <CampoCiclo label="Días de clase"><input value={formCiclo.diasClase} onChange={(e) => setFormCiclo({ ...formCiclo, diasClase: e.target.value })} className="campo-ciclo" placeholder="Lunes a Viernes" /></CampoCiclo>
                         <CampoCiclo label="Prefijo de código"><input value={formCiclo.prefijoCodigo} onChange={(e) => setFormCiclo({ ...formCiclo, prefijoCodigo: e.target.value.toUpperCase() })} className="campo-ciclo" placeholder="UNMSM" /></CampoCiclo>
                       </div>
+                      {avisoHorario && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                          {avisoHorario}
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500">El horario del ciclo se guarda como <b>HH:mm - HH:mm</b>. Los días de dictado se registran en «Turnos y Horarios».</p>
                     </div>
                   )}
                   {pasoCiclo === 6 && (
@@ -997,7 +1102,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                           <p><b>Ciclo:</b> {formCiclo.nombre}</p>
                           <p><b>Universidad:</b> {formCiclo.universidadObjetivo}</p>
                           <p><b>Fechas:</b> {formCiclo.fechaInicio} → {formCiclo.fechaFin}</p>
-                          <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horario}</p>
+                          <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horaInicio} - {formCiclo.horaFin}</p>
                           <p><b>Capacidad:</b> {formCiclo.capacidad}</p>
                           <p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
                         </div>
@@ -1023,10 +1128,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                             </div>
                           ))}
                         </div>
-                        <label className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs font-semibold ${puedePublicarCiclo ? 'bg-blue-50 border-blue-100 text-slate-700 cursor-pointer' : 'bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed'}`}>
-                          <input type="checkbox" checked={Boolean(formCiclo.publicar && puedePublicarCiclo)} disabled={!puedePublicarCiclo || guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-blue-700" />
-                          <span>Publicar ciclo al guardar</span>
+                        <label className="mt-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs font-semibold text-slate-700 cursor-pointer">
+                          <input type="checkbox" checked={Boolean(formCiclo.publicar)} disabled={guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-blue-700" />
+                          <span>Publicar ciclo al guardar (visible en Notas, Asistencia y Morosidad)</span>
                         </label>
+                        {!formCiclo.publicar && (
+                          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                            Se guardará como borrador: no aparecerá en Notas, Asistencia, Calificaciones, Morosidad ni Materiales hasta que lo publiques.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1038,7 +1148,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       <button type="button" onClick={siguientePasoCiclo} className="px-4 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors">Siguiente</button>
                     ) : (
                       <button type="button" disabled={guardandoCiclo} onClick={guardarCiclo} className="px-4 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-lg transition-colors">
-                        {guardandoCiclo ? 'Guardando...' : editandoId ? 'Guardar Cambios' : formCiclo.publicar ? 'Crear y publicar' : 'Crear ciclo'}
+                        {guardandoCiclo ? 'Guardando...' : editandoId ? 'Guardar Cambios' : formCiclo.publicar ? 'Crear y publicar ciclo' : 'Guardar como borrador'}
                       </button>
                     )}
                   </div>
@@ -1164,8 +1274,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   <button type="button" onClick={() => setModalAbierto(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={!formularioActualValido} className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${formularioActualValido ? 'bg-blue-700 hover:bg-blue-600 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
-                    {editandoId ? 'Guardar Cambios' : 'Registrar'}
+                  <button type="submit" disabled={!formularioActualValido || guardandoDatos} className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${formularioActualValido && !guardandoDatos ? 'bg-blue-700 hover:bg-blue-600 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
+                    {guardandoDatos ? 'Guardando...' : editandoId ? 'Guardar Cambios' : 'Registrar'}
                   </button>
                 </div>
               )}
