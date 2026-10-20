@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, BadgeAlert, CheckCircle2, DollarSign, Loader2, RefreshCw, Search, Users } from 'lucide-react';
-import { actualizarEstadoPago, obtenerCiclosPublicos, obtenerPagosPorCiclo } from '../services/api';
+import { actualizarEstadoPago, obtenerCiclosGestionActivos, obtenerPagosPorCiclo, mensajeErrorApi } from '../services/api';
 
 const estadoNormalizado = (estado) => String(estado || '').trim().toLowerCase();
 
@@ -14,16 +14,18 @@ export default function MorosidadPage() {
   const [loading, setLoading] = useState(false);
   const [actualizando, setActualizando] = useState(null);
   const [mensaje, setMensaje] = useState(null);
+  const cargaSeqRef = useRef(0);
+  const actualizandoRef = useRef(false);
 
   const cargarCiclos = useCallback(async () => {
     setCargandoCiclos(true);
     try {
-      const lista = await obtenerCiclosPublicos();
+      const lista = await obtenerCiclosGestionActivos();
       setCiclos(lista);
       setIdCiclo((actual) => actual && lista.some((c) => String(c.idCiclo) === actual)
         ? actual : (lista.length ? String(lista[0].idCiclo) : ''));
     } catch (error) {
-      setMensaje({ tipo: 'error', texto: error.message || 'No se pudieron cargar los ciclos.' });
+      setMensaje({ tipo: 'error', texto: mensajeErrorApi(error, 'No se pudieron cargar los ciclos.') });
       setCiclos([]);
     } finally {
       setCargandoCiclos(false);
@@ -31,11 +33,14 @@ export default function MorosidadPage() {
   }, []);
 
   const cargarDatos = useCallback(async () => {
-    if (!idCiclo) { setPagos([]); return false; }
+    const secuencia = ++cargaSeqRef.current;
+    const vigente = () => secuencia === cargaSeqRef.current;
+    if (!idCiclo) { setPagos([]); setLoading(false); return false; }
     setLoading(true);
     setMensaje(null);
     try {
       const data = await obtenerPagosPorCiclo(idCiclo);
+      if (!vigente()) return false;
       const lista = Array.isArray(data) ? data : [];
       setPagos(lista.map((p) => {
         const rawEstado = p.Estado ?? p.estado ?? p.estadoPago ?? '';
@@ -53,11 +58,12 @@ export default function MorosidadPage() {
       }));
       return true;
     } catch (error) {
+      if (!vigente()) return false;
       setPagos([]);
-      setMensaje({ tipo: 'error', texto: error.message || 'No se pudieron cargar los pagos del ciclo.' });
+      setMensaje({ tipo: 'error', texto: mensajeErrorApi(error, 'No se pudieron cargar los pagos del ciclo.') });
       return false;
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
   }, [idCiclo]);
 
@@ -86,9 +92,10 @@ export default function MorosidadPage() {
   });
 
   const actualizarEstado = async (item) => {
-    if (!item.idPago || actualizando || esInscripcionPendiente(item)) return;
+    if (!item.idPago || actualizandoRef.current || esInscripcionPendiente(item)) return;
     const nuevoEstado = alDia(item.estado) ? 'Moroso' : 'Pagado';
     const anterior = item.estado;
+    actualizandoRef.current = true;
     setActualizando(item.idPago);
     setMensaje(null);
     setPagos((actuales) => actuales.map((p) => p.idPago === item.idPago ? { ...p, estado: nuevoEstado } : p));
@@ -100,8 +107,11 @@ export default function MorosidadPage() {
       if (ok) setMensaje({ tipo: 'exito', texto: `Estado de pago actualizado para ${item.alumno}.` });
     } catch (error) {
       setPagos((actuales) => actuales.map((p) => p.idPago === item.idPago ? { ...p, estado: anterior } : p));
-      setMensaje({ tipo: 'error', texto: error.message || 'No se pudo actualizar el pago.' });
-    } finally { setActualizando(null); }
+      setMensaje({ tipo: 'error', texto: mensajeErrorApi(error, 'No se pudo actualizar el pago.') });
+    } finally {
+      actualizandoRef.current = false;
+      setActualizando(null);
+    }
   };
 
   const cicloActual = ciclos.find((c) => String(c.idCiclo) === String(idCiclo));
@@ -127,7 +137,7 @@ export default function MorosidadPage() {
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">Selecciona el ciclo
-          <select value={idCiclo} onChange={(e) => setIdCiclo(e.target.value)} disabled={cargandoCiclos || ciclos.length === 0} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">
+          <select value={idCiclo} onChange={(e) => { cargaSeqRef.current += 1; setPagos([]); setIdCiclo(e.target.value); }} disabled={actualizando !== null || cargandoCiclos || ciclos.length === 0} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">
             {ciclos.length === 0 && <option value="">No hay ciclos activos</option>}
             {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre} · {c.turno || 'Turno por definir'}</option>)}
           </select>

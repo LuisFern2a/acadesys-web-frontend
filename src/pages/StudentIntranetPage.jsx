@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { obtenerMiIntranetAlumno } from '../services/api';
+import { promedioCalificaciones, escalaPorUniversidad } from '../utils/calificaciones';
 
 const VIEWS = {
   home: 'student-home',
@@ -88,11 +89,11 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const [error, setError] = useState('');
   const [cursoMaterial, setCursoMaterial] = useState('Todos');
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (force = false) => {
     setLoading(true);
     setError('');
     try {
-      const result = await obtenerMiIntranetAlumno();
+      const result = await obtenerMiIntranetAlumno({ force: force === true });
       setData(result);
     } catch (err) {
       setError(err.message || 'No fue posible cargar tu portal del alumno.');
@@ -110,8 +111,9 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const notas = Array.isArray(data?.notas?.historial) ? data.notas.historial : [];
   const materiales = Array.isArray(data?.materiales) ? data.materiales : [];
   const horarios = Array.isArray(data?.horarioDetalle) ? data.horarioDetalle : [];
-  const promedio = Number(data?.notas?.promedioGeneral || 0);
+  const promedio = promedioCalificaciones(notas.map((nota) => nota.calificacion ?? nota.Calificacion));
   const ranking = data?.notas?.puestoRanking ?? null;
+  const escalaMaxima = escalaPorUniversidad(ciclo?.universidadObjetivo);
 
   // Filtro por curso: es el único filtro con datos reales (los materiales del
   // alumno ya vienen acotados a su ciclo activo y siempre son PDF).
@@ -223,7 +225,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
       </div>
       <button
         type="button"
-        onClick={cargar}
+        onClick={() => cargar(true)}
         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50"
       >
         <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
@@ -269,7 +271,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
                 {[
                   [VIEWS.horario, Clock3, 'Mi horario', 'Revisa tu turno y horario de clases.'],
                   [VIEWS.cursos, BookOpen, 'Mis cursos', `${cursos.length} cursos asignados a tu ciclo.`],
-                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros y promedio ${promedio.toFixed(2)}.`],
+                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros${promedio !== null ? ` y promedio ${promedio.toFixed(2)} / ${escalaMaxima}` : ''}.`],
                   [VIEWS.materiales, FileText, 'Materiales', `${materiales.length} archivos disponibles.`]
                 ].map(([id, Icon, title, text]) => (
                   <button
@@ -383,7 +385,8 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Promedio general</span>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{promedio.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-slate-900 mt-2">{promedio !== null ? promedio.toFixed(2) : '—'}</p>
+                <p className="text-xs text-slate-500 mt-1">{promedio !== null ? `Escala máxima ${escalaMaxima}` : 'Sin evaluaciones registradas'}</p>
               </div>
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Puesto</span>
@@ -412,7 +415,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
                       <tr key={nota.idEvaluacion || index} className="border-t border-slate-100 hover:bg-slate-50">
                         <td className="px-5 py-4 text-slate-700">{nota.curso || 'Simulacro general'}</td>
                         <td className="px-5 py-4 text-slate-700">{nota.tipoEvaluacion || 'Evaluación'}</td>
-                        <td className="px-5 py-4 font-bold text-slate-900">{Number(nota.calificacion || 0).toFixed(2)}</td>
+                        <td className="px-5 py-4 font-bold text-slate-900">{nota.calificacion === null || nota.calificacion === undefined || nota.calificacion === '' ? '—' : Number(nota.calificacion).toFixed(2)}</td>
                         <td className="px-5 py-4 text-slate-500">{normalizarFecha(nota.fechaCreacion)}</td>
                       </tr>
                     ))}

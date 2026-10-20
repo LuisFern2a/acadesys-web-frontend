@@ -5,109 +5,108 @@ import {
   School, 
   Award, 
   ChevronRight,
-  DollarSign
+  DollarSign,
+  AlertCircle
 } from 'lucide-react';
 import { 
+  obtenerDashboardAdmin,
   obtenerDirectorioUsuarios,
   obtenerCiclosPublicos,
-  obtenerPagosPorCiclo 
+  mensajeErrorApi
 } from '../services/api';
-import { esAlumno } from '../utils/roles';
+import { esAdmin, esAlumno } from '../utils/roles';
 
 export default function DashboardOverviewPage({ setActiveTab, user }) {
   const [cargando, setCargando] = useState(true);
-  const [totalEstudiantes, setTotalEstudiantes] = useState(0);
-  const [totalMorosos, setTotalMorosos] = useState(0);
-  const [promedioGeneral, setPromedioGeneral] = useState('--');
+  const [error, setError] = useState('');
+  const [resumen, setResumen] = useState({
+    estudiantes: 0,
+    matriculasActivas: 0,
+    ciclosActivos: 0,
+    estudiantesMorosos: 0,
+    promedioInstitucional: 0,
+  });
+  const [rendimientoPorCiclo, setRendimientoPorCiclo] = useState([]);
   const [ciclos, setCiclos] = useState([]);
+  const usuarioEsAdmin = esAdmin(user);
 
   useEffect(() => {
     async function cargarDatosReales() {
       try {
         setCargando(true);
+        setError('');
 
-        // 1. Cargar directorio mínimo (no sensible) y Ciclos
-        const [resUsuarios, resCiclos] = await Promise.allSettled([
-          obtenerDirectorioUsuarios ? obtenerDirectorioUsuarios() : Promise.resolve([]),
-          obtenerCiclosPublicos ? obtenerCiclosPublicos() : Promise.resolve([])
-        ]);
-
-        const listUsuarios = resUsuarios.status === 'fulfilled' && Array.isArray(resUsuarios.value) ? resUsuarios.value : [];
-        const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value) ? resCiclos.value : [];
-
-        // Filtro real de alumnos (perfil exacto, sin `includes`).
-        const estudiantes = listUsuarios.filter((u) => esAlumno(u));
-        setTotalEstudiantes(estudiantes.length);
-        setCiclos(listCiclos);
-
-        // 2. Métrica Institucional Global de Morosidad (Recorre todos los ciclos activos dinámicamente)
-        let conteoMorososGlobal = 0;
-        if (listCiclos.length > 0) {
-          const promesasPagos = listCiclos.map(c => {
-            const id = c.idCiclo ?? c.id;
-            return obtenerPagosPorCiclo ? obtenerPagosPorCiclo(id).catch(() => []) : Promise.resolve([]);
-          });
-
-          const resultadosPagos = await Promise.all(promesasPagos);
-          const mapaMorosos = new Set();
-
-          resultadosPagos.forEach(listPagos => {
-            if (Array.isArray(listPagos)) {
-              listPagos.forEach(p => {
-                const estado = String(p.estado || p.Estado || p.estadoPago || '').toLowerCase();
-                if (['pendiente', 'vencido', 'moroso'].includes(estado)) {
-                  mapaMorosos.add(p.idUsuario || p.IdUsuario || p.idAlumno || p.correo || p.alumno);
-                }
-              });
-            }
-          });
-
-          conteoMorososGlobal = mapaMorosos.size;
-        } else {
-          // Sin ciclos activos, no existe una cartera morosa que consolidar.
-          conteoMorososGlobal = 0;
+        if (usuarioEsAdmin) {
+          const data = await obtenerDashboardAdmin();
+          setResumen(data.resumen);
+          setCiclos(data.ciclos);
+          setRendimientoPorCiclo(data.rendimientoPorCiclo);
+          return;
         }
-        setTotalMorosos(conteoMorososGlobal);
 
-        // 3. Promedio Institucional Dinámico (vacío o cargado según respuesta del backend)
-        setPromedioGeneral('--'); // Se mantiene sin registros hasta disponer de una fuente agregada real.
-
+        // Perfiles no administradores no tienen acceso al overview agregado.
+        // Se muestran únicamente contadores verificables con endpoints permitidos.
+        const [resUsuarios, resCiclos] = await Promise.allSettled([
+          obtenerDirectorioUsuarios(),
+          obtenerCiclosPublicos()
+        ]);
+        if (resUsuarios.status === 'rejected') throw resUsuarios.reason;
+        if (resCiclos.status === 'rejected') throw resCiclos.reason;
+        const listUsuarios = resUsuarios.status === 'fulfilled' && Array.isArray(resUsuarios.value)
+          ? resUsuarios.value
+          : [];
+        const listCiclos = resCiclos.status === 'fulfilled' && Array.isArray(resCiclos.value)
+          ? resCiclos.value
+          : [];
+        setResumen({
+          estudiantes: listUsuarios.filter((u) => esAlumno(u)).length,
+          matriculasActivas: 0,
+          ciclosActivos: listCiclos.length,
+          estudiantesMorosos: 0,
+          promedioInstitucional: 0,
+        });
+        setCiclos(listCiclos);
+        setRendimientoPorCiclo([]);
       } catch (err) {
-        console.error('Error al cargar métricas del dashboard:', err);
+        setError(mensajeErrorApi(err, 'No se pudieron cargar las métricas institucionales.'));
       } finally {
         setCargando(false);
       }
     }
 
     cargarDatosReales();
-  }, []);
+  }, [usuarioEsAdmin]);
 
   const kpis = [
     {
       titulo: 'Estudiantes Registrados',
-      valor: cargando ? '...' : totalEstudiantes.toString(),
+      valor: cargando ? '...' : error ? '—' : resumen.estudiantes.toString(),
       icono: Users,
       tono: 'text-blue-600'
     },
     {
-      titulo: 'Ciclos Académicos',
-      valor: cargando ? '...' : ciclos.length.toString(),
+      titulo: 'Ciclos Activos',
+      valor: cargando ? '...' : error ? '—' : resumen.ciclosActivos.toString(),
       icono: School,
       tono: 'text-blue-600'
     },
     {
       titulo: 'Promedio Institucional',
-      valor: cargando ? '...' : (promedioGeneral !== '--' ? `${promedioGeneral} / 20` : 'Sin registros'),
+      valor: cargando ? '...' : error ? '—' : !usuarioEsAdmin ? 'Solo administración' : (rendimientoPorCiclo.some((item) => Number(item.evaluaciones) > 0) ? `${resumen.promedioInstitucional.toFixed(2)} / 20` : 'Sin registros'),
       icono: TrendingUp,
       tono: 'text-slate-500'
     },
-    {
+    ...(usuarioEsAdmin ? [{
       titulo: 'Estudiantes Morosos',
-      valor: cargando ? '...' : totalMorosos.toString(),
+      valor: cargando ? '...' : error ? '—' : resumen.estudiantesMorosos.toString(),
       icono: DollarSign,
       tono: 'text-rose-500'
-    }
+    }] : [])
   ];
+
+  const rendimientoPorId = new Map(
+    rendimientoPorCiclo.map((item) => [String(item.idCiclo ?? item.IdCiclo), item])
+  );
 
   return (
     <div className="p-6 sm:p-8 bg-slate-50 min-h-full">
@@ -122,6 +121,13 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
           <span className="text-xs font-semibold text-slate-700">Consolidado Institucional</span>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="mb-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {kpis.map((kpi, idx) => {
@@ -169,7 +175,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
                 <div key={c.idCiclo || c.id || i} className="p-4 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center gap-3 text-xs">
                   <div className="min-w-0">
                     <span className="font-semibold text-slate-900 block text-sm truncate">{c.nombre || c.Nombre}</span>
-                    <span className="text-slate-500">Turno: {c.turno || c.Turno || 'General'}</span>
+                    <span className="text-slate-500">{c.universidadObjetivo || 'Universidad por definir'} · {c.totalAlumnos} matriculados{rendimientoPorId.has(String(c.idCiclo ?? c.id)) ? ` · Promedio ${Number(rendimientoPorId.get(String(c.idCiclo ?? c.id)).promedio).toFixed(2)} / 20` : ''}</span>
                   </div>
                   <span className="px-2.5 py-1 bg-white text-slate-700 font-semibold rounded-md border border-slate-200 shrink-0">
                     {c.estado || 'Activo'}

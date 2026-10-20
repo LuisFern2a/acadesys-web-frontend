@@ -22,7 +22,7 @@ import {
   BadgeAlert
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
-import { obtenerPerfiles, obtenerMenusPorPerfil } from '../services/api';
+import { obtenerPerfiles, obtenerMenusPorPerfil, obtenerComunicados } from '../services/api';
 import { normalizarRol, grupoDeRol, rolDeUsuario } from '../utils/roles';
 import simboloAcadeSys from '../assets/acadesys-symbol.png';
 
@@ -119,6 +119,7 @@ export default function DashboardLayout({
   const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
   const [configuracionMenu, setConfiguracionMenu] = useState(null);
   const [revisionMenu, setRevisionMenu] = useState(0);
+  const [noLeidos, setNoLeidos] = useState(0);
 
   const [openAccordions, setOpenAccordions] = useState({
     academico_grupo: true,
@@ -155,6 +156,34 @@ export default function DashboardLayout({
       window.removeEventListener('focus', cargar);
     };
   }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
+
+  useEffect(() => {
+    let activo = true;
+
+    let solicitud = 0;
+    async function cargarNoLeidos() {
+      const numero = ++solicitud;
+      try {
+        const lista = await obtenerComunicados();
+        if (!activo || numero !== solicitud) return;
+        setNoLeidos((Array.isArray(lista) ? lista : []).filter(
+          (comunicado) => !comunicado?.confirmado && !comunicado?.leido
+        ).length);
+      } catch {
+        // La campana no debe romper la navegación si el módulo no está disponible.
+        if (activo && numero === solicitud) setNoLeidos(0);
+      }
+    }
+
+    cargarNoLeidos();
+    window.addEventListener('focus', cargarNoLeidos);
+    window.addEventListener('acadesys-comunicados-actualizados', cargarNoLeidos);
+    return () => {
+      activo = false;
+      window.removeEventListener('focus', cargarNoLeidos);
+      window.removeEventListener('acadesys-comunicados-actualizados', cargarNoLeidos);
+    };
+  }, [activeTab, claveSesion]);
   // Identidad institucional AcadeSys: todos los acentos de la interfaz (menú
   // activo, punto de academia, campana y avatar) usan el azul de la marca. El
   // color de tema de la academia podía llegar naranja y rompía la identidad,
@@ -444,7 +473,7 @@ export default function DashboardLayout({
         </div>
 
         {/* NAVEGACIÓN */}
-        <nav data-menu-source={navegacion.completa ? 'database' : 'compatibility'} className="p-3 space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">
+        <nav aria-label="Navegación principal" data-menu-source={navegacion.completa ? 'database' : 'compatibility'} className="p-3 space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">
 
           {menuItemsFiltrados.map((item) => {
             const Icon = item.icon;
@@ -474,6 +503,8 @@ export default function DashboardLayout({
                   <button
                     type="button"
                     onClick={() => toggleAccordion(item.id)}
+                    aria-expanded={!collapsed && estaAbierto}
+                    title={collapsed ? item.label : undefined}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                       esSubmenuActivo
                         ? 'text-white bg-white/10 border border-white/10'
@@ -600,14 +631,18 @@ export default function DashboardLayout({
               type="button"
               onClick={() => cambiarTab('comunicados')}
               title="Avisos y Comunicados"
+              aria-label={noLeidos > 0 ? `Avisos y comunicados: ${noLeidos} sin leer` : 'Avisos y comunicados'}
               className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4" aria-hidden="true" />
 
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                style={{ backgroundColor: acentoAcadesys }}
-              />
+              {noLeidos > 0 && (
+                <span
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                  style={{ backgroundColor: acentoAcadesys }}
+                  aria-hidden="true"
+                />
+              )}
             </button>
 
             <button

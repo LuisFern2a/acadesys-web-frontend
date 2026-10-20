@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CalendarCheck, CheckCircle2, Clock, Loader2, RefreshCw, Save, Users } from 'lucide-react';
-import { obtenerCiclosPublicos, obtenerAsistenciaPorCiclo, guardarAsistenciaPorCiclo } from '../services/api';
+import { obtenerCiclosGestionActivos, obtenerAsistenciaPorCiclo, guardarAsistenciaPorCiclo } from '../services/api';
 
 const ESTADOS = [
   { value: 'presente', label: 'Presente' },
@@ -26,12 +26,15 @@ export default function AsistenciaPage() {
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const cargaSeqRef = useRef(0);
+  const guardandoRef = useRef(false);
+  const datosClaveRef = useRef('');
 
   const cargarCiclos = useCallback(async () => {
     setCargandoInicial(true);
     setMensaje(null);
     try {
-      const lista = await obtenerCiclosPublicos();
+      const lista = await obtenerCiclosGestionActivos();
       setCiclos(lista);
       setIdCiclo((actual) => actual && lista.some((c) => String(c.idCiclo) === actual)
         ? actual
@@ -46,11 +49,23 @@ export default function AsistenciaPage() {
   }, []);
 
   const cargarAsistencia = useCallback(async () => {
-    if (!idCiclo || !fecha) { setAlumnos([]); return false; }
+    const secuencia = ++cargaSeqRef.current;
+    const vigente = () => secuencia === cargaSeqRef.current;
+    datosClaveRef.current = '';
+    if (!idCiclo || !fecha) { setAlumnos([]); setCargando(false); return false; }
+    if (fecha > fechaLocalISO()) {
+      setAlumnos([]);
+      setCargando(false);
+      setMensaje({ tipo: 'error', texto: 'No puedes consultar ni registrar asistencia de una fecha futura.' });
+      return false;
+    }
     setCargando(true);
+    setAlumnos([]);
     setMensaje(null);
     try {
       const lista = await obtenerAsistenciaPorCiclo(idCiclo, fecha);
+      if (!vigente()) return false;
+      datosClaveRef.current = `${idCiclo}:${fecha}`;
       setAlumnos(lista.map((alumno) => ({
         idMatricula: Number(alumno.idMatricula ?? alumno.IdMatricula),
         idUsuario: Number(alumno.idUsuario ?? alumno.IdUsuario),
@@ -61,11 +76,12 @@ export default function AsistenciaPage() {
       })));
       return true;
     } catch (error) {
+      if (!vigente()) return false;
       setAlumnos([]);
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudo cargar la asistencia del ciclo.' });
       return false;
     } finally {
-      setCargando(false);
+      if (vigente()) setCargando(false);
     }
   }, [idCiclo, fecha]);
 
@@ -87,9 +103,13 @@ export default function AsistenciaPage() {
   };
 
   const guardar = async () => {
+    if (guardandoRef.current || cargando || datosClaveRef.current !== `${idCiclo}:${fecha}`) return;
     if (!idCiclo) { setMensaje({ tipo: 'error', texto: 'Selecciona un ciclo antes de guardar.' }); return; }
+    if (!fecha) { setMensaje({ tipo: 'error', texto: 'Selecciona una fecha antes de guardar.' }); return; }
+    if (fecha > fechaLocalISO()) { setMensaje({ tipo: 'error', texto: 'No puedes registrar asistencia de una fecha futura.' }); return; }
     if (!alumnos.length) { setMensaje({ tipo: 'error', texto: 'No hay alumnos matriculados para registrar.' }); return; }
     if (alumnos.some((a) => !estadoAsistenciaValido(a.estado))) { setMensaje({ tipo: 'error', texto: 'Selecciona un estado para cada alumno antes de guardar.' }); return; }
+    guardandoRef.current = true;
     setGuardando(true);
     setMensaje(null);
     try {
@@ -105,6 +125,7 @@ export default function AsistenciaPage() {
     } catch (error) {
       setMensaje({ tipo: 'error', texto: error.message || 'No se pudo guardar la asistencia.' });
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   };
@@ -127,13 +148,13 @@ export default function AsistenciaPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">Ciclo preuniversitario
-          <select value={idCiclo} onChange={(e) => setIdCiclo(e.target.value)} disabled={cargandoInicial || ciclos.length === 0} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">
+          <select value={idCiclo} onChange={(e) => { cargaSeqRef.current += 1; setAlumnos([]); setIdCiclo(e.target.value); }} disabled={guardando || cargandoInicial || ciclos.length === 0} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">
             {ciclos.length === 0 && <option value="">No hay ciclos activos</option>}
             {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre} · {c.turno || 'Turno por definir'}</option>)}
           </select>
         </label>
         <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">Fecha de asistencia
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600"/>
+          <input type="date" disabled={guardando} value={fecha} max={fechaLocalISO()} onChange={(e) => { cargaSeqRef.current += 1; setAlumnos([]); setFecha(e.target.value); }} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600"/>
         </label>
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-sm">
           <span className="text-slate-700"><strong className="text-slate-900">{cicloActual?.nombre || 'Sin ciclo seleccionado'}</strong> {cicloActual?.universidadObjetivo ? `· ${cicloActual.universidadObjetivo}` : ''}</span>

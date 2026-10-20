@@ -13,22 +13,8 @@ import {
   TrendingUp,
   UserRound,
 } from 'lucide-react';
-import { consultarTutorIA, fetchWithAuth } from '../services/api';
-
-const ESCALAS_POR_UNIVERSIDAD = {
-  UNMSM: 2000,
-  UNI: 2000,
-  PUCP: 1000,
-  UNFV: 1000,
-  UNAC: 100,
-  UNT: 300,
-  Preuniversitario: 20,
-};
-
-function obtenerEscala(universidad) {
-  const nombre = String(universidad || '').trim();
-  return ESCALAS_POR_UNIVERSIDAD[nombre] ?? 2000;
-}
+import { consultarTutorIA, obtenerMiIntranetAlumno } from '../services/api';
+import { escalaPorUniversidad, promedioCalificaciones } from '../utils/calificaciones';
 
 function horaActual() {
   return new Date().toLocaleTimeString('es-PE', {
@@ -41,6 +27,7 @@ function agruparCursos(historial = []) {
   const mapa = new Map();
 
   for (const nota of historial) {
+    if (nota.calificacion === null || nota.calificacion === undefined || nota.calificacion === '') continue;
     const curso = String(nota.curso || 'Simulacro general');
     const calificacion = Number(nota.calificacion);
     if (!Number.isFinite(calificacion)) continue;
@@ -79,6 +66,8 @@ export default function TutorIAPage() {
   const [planEstudio, setPlanEstudio] = useState(null);
   const [analizandoPlan, setAnalizandoPlan] = useState(false);
   const chatFinRef = useRef(null);
+  const planEnCursoRef = useRef(false);
+  const respuestaEnCursoRef = useRef(false);
 
   const sesion = useMemo(() => {
     try {
@@ -98,13 +87,7 @@ export default function TutorIAPage() {
     setErrorExpediente('');
 
     try {
-      const response = await fetchWithAuth('/api/alumno/me');
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || `Error HTTP ${response.status}`);
-      }
-
+      const data = await obtenerMiIntranetAlumno();
       setExpediente(data);
     } catch (error) {
       setErrorExpediente(error.message || 'No se pudo cargar tu expediente académico.');
@@ -121,12 +104,10 @@ export default function TutorIAPage() {
   const alumno = expediente?.usuario || {};
   const ciclo = expediente?.ciclo || null;
   const notas = expediente?.notas || {};
-  const historial = Array.isArray(notas.historial) ? notas.historial : [];
+  const historial = useMemo(() => Array.isArray(expediente?.notas?.historial) ? expediente.notas.historial : [], [expediente]);
   const cursos = useMemo(() => agruparCursos(historial), [historial]);
-  const escalaMaxima = obtenerEscala(ciclo?.universidadObjetivo);
-  const promedioGeneral = historial.length > 0 && Number.isFinite(Number(notas.promedioGeneral))
-    ? Number(notas.promedioGeneral)
-    : null;
+  const escalaMaxima = escalaPorUniversidad(ciclo?.universidadObjetivo);
+  const promedioGeneral = promedioCalificaciones(historial.map((nota) => nota.calificacion));
   const puestoRanking = notas.puestoRanking ?? null;
   const nombreAlumno = alumno.nombreCompleto || [alumno.nombres, alumno.apellidoPaterno, alumno.apellidoMaterno]
     .filter(Boolean)
@@ -149,8 +130,9 @@ export default function TutorIAPage() {
   }, [mensajes, cargandoRespuesta]);
 
   const generarPlanPedagogico = async () => {
-    if (!expediente || analizandoPlan) return;
+    if (!expediente || planEnCursoRef.current) return;
 
+    planEnCursoRef.current = true;
     setAnalizandoPlan(true);
     setPlanEstudio(null);
 
@@ -176,23 +158,17 @@ export default function TutorIAPage() {
         error: true,
       });
     } finally {
+      planEnCursoRef.current = false;
       setAnalizandoPlan(false);
     }
   };
 
-  useEffect(() => {
-    if (expediente && !cargandoExpediente && !errorExpediente) {
-      generarPlanPedagogico();
-    }
-  // Se genera una vez por carga/cambio real del expediente.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expediente, cargandoExpediente, errorExpediente]);
-
   const handleEnviarMensaje = async (event) => {
     event.preventDefault();
     const pregunta = inputMensaje.trim();
-    if (!pregunta || cargandoRespuesta) return;
+    if (!pregunta || respuestaEnCursoRef.current) return;
 
+    respuestaEnCursoRef.current = true;
     setInputMensaje('');
     setMensajes((actuales) => [
       ...actuales,
@@ -217,6 +193,7 @@ export default function TutorIAPage() {
         },
       ]);
     } finally {
+      respuestaEnCursoRef.current = false;
       setCargandoRespuesta(false);
     }
   };

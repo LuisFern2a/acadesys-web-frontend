@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import useModalDialog from '../hooks/useModalDialog';
 import Swal from 'sweetalert2';
 import {
   Lock,
@@ -29,12 +30,12 @@ import {
 import logoAcadeSys from '../assets/acadesys-logo.png';
 import heroAcademico from '../assets/hero.png';
 import {
-  API_URL,
   obtenerCiclosPublicos,
   obtenerCursosCiclo,
   verificarMatriculaExistente,
   procesarCheckoutMatricula,
-  guardarSesion
+  iniciarSesion,
+  limpiarSesion
 } from '../services/api';
 import { grupoDeRol } from '../utils/roles';
 
@@ -97,11 +98,11 @@ const formatearFecha = (valor = '') => {
   return fecha.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-// El precio solo se muestra cuando es un monto real: se descartan 0 y 1, que en
-// la base figuran como valores de relleno.
+// Cero y uno también son precios válidos según el contrato del backend.
 const precioValido = (precio) => {
+  if (precio === null || precio === undefined || precio === '') return false;
   const numero = Number(precio);
-  return Number.isFinite(numero) && numero > 1;
+  return Number.isFinite(numero) && numero >= 0;
 };
 
 // --- Contacto oficial ---
@@ -221,6 +222,19 @@ export default function LandingPage({ onLoginSuccess }) {
   const [areasCargadas, setAreasCargadas] = useState(false);
   const areasRef = React.useRef(null);
   const areasSolicitadasRef = React.useRef(false);
+  const verificacionSeqRef = React.useRef(0);
+  const procesandoPagoRef = React.useRef(false);
+  const loginRef = React.useRef(false);
+  const detalleSeqRef = React.useRef(0);
+  const cerrarDetalle = () => { detalleSeqRef.current += 1; setCicloDetalle(null); };
+  const authDialogRef = useModalDialog(authModal === 'login', () => { if (!loading) setAuthModal(null); }, loading);
+  const checkoutDialogRef = useModalDialog(Boolean(cicloSeleccionado), () => {
+    if (!procesandoPagoRef.current && !verificandoCorreo) {
+      verificacionSeqRef.current += 1;
+      setCicloSeleccionado(null);
+    }
+  }, procesandoPago || verificandoCorreo);
+  const detalleDialogRef = useModalDialog(Boolean(cicloDetalle), cerrarDetalle);
 
   const resetFormStates = () => {
     setError(null);
@@ -369,6 +383,7 @@ export default function LandingPage({ onLoginSuccess }) {
     : universidadesAgrupadas.filter((u) => u.clave === filtroActivo);
 
   const abrirDetalleCiclo = async (ciclo) => {
+    const secuencia = ++detalleSeqRef.current;
     const idCiclo = ciclo.idCiclo ?? ciclo.id;
     setError(null);
     setCargandoDetalle(true);
@@ -378,23 +393,32 @@ export default function LandingPage({ onLoginSuccess }) {
     });
     try {
       const cursos = await obtenerCursosCiclo(idCiclo);
+      if (secuencia !== detalleSeqRef.current) return;
       setCicloDetalle({
         ...ciclo,
         cursos: Array.isArray(cursos) ? cursos : []
       });
     } catch (err) {
+      if (secuencia !== detalleSeqRef.current) return;
       console.warn('No se pudo cargar el detalle del ciclo:', err);
       setCicloDetalle({
         ...ciclo,
         cursos: []
       });
     } finally {
-      setCargandoDetalle(false);
+      if (secuencia === detalleSeqRef.current) setCargandoDetalle(false);
     }
   };
 
   const abrirCheckout = (ciclo) => {
+    const capacidad = Number(ciclo.capacidad || 0);
+    if (!ciclo.idCiclo || ciclo.disponible === false || (capacidad > 0 && Number(ciclo.totalAlumnos || 0) >= capacidad)) {
+      Swal.fire({ icon: 'info', title: 'Sin vacantes disponibles', text: 'Este ciclo ya no admite nuevas inscripciones. Selecciona otro ciclo.', confirmButtonColor: '#2563eb' });
+      return;
+    }
     setError(null);
+    verificacionSeqRef.current += 1;
+    procesandoPagoRef.current = false;
     setCheckoutData({
       nombres: '',
       apellidos: '',
@@ -409,6 +433,7 @@ export default function LandingPage({ onLoginSuccess }) {
   const cerrarCheckout = () => {
     if (procesandoPago || verificandoCorreo) return;
 
+    verificacionSeqRef.current += 1;
     setCicloSeleccionado(null);
     setVerificacionMatricula(null);
     setCheckoutErrors({});
@@ -466,6 +491,8 @@ export default function LandingPage({ onLoginSuccess }) {
 
     setVerificacionMatricula(null);
     setError(null);
+    verificacionSeqRef.current += 1;
+    setVerificandoCorreo(false);
   };
 
   const verificarCorreoParaCheckout = async (correoIngresado) => {
@@ -473,11 +500,15 @@ export default function LandingPage({ onLoginSuccess }) {
     const idCiclo = cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id;
     if (!correo || !idCiclo) return false;
 
+    const secuencia = ++verificacionSeqRef.current;
+    const vigente = () => secuencia === verificacionSeqRef.current;
+
     setVerificandoCorreo(true);
     setError(null);
 
     try {
       const resultado = await verificarMatriculaExistente(correo, idCiclo);
+      if (!vigente()) return false;
 
       if (!resultado.existe) {
         setVerificacionMatricula({ ...resultado, correoVerificado: correo, autorizado: true });
@@ -528,6 +559,7 @@ export default function LandingPage({ onLoginSuccess }) {
         background: '#ffffff',
         color: '#0f172a'
       });
+      if (!vigente()) return false;
 
       setVerificacionMatricula({
         ...resultado,
@@ -536,6 +568,7 @@ export default function LandingPage({ onLoginSuccess }) {
       });
       return confirmacion.isConfirmed;
     } catch (err) {
+      if (!vigente()) return false;
       setVerificacionMatricula(null);
       await Swal.fire({
         icon: 'error',
@@ -548,18 +581,20 @@ export default function LandingPage({ onLoginSuccess }) {
       });
       return false;
     } finally {
-      setVerificandoCorreo(false);
+      if (vigente()) setVerificandoCorreo(false);
     }
   };
 
   const handlePagarCheckout = async (e) => {
     e.preventDefault();
 
-    if (procesandoPago || verificandoCorreo) return;
+    if (procesandoPagoRef.current || procesandoPago || verificandoCorreo) return;
 
     setError(null);
 
     if (!validarCheckout()) return;
+
+    procesandoPagoRef.current = true;
 
     const correoNormalizado = checkoutData.correo.trim().toLowerCase();
     let autorizado =
@@ -567,7 +602,7 @@ export default function LandingPage({ onLoginSuccess }) {
       verificacionMatricula?.autorizado === true;
 
     if (!autorizado) autorizado = await verificarCorreoParaCheckout(correoNormalizado);
-    if (!autorizado) return;
+    if (!autorizado) { procesandoPagoRef.current = false; return; }
 
     setProcesandoPago(true);
 
@@ -583,8 +618,6 @@ export default function LandingPage({ onLoginSuccess }) {
     });
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       const resultado = await procesarCheckoutMatricula({
         idCiclo: cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id,
         nombres: checkoutData.nombres.trim(),
@@ -609,77 +642,49 @@ export default function LandingPage({ onLoginSuccess }) {
       window.location.href = '/';
     } catch (err) {
       Swal.close();
-      setError(err.message || 'Error al procesar la matrícula.');
+      // Mostrar mensaje comprensible para errores 502 (backend sin configuración
+      // de GOOGLE_SCRIPT_URL u otros errores de servidor).
+      if (err.status === 502) {
+        setError('No se pudo completar el registro ni enviar el correo de acceso. Vuelve a intentarlo en unos minutos.');
+      } else {
+        setError(err.message || 'Error al procesar la matrícula.');
+      }
     } finally {
+      procesandoPagoRef.current = false;
       setProcesandoPago(false);
     }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    if (loginRef.current) return;
+    loginRef.current = true;
     setLoading(true);
     setError(null);
-    const inputUser = loginData.usuario.trim().replace(/\s+/g, '');
-    const inputPass = loginData.password.trim();
+    const inputUser = loginData.usuario.trim();
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usuario: inputUser,
-          codigoUsuario: inputUser,
-          correo: inputUser,
-          password: inputPass,
-          clave: inputPass
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || data.mensaje || data.message || 'Credenciales inválidas.');
-      }
-      const grupoRecibido = grupoDeRol(data.rol || data.perfil || data.NombrePerfil);
-      const idPerfilRecibido = (data.idPerfil || data.IdPerfil || data.id_perfil || '').toString();
-      
+      const data = await iniciarSesion(inputUser, loginData.password);
+      const sessionUser = data.sesion;
+      const grupoRecibido = grupoDeRol(sessionUser.rol);
+
       if (rolEsperado) {
         const grupoEsperado = grupoDeRol(MAPA_ROLES[rolEsperado]);
-        const coincideId = idPerfilRecibido === rolEsperado;
         const coincideNombre = grupoRecibido !== null && grupoRecibido === grupoEsperado;
-        if (!coincideId && !coincideNombre) {
-          const perfilCuenta = data.rol || data.perfil || data.NombrePerfil || 'Usuario';
+        if (!coincideNombre) {
+          limpiarSesion();
+          const perfilCuenta = sessionUser.rol || 'Usuario';
           throw new Error(
             `Acceso restringido: Esta cuenta tiene asignado el perfil "${perfilCuenta}" y no puede ingresar por el portal de ${MAPA_ROLES[rolEsperado]}. Por favor ingresa por la tarjeta correspondiente.`
           );
         }
       }
-      
-      const academia = data.academia || {};
-      const sessionUser = {
-        idUsuario: data.idUsuario ?? data.user?.idUsuario ?? data.user?.id,
-        nombre: data.usuario || data.nombres || data.nombre || inputUser,
-        correo: data.correo ?? data.user?.correo,
-        dni: data.dni ?? data.user?.dni,
-        codigoUsuario: data.codigoUsuario ?? data.user?.codigoUsuario,
-        rol: data.rol || data.perfil || data.NombrePerfil || '',
-        idPerfil: idPerfilRecibido || null,
-        token: data.token || data.jwt || data.accessToken,
-        idAcademia: data.idAcademia || academia.idAcademia || academia.id || null,
-        colorTema: academia.colorTema || data.colorTema || '#2563eb',
-        logoUrl: academia.logoUrl || data.logoUrl || null,
-        nombreAcademia: academia.nombreAcademia || data.nombreAcademia || 'AcadeSys'
-      };
-      if (!sessionUser.token) {
-        throw new Error('El servidor no devolvió un token de sesión válido.');
-      }
-      if (!sessionUser.rol) {
-        throw new Error('El servidor no devolvió un perfil válido para tu cuenta.');
-      }
-      // Persistencia coherente: el token va a `acadesys_token` y el objeto de
-      // sesión (sin token duplicado) a `acadesys_session`.
-      guardarSesion(sessionUser);
+
       onLoginSuccess(sessionUser);
     } catch (err) {
+      limpiarSesion();
       setError(err.message || 'Error al iniciar sesión con el servidor.');
     } finally {
+      loginRef.current = false;
       setLoading(false);
     }
   };
@@ -930,7 +935,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 const capacidad = Number(ciclo.capacidad || 0);
                 const inscritos = Number(ciclo.totalAlumnos || 0);
                 const vacantes = Math.max(capacidad - inscritos, 0);
-                const cupoCompleto = capacidad > 0 && vacantes <= 0;
+                const cupoCompleto = ciclo.disponible === false || (capacidad > 0 && vacantes <= 0);
 
                 return (
                   <article
@@ -1299,6 +1304,7 @@ export default function LandingPage({ onLoginSuccess }) {
       {authModal === 'login' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#0F172A]/80 p-4 sm:p-6"
+          ref={authDialogRef} role="dialog" aria-modal="true" aria-label="Iniciar sesión" tabIndex={-1}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeModal();
           }}
@@ -1417,13 +1423,13 @@ export default function LandingPage({ onLoginSuccess }) {
         <div
           className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#0F172A]/80"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setCicloDetalle(null);
+            if (e.target === e.currentTarget) cerrarDetalle();
           }}
         >
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-7 shadow-xl">
+          <div ref={detalleDialogRef} role="dialog" aria-modal="true" aria-label="Detalle del ciclo" tabIndex={-1} className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-7 shadow-xl">
             <button
               type="button"
-              onClick={() => setCicloDetalle(null)}
+              onClick={cerrarDetalle}
               className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 rounded-lg transition-colors"
               aria-label="Cerrar detalle del ciclo"
             >
@@ -1532,7 +1538,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <button
                 type="button"
                 onClick={() => {
-                  setCicloDetalle(null);
+                  cerrarDetalle();
                   abrirCheckout(cicloDetalle);
                 }}
                 className="px-5 py-3 rounded-lg bg-blue-700 hover:bg-blue-600 text-white text-sm font-bold transition-colors"
@@ -1547,7 +1553,7 @@ export default function LandingPage({ onLoginSuccess }) {
       {/* MODAL CHECKOUT DE MATRÍCULA */}
       {cicloSeleccionado && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#0F172A]/80">
-          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl p-8 shadow-xl">
+          <div ref={checkoutDialogRef} role="dialog" aria-modal="true" aria-label="Inscripción" tabIndex={-1} className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl p-8 shadow-xl">
             <button type="button" onClick={cerrarCheckout} className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-700 rounded-lg transition-colors" aria-label="Cerrar inscripción">
               <X className="w-5 h-5" />
             </button>

@@ -1,8 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Loader2, RefreshCw, Search, Trophy, Users, AlertCircle } from 'lucide-react';
-import { obtenerCiclosPublicos, obtenerContextoNotas, obtenerMatriculasNotas, obtenerNotas } from '../services/api';
+import { obtenerCiclosGestionActivos, obtenerContextoNotas, obtenerMatriculasNotas, obtenerNotas } from '../services/api';
 
-const TIPOS = ['Simulacro', 'Examen', 'Practica', 'Oral', 'Tarea', 'Participacion', 'Todos'];
+const TIPOS = [
+  { value: 'Simulacro', label: 'Simulacro' },
+  { value: 'Examen', label: 'Examen' },
+  { value: 'Practica', label: 'Práctica' },
+  { value: 'Evaluacion', label: 'Evaluación' },
+  { value: 'Todos', label: 'Todas las evaluaciones (promedio)' }
+];
 const normalizarTipo = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function CalificacionesPage() {
@@ -16,12 +22,13 @@ export default function CalificacionesPage() {
   const [cargandoCiclos, setCargandoCiclos] = useState(true);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const cargaSeqRef = useRef(0);
 
   const cargarCiclos = useCallback(async () => {
     setCargandoCiclos(true);
     setError('');
     try {
-      const lista = await obtenerCiclosPublicos();
+      const lista = await obtenerCiclosGestionActivos();
       setCiclos(lista);
       setIdCiclo((actual) => actual && lista.some((c) => String(c.idCiclo) === actual)
         ? actual : (lista.length ? String(lista[0].idCiclo) : ''));
@@ -34,6 +41,8 @@ export default function CalificacionesPage() {
 
   const cargarResultados = useCallback(async () => {
     if (!idCiclo) { setMatriculas([]); setNotas([]); setContexto(null); return; }
+    const secuencia = ++cargaSeqRef.current;
+    const vigente = () => secuencia === cargaSeqRef.current;
     setCargando(true);
     setError('');
     try {
@@ -42,6 +51,7 @@ export default function CalificacionesPage() {
         obtenerMatriculasNotas(idCiclo),
         obtenerNotas()
       ]);
+      if (!vigente()) return;
       const ids = new Set(listaMatriculas.map((m) => Number(m.idMatricula ?? m.IdMatricula)));
       setContexto(ctx);
       setMatriculas(listaMatriculas.map((m) => ({
@@ -51,9 +61,10 @@ export default function CalificacionesPage() {
       })));
       setNotas(listaNotas.filter((n) => ids.has(Number(n.IdMatricula ?? n.idMatricula))));
     } catch (err) {
+      if (!vigente()) return;
       setContexto(null); setMatriculas([]); setNotas([]);
       setError(err.message || 'No se pudo cargar el cuadro de mérito del ciclo.');
-    } finally { setCargando(false); }
+    } finally { if (vigente()) setCargando(false); }
   }, [idCiclo]);
 
   useEffect(() => { cargarCiclos(); }, [cargarCiclos]);
@@ -62,27 +73,32 @@ export default function CalificacionesPage() {
   const resultados = useMemo(() => {
     const tipoFiltro = normalizarTipo(tipo);
     const lista = matriculas.map((m) => {
-      const evaluaciones = notas.filter((n) => Number(n.IdMatricula ?? n.idMatricula) === m.idMatricula &&
+      const evaluaciones = notas.filter((n) => 
+        Number(n.IdMatricula ?? n.idMatricula) === m.idMatricula &&
+        // Excluir notas con baja lógica (estadoRegistro = -1)
+        (n.estadoRegistro ?? n.EstadoRegistro) !== -1 &&
         (tipo === 'Todos' || normalizarTipo(n.TipoEvaluacion ?? n.tipoEvaluacion) === tipoFiltro));
-      const puntajes = evaluaciones.map((n) => Number(n.Calificacion ?? n.calificacion)).filter(Number.isFinite);
+      const puntajes = evaluaciones
+        .map((n) => n.Calificacion ?? n.calificacion)
+        .filter((valor) => valor !== null && valor !== undefined && valor !== '')
+        .map((valor) => Number(valor))
+        .filter(Number.isFinite);
       const promedio = puntajes.length ? puntajes.reduce((a,b) => a + b, 0) / puntajes.length : null;
       return { ...m, evaluaciones: puntajes.length, promedio };
-    }).filter((m) => !busqueda.trim() || `${m.nombre} ${m.codigo}`.toLowerCase().includes(busqueda.trim().toLowerCase()));
+    });
     lista.sort((a,b) => {
       if (a.promedio === null && b.promedio === null) return a.nombre.localeCompare(b.nombre);
       if (a.promedio === null) return 1;
       if (b.promedio === null) return -1;
       return b.promedio - a.promedio || a.nombre.localeCompare(b.nombre);
     });
-    let last = null; let lastRank = 0;
-    return lista.map((m,index) => {
-      const rank = m.promedio === null ? null : (last !== null && Math.abs(m.promedio - last) < 0.000001 ? lastRank : index + 1);
-      if (m.promedio !== null) { last = m.promedio; lastRank = rank; }
+    return lista.map((m) => {
+      const rank = m.promedio === null ? null : lista.findIndex((item) => item.promedio !== null && Math.abs(item.promedio - m.promedio) < 0.000001) + 1;
       const total = lista.filter((x) => x.promedio !== null).length;
       const percentile = rank && total ? rank / total : null;
       const clasificacion = !rank ? 'Sin evaluación' : rank === 1 ? 'Primer puesto' : percentile <= .10 ? 'Top 10%' : percentile <= .25 ? 'Top 25%' : 'En ranking';
       return { ...m, puesto: rank, clasificacion };
-    });
+    }).filter((m) => !busqueda.trim() || `${m.nombre} ${m.codigo}`.toLowerCase().includes(busqueda.trim().toLowerCase()));
   }, [matriculas, notas, tipo, busqueda]);
 
   const totalConNota = resultados.filter((r) => r.promedio !== null).length;
@@ -112,7 +128,7 @@ export default function CalificacionesPage() {
           <select value={idCiclo} onChange={(e) => setIdCiclo(e.target.value)} disabled={cargandoCiclos || !ciclos.length} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">{!ciclos.length && <option value="">No hay ciclos activos</option>}{ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}</select>
         </label>
         <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Evaluación para el ranking
-          <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">{TIPOS.map((t) => <option key={t} value={t}>{t === 'Todos' ? 'Todas las evaluaciones (promedio)' : t}</option>)}</select>
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-600">{TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
         </label>
         <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm"><span><strong>{contexto?.ciclo || cicloActual?.nombre || 'Sin ciclo seleccionado'}</strong>{contexto?.universidadObjetivo ? ` · ${contexto.universidadObjetivo}` : ''}</span><span className="text-slate-500">Escala de puntaje: {escalaMaxima || 'no disponible'} · Alumnos matriculados: {matriculas.length} · Con nota: {totalConNota}</span></div>
       </section>

@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
 
@@ -29,7 +29,7 @@ import {
 
   guardarNotasDocente,
 
-  obtenerCiclosPublicos,
+  obtenerCiclosGestionActivos,
 
   obtenerContextoNotas,
 
@@ -82,7 +82,16 @@ export default function RegistroNotasPage() {
 
   const escalaMaxima = contexto?.escalaMaxima ?? null;
 
-  const escalaLista = Number.isFinite(Number(escalaMaxima));
+  const escalaNumerica = Number(escalaMaxima);
+
+  const escalaLista =
+    escalaMaxima !== null &&
+    escalaMaxima !== '' &&
+    Number.isFinite(escalaNumerica) &&
+    escalaNumerica > 0;
+
+  const guardandoRef = useRef(false);
+  const cargaSeqRef = useRef(0);
 
 
 
@@ -96,7 +105,7 @@ export default function RegistroNotasPage() {
 
 
 
-      const lista = await obtenerCiclosPublicos();
+      const lista = await obtenerCiclosGestionActivos();
 
       setCiclos(lista);
 
@@ -140,7 +149,8 @@ export default function RegistroNotasPage() {
 
     if (!idCiclo) return false;
 
-
+    const secuencia = ++cargaSeqRef.current;
+    const vigente = () => secuencia === cargaSeqRef.current;
 
     try {
 
@@ -166,7 +176,7 @@ export default function RegistroNotasPage() {
 
       ]);
 
-
+      if (!vigente()) return false;
 
       setContexto(contextoApi);
 
@@ -210,19 +220,23 @@ export default function RegistroNotasPage() {
 
       console.error(error);
 
-      setErrorCarga(error.message || 'No se pudo cargar el registro de notas.');
+      if (vigente()) {
 
-      setContexto(null);
+        setErrorCarga(error.message || 'No se pudo cargar el registro de notas.');
 
-      setEstudiantes([]);
+        setContexto(null);
 
-      setEvaluaciones([]);
+        setEstudiantes([]);
+
+        setEvaluaciones([]);
+
+      }
 
       return false;
 
     } finally {
 
-      setCargando(false);
+      if (vigente()) setCargando(false);
 
     }
 
@@ -327,17 +341,18 @@ export default function RegistroNotasPage() {
 
 
 
-    if (!/^\d+$/.test(valorCrudo)) return;
+    const valor = valorCrudo.replace(',', '.');
+    if (!/^\d+(\.\d{0,2})?$/.test(valor)) return;
 
 
 
-    const numero = Number(valorCrudo);
+    const numero = Number(valor);
 
 
 
     if (
 
-      !Number.isInteger(numero) ||
+      !Number.isFinite(numero) ||
 
       numero < NOTA_MINIMA ||
 
@@ -357,7 +372,7 @@ export default function RegistroNotasPage() {
 
         Number(estudiante.idMatricula) === Number(idMatricula)
 
-          ? { ...estudiante, calificacion: numero }
+          ? { ...estudiante, calificacion: valor }
 
           : estudiante
 
@@ -397,7 +412,7 @@ export default function RegistroNotasPage() {
 
 
 
-    if (!/^\d$/.test(event.key)) {
+    if (!/^[\d.,]$/.test(event.key) && event.key !== 'Enter' && event.key !== 'Escape') {
 
       event.preventDefault();
 
@@ -409,9 +424,27 @@ export default function RegistroNotasPage() {
 
   const handleGuardar = async () => {
 
-    if (!idCiclo || !escalaLista || guardando) return;
+    if (!idCiclo || !escalaLista || guardandoRef.current || cargando || String(contexto?.idCiclo) !== String(idCiclo)) return;
 
+    const vaciasPersistidas = estudiantes.filter(
+      (estudiante) =>
+        estudiante.idEvaluacion &&
+        (estudiante.calificacion === '' ||
+          estudiante.calificacion === null ||
+          estudiante.calificacion === undefined)
+    );
 
+    if (vaciasPersistidas.length > 0) {
+      await Swal.fire({
+        title: 'No se puede borrar una nota registrada',
+        text: 'La API no permite eliminar calificaciones ya guardadas. Vuelve a escribir la nota anterior o usa otro valor antes de guardar.',
+        icon: 'warning',
+        confirmButtonColor: '#2563eb',
+        background: '#ffffff',
+        color: '#0f172a'
+      });
+      return;
+    }
 
     const conNota = estudiantes.filter(
 
@@ -457,7 +490,7 @@ export default function RegistroNotasPage() {
 
       return (
 
-        !Number.isInteger(valor) ||
+        !Number.isFinite(valor) ||
 
         valor < NOTA_MINIMA ||
 
@@ -495,6 +528,8 @@ export default function RegistroNotasPage() {
 
     try {
 
+      guardandoRef.current = true;
+
       setGuardando(true);
 
 
@@ -530,7 +565,7 @@ export default function RegistroNotasPage() {
 
       if (existentes.length > 0) {
 
-        await Promise.all(
+        const resultados = await Promise.allSettled(
 
           existentes.map((estudiante) =>
 
@@ -546,21 +581,24 @@ export default function RegistroNotasPage() {
 
         );
 
+        const fallo = resultados.find((resultado) => resultado.status === 'rejected');
+        if (fallo) throw fallo.reason;
+
       }
 
 
 
-      await cargarRegistro();
+      const sincronizado = await cargarRegistro();
 
 
 
       await Swal.fire({
 
-        title: 'Calificaciones guardadas',
+        title: sincronizado ? 'Calificaciones guardadas' : 'Guardado confirmado; consulta pendiente',
 
-        text: 'Las calificaciones fueron sincronizadas con la base de datos.',
+        text: sincronizado ? 'Las calificaciones fueron sincronizadas con la base de datos.' : 'La API confirmó el guardado, pero no se pudo recargar el registro. Reintenta la consulta antes de volver a guardar.',
 
-        icon: 'success',
+        icon: sincronizado ? 'success' : 'warning',
 
         confirmButtonColor: '#2563eb',
 
@@ -606,6 +644,8 @@ export default function RegistroNotasPage() {
 
     } finally {
 
+      guardandoRef.current = false;
+
       setGuardando(false);
 
     }
@@ -627,6 +667,13 @@ export default function RegistroNotasPage() {
     () =>
 
       estudiantes
+
+        .filter(
+          (estudiante) =>
+            estudiante.calificacion !== '' &&
+            estudiante.calificacion !== null &&
+            estudiante.calificacion !== undefined
+        )
 
         .map((estudiante) => Number(estudiante.calificacion))
 
@@ -650,13 +697,13 @@ export default function RegistroNotasPage() {
 
         ).toFixed(1)
 
-      : '0.0';
+      : '—';
 
 
 
   const maxLength = escalaLista
 
-    ? String(Math.trunc(Number(escalaMaxima))).length
+    ? String(Math.trunc(Number(escalaMaxima))).length + 3
 
     : 4;
 
@@ -1086,7 +1133,9 @@ export default function RegistroNotasPage() {
 
                           type="text"
 
-                          inputMode="numeric"
+                          aria-label={`Calificación de ${estudiante.nombre}`}
+
+                          inputMode="decimal"
 
                           disabled={!escalaLista || guardando}
 

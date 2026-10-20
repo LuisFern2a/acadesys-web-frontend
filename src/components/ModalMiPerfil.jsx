@@ -16,6 +16,7 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { actualizarMiUsuario, obtenerMiUsuario } from '../services/api';
+import useModalDialog from '../hooks/useModalDialog';
 
 export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario }) {
   if (!isOpen) return null;
@@ -48,6 +49,8 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
   const [error, setError] = useState('');
   const [registroActual, setRegistroActual] = useState(null);
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
+  const guardandoRef = useRef(false);
+  const dialogRef = useModalDialog(true, onClose, guardando);
   const cierreRef = useRef(null);
   const fotoTemporalRef = useRef(null);
   const idUsuario = user?.idUsuario ?? user?.IdUsuario ?? user?.id;
@@ -115,7 +118,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (guardando) return;
+    if (guardandoRef.current) return;
     setError('');
     setMensajeExito(false);
     if (tabActiva === 'seguridad' || passwordActual || nuevoPassword || confirmPassword) {
@@ -134,7 +137,16 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
       setError('Ingresa tus nombres y un DNI de 8 dígitos, o deja el DNI vacío si no está registrado.');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim())) {
+      setError('Ingresa un correo electrónico válido.');
+      return;
+    }
+    if (telefono && !/^\+?[\d ()-]{7,20}$/.test(telefono)) {
+      setError('Revisa el número de teléfono.');
+      return;
+    }
 
+    guardandoRef.current = true;
     setGuardando(true);
     try {
       // Autoservicio: el backend identifica al usuario por su sesión y solo
@@ -170,19 +182,21 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
     } catch (err) {
       setError(err.message || 'No se pudo guardar el perfil.');
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Mi perfil" tabIndex={-1} className="bg-white rounded-2xl w-full max-w-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* ENCABEZADO INSTITUCIONAL */}
         <div className="relative bg-white border-b border-slate-200 p-6 shrink-0">
           <button
             type="button"
             onClick={onClose}
+            disabled={guardando}
             aria-label="Cerrar"
             className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
@@ -505,17 +519,18 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
             <button
               type="button"
               onClick={onClose}
+              disabled={guardando}
               className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
             >
               Cerrar
             </button>
-            <button
+            {tabActiva === 'general' && <button
               type="submit"
               disabled={guardando || cargandoPerfil || !registroActual}
               className="px-6 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {guardando ? 'Guardando...' : 'Guardar Configuración'}
-            </button>
+              {guardando ? 'Guardando...' : 'Guardar datos personales'}
+            </button>}
           </div>
         </form>
       </div>

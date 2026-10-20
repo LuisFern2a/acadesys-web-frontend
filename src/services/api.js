@@ -1,6 +1,107 @@
 
-// âœ… DEBE LLEVAR "export":
+// URL única de la API. No se hardcodean endpoints en las páginas.
 export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
+
+// Importar helper de validación de calificaciones (entero, sin redondear).
+import { calificacionEntera } from '../utils/calificaciones.js';
+
+// ==========================================
+// NORMALIZACIÓN CENTRAL DE RESPUESTAS
+// ==========================================
+// El backend mezcla respuestas en camelCase y PascalCase según el módulo.
+// Estas funciones convierten una sola vez y evitan que cada página improvise.
+export function normalizarListaRespuesta(payload, claves = [], profundidad = 0) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object' || profundidad > 3) return [];
+  for (const clave of [...claves, 'data', 'datos', 'items', 'resultados']) {
+    if (Array.isArray(payload[clave])) return payload[clave];
+  }
+  for (const clave of ['data', 'datos']) {
+    if (payload[clave] && typeof payload[clave] === 'object') {
+      const lista = normalizarListaRespuesta(payload[clave], claves, profundidad + 1);
+      if (lista.length) return lista;
+    }
+  }
+  return [];
+}
+
+export function mensajeErrorApi(error, mensajePorDefecto = 'No se pudo completar la operación.') {
+  const status = Number(error?.status);
+  if (status === 409) return error?.message || 'Ya existe un registro con esos datos.';
+  if (status === 413) return 'El archivo supera el tamaño máximo permitido por el servidor.';
+  if (status === 403) return error?.message || 'No tienes permisos para realizar esta acción.';
+  return error?.message || mensajePorDefecto;
+}
+
+const numeroSeguro = (valor, defecto = 0) => {
+  if (valor === null || valor === undefined || (typeof valor === 'string' && valor.trim() === '')) return defecto;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : defecto;
+};
+
+export function normalizarCiclo(ciclo = {}) {
+  const estadoRegistro = numeroSeguro(ciclo.estadoRegistro ?? ciclo.EstadoRegistro, null);
+  const totalAlumnos = numeroSeguro(ciclo.totalAlumnos ?? ciclo.TotalAlumnos ?? ciclo.alumnos, 0);
+  const capacidad = numeroSeguro(ciclo.capacidad ?? ciclo.Capacidad, 0);
+  const vacantes = ciclo.vacantesDisponibles ?? ciclo.VacantesDisponibles;
+  return {
+    ...ciclo,
+    idCiclo: numeroSeguro(ciclo.idCiclo ?? ciclo.IdCiclo ?? ciclo.id, null),
+    nombre: String(ciclo.nombre ?? ciclo.Nombre ?? '').trim(),
+    turno: ciclo.turno ?? ciclo.Turno ?? '',
+    horario: ciclo.horario ?? ciclo.Horario ?? '',
+    diasClase: ciclo.diasClase ?? ciclo.DiasClase ?? '',
+    universidadObjetivo: ciclo.universidadObjetivo ?? ciclo.UniversidadObjetivo ?? '',
+    fechaInicio: ciclo.fechaInicio ?? ciclo.FechaInicio ?? null,
+    fechaFin: ciclo.fechaFin ?? ciclo.FechaFin ?? null,
+    precio: numeroSeguro(ciclo.precio ?? ciclo.Precio, 0),
+    capacidad,
+    totalAlumnos,
+    totalCursos: numeroSeguro(ciclo.totalCursos ?? ciclo.TotalCursos, 0),
+    totalEvaluaciones: numeroSeguro(ciclo.totalEvaluaciones ?? ciclo.TotalEvaluaciones, 0),
+    vacantesDisponibles: vacantes === undefined || vacantes === null ? null : numeroSeguro(vacantes, 0),
+    prefijoCodigo: ciclo.prefijoCodigo ?? ciclo.PrefijoCodigo ?? ciclo.prefijo ?? '',
+    estadoRegistro,
+    publicar: estadoRegistro === null ? Boolean(ciclo.publicar) : estadoRegistro === 1,
+    estado: ciclo.estado ?? (estadoRegistro === 1 ? 'Activo' : estadoRegistro === 0 ? 'Cerrado' : ''),
+  };
+}
+
+export function normalizarMaterial(material = {}) {
+  return {
+    ...material,
+    idMaterial: numeroSeguro(material.idMaterial ?? material.IdMaterial, null),
+    idCiclo: numeroSeguro(material.idCiclo ?? material.IdCiclo, null),
+    idCurso: numeroSeguro(material.idCurso ?? material.IdCurso, null),
+    titulo: material.titulo ?? material.Titulo ?? '',
+    descripcion: material.descripcion ?? material.Descripcion ?? '',
+    nombreArchivo: material.nombreArchivo ?? material.NombreArchivo ?? '',
+    urlArchivo: material.urlArchivo ?? material.UrlArchivo ?? '',
+    tipoMime: material.tipoMime ?? material.TipoMime ?? '',
+    fechaPublicacion: material.fechaPublicacion ?? material.FechaPublicacion ?? null,
+    curso: material.curso ?? material.Curso ?? '',
+    ciclo: material.ciclo ?? material.Ciclo ?? '',
+  };
+}
+
+export function normalizarNota(nota = {}) {
+  const calificacion = nota.calificacion ?? nota.Calificacion;
+  const entero = calificacionEntera(calificacion);
+  const estadoRegistro = numeroSeguro(nota.estadoRegistro ?? nota.EstadoRegistro, 1);
+  return {
+    ...nota,
+    idEvaluacion: numeroSeguro(nota.idEvaluacion ?? nota.IdEvaluacion, null),
+    idMatricula: numeroSeguro(nota.idMatricula ?? nota.IdMatricula, null),
+    tipoEvaluacion: nota.tipoEvaluacion ?? nota.TipoEvaluacion ?? '',
+    periodo: nota.periodo ?? nota.Periodo ?? 'General',
+    calificacion: entero !== null ? entero : null,
+    fechaCreacion: nota.fechaCreacion ?? nota.FechaCreacion ?? null,
+    curso: nota.curso ?? nota.Curso ?? '',
+    alumno: nota.alumno ?? nota.Alumno ?? '',
+    codigoUsuario: nota.codigoUsuario ?? nota.CodigoUsuario ?? '',
+    estadoRegistro,
+  };
+}
 
 // ==========================================
 // CONTROL DE TOKEN JWT Y SESIÓN (representación única)
@@ -14,9 +115,17 @@ export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.on
 const CLAVE_TOKEN = 'acadesys_token';
 const CLAVE_SESION = 'acadesys_session';
 
+// Caché breve de la petición en vuelo del expediente del alumno.
+let miIntranetCache = { promesa: null, creadaEn: 0 };
+
 // Persiste el token JWT en su clave dedicada.
 export function guardarToken(token) {
-  if (token) localStorage.setItem(CLAVE_TOKEN, String(token));
+  if (token) {
+    if (localStorage.getItem(CLAVE_TOKEN) !== String(token)) {
+      miIntranetCache = { promesa: null, creadaEn: 0 };
+    }
+    localStorage.setItem(CLAVE_TOKEN, String(token));
+  }
 }
 
 // Persiste el objeto de sesión sin duplicar el token dentro del objeto.
@@ -58,6 +167,7 @@ export function obtenerToken() {
 
 // Limpia por completo el estado de sesión (sin redirigir).
 export function limpiarSesion() {
+  miIntranetCache = { promesa: null, creadaEn: 0 };
   localStorage.removeItem(CLAVE_SESION);
   localStorage.removeItem(CLAVE_TOKEN);
   localStorage.removeItem('usuario');
@@ -68,6 +178,18 @@ export function limpiarSesion() {
 export function cerrarSesion() {
   limpiarSesion();
   window.location.href = '/';
+}
+
+async function solicitarApi(endpoint, options = {}) {
+  if (/\/(?:undefined|null|NaN)(?=\/|\?|$)/.test(endpoint)) {
+    throw new Error('No se puede realizar la operación sin un identificador válido.');
+  }
+  try {
+    return await fetch(API_URL + endpoint, options);
+  } catch (causa) {
+    if (causa?.name === 'AbortError') throw causa;
+    throw new Error('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.', { cause: causa });
+  }
 }
 
 // Interceptor centralizado: inyecta el JWT y normaliza la respuesta de error.
@@ -81,7 +203,7 @@ export async function fetchWithAuth(endpoint, options = {}) {
     ...options.headers
   };
 
-  const response = await fetch(API_URL + endpoint, {
+  const response = await solicitarApi(endpoint, {
     ...options,
     headers
   });
@@ -96,8 +218,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
   // 403: autenticado pero sin permiso. No se cierra la sesión.
   if (response.status === 403) {
-    const error = new Error('No tienes permisos para realizar esta acción.');
+    const datos = await response.json().catch(() => ({}));
+    const error = new Error(datos.error || datos.message || datos.mensaje || 'No tienes permisos para realizar esta acción.');
     error.status = 403;
+    error.data = datos;
+    throw error;
+  }
+
+  // 413: el body del PDF/base64 supera el límite del servidor.
+  if (response.status === 413) {
+    const error = new Error('El servidor rechazó el archivo por tamaño (413). Reduce el PDF; el límite de archivo es 10 MB.');
+    error.status = 413;
     throw error;
   }
 
@@ -108,17 +239,52 @@ export async function fetchWithAuth(endpoint, options = {}) {
     throw error;
   }
 
+  if (!response.ok) {
+    const datos = await response.json().catch(() => ({}));
+    const error = new Error(datos.error || datos.message || datos.mensaje || `Error HTTP: ${response.status}`);
+    error.status = response.status;
+    error.data = datos;
+    throw error;
+  }
+
   return response;
 }
 
 // ==========================================
-// AUTENTICACIÃ“N (LOGIN SEGURO EN EL BODY)
+// AUTENTICACIÓN (LOGIN SEGURO EN EL BODY)
 // ==========================================
-export async function iniciarSesion(codigoOUsuario, password) {
-  const valorLimpio = String(codigoOUsuario).trim();
-  const passLimpia = String(password).trim();
+function construirSesionLogin(data, valorIngresado) {
+  const academia = data.academia || {};
+  const usuario = data.user || {};
+  const nombre = data.nombre || (typeof data.usuario === 'string' ? data.usuario : '') || usuario.nombre || valorIngresado;
+  const idPerfil = data.idPerfil ?? data.IdPerfil ?? data.id_perfil ?? usuario.idPerfil ?? null;
+  return {
+    idUsuario: data.idUsuario ?? usuario.idUsuario ?? usuario.id ?? null,
+    nombre,
+    correo: data.correo ?? usuario.correo ?? '',
+    dni: data.dni ?? usuario.dni ?? '',
+    codigoUsuario: data.codigoUsuario ?? usuario.codigoUsuario ?? '',
+    rol: data.rol || data.perfil || data.NombrePerfil || usuario.rol || '',
+    Perfil: data.rol || data.perfil || data.NombrePerfil || usuario.rol || '',
+    idPerfil,
+    idAcademia: data.idAcademia ?? academia.idAcademia ?? academia.id ?? usuario.idAcademia ?? null,
+    colorTema: academia.colorTema || data.colorTema || '#2563eb',
+    logoUrl: academia.logoUrl || data.logoUrl || null,
+    nombreAcademia: academia.nombreAcademia || data.nombreAcademia || 'AcadeSys',
+    matricula: data.matricula ?? null,
+  };
+}
 
-  const response = await fetch(`${API_URL}/api/auth/login`, {
+export async function iniciarSesion(codigoOUsuario, password) {
+  const valorLimpio = String(codigoOUsuario || '').trim();
+  // La contraseña NO se recorta: los espacios pueden ser parte de la clave real.
+  const passLimpia = String(password ?? '');
+
+  if (!valorLimpio || !passLimpia) {
+    throw new Error('Ingresa tu usuario o correo y tu contraseña.');
+  }
+
+  const response = await solicitarApi('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -128,25 +294,24 @@ export async function iniciarSesion(codigoOUsuario, password) {
     })
   });
 
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.error || 'Credenciales inválidas');
+    const error = new Error(data.message || data.error || data.mensaje || 'Credenciales inválidas');
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
-  const data = await response.json();
   const tokenRecibido = data.token || data.jwt || data.accessToken;
+  if (!tokenRecibido) throw new Error('El servidor no devolvió un token de sesión válido.');
 
-  if (tokenRecibido) {
-    guardarToken(tokenRecibido);
-  }
+  const sesion = construirSesionLogin(data, valorLimpio);
+  if (!sesion.rol) throw new Error('El servidor no devolvió un perfil válido para tu cuenta.');
 
-  const usuarioSesion = data.usuario || data.user;
-  if (usuarioSesion) {
-    // Se guarda en la clave única de sesión (objeto), no en una clave paralela.
-    guardarSesion(usuarioSesion);
-  }
-
-  return data;
+  guardarToken(tokenRecibido);
+  guardarSesion(sesion);
+  return { ...data, sesion };
 }
 
 // ==========================================
@@ -159,7 +324,7 @@ export async function obtenerPerfiles() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['perfiles']);
 }
 
 export async function crearPerfil(nuevoPerfil) {
@@ -236,7 +401,7 @@ export async function obtenerUsuarios() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['usuarios']);
 }
 
 // Directorio MÍNIMO no sensible (IdUsuario + NombreCompleto + Perfil).
@@ -248,7 +413,7 @@ export async function obtenerDirectorioUsuarios() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['usuarios']);
 }
 
 // Datos del usuario autenticado (Mi Perfil). No acepta un IdUsuario arbitrario:
@@ -297,7 +462,10 @@ export async function crearUsuario(datosUsuario) {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    const error = new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
+    error.status = response.status;
+    error.data = errData;
+    throw error;
   }
 
   return await response.json();
@@ -337,7 +505,7 @@ export async function actualizarUsuario(idUsuario, datosUsuario) {
   if (correo !== undefined) payload.CorreoElectronico = String(correo);
 
   const clave = datosUsuario.contrasena ?? datosUsuario.Clave;
-  if (clave !== undefined && String(clave).trim()) payload.Clave = String(clave).trim();
+  if (clave !== undefined && String(clave).length > 0) payload.Clave = String(clave);
 
   const estado = datosUsuario.estadoRegistro ?? datosUsuario.EstadoRegistro;
   if (estado !== undefined && estado !== null) {
@@ -458,12 +626,12 @@ export async function obtenerPagosPorCiclo(idCiclo) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['pagos']);
 }
 
 export async function actualizarEstadoPago(idPago, estado) {
   if (!idPago) {
-    throw new Error('No se proporcionÃ³ el IdPago.');
+    throw new Error('No se proporcionó el IdPago.');
   }
 
   if (!['Pagado', 'Moroso'].includes(estado)) {
@@ -625,7 +793,7 @@ export async function obtenerAulas() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['aulas']);
 }
 
 export async function crearAula(nuevaAula) {
@@ -667,7 +835,7 @@ export async function obtenerCursos() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['cursos']);
 }
 
 export async function crearCurso(nuevoCurso) {
@@ -709,7 +877,7 @@ export async function obtenerAsignacionesDocente() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['asignaciones']);
 }
 
 export async function crearAsignacionDocente(nuevaAsig) {
@@ -746,7 +914,7 @@ export async function obtenerHorarios(idCiclo = null) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['horarios']);
 }
 
 export async function crearHorario(nuevoHorario) {
@@ -788,7 +956,7 @@ export async function eliminarHorario(idHorario) {
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
   if (!idAula) {
-    throw new Error('Debe seleccionar un aula vÃ¡lida para consultar la asistencia.');
+    throw new Error('Debe seleccionar un aula válida para consultar la asistencia.');
   }
   if (!fecha) {
     throw new Error('Debe seleccionar una fecha para consultar la asistencia.');
@@ -823,10 +991,7 @@ export async function obtenerAsistenciaPorCiclo(idCiclo, fecha) {
   const response = await fetchWithAuth(`/api/asistencias?${params.toString()}`);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.data)) return data.data;
-  if (Array.isArray(data.asistencias)) return data.asistencias;
-  return [];
+  return normalizarListaRespuesta(data, ['asistencias']);
 }
 
 export async function guardarAsistenciaPorCiclo(idCiclo, fecha, listaAlumnos) {
@@ -849,7 +1014,7 @@ export async function guardarAsistenciaPorCiclo(idCiclo, fecha, listaAlumnos) {
 
 export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
   if (!idAula) {
-    throw new Error('Debe seleccionar un aula vÃ¡lida antes de guardar la asistencia.');
+    throw new Error('Debe seleccionar un aula válida antes de guardar la asistencia.');
   }
   if (!fecha) {
     throw new Error('Debe seleccionar una fecha antes de guardar la asistencia.');
@@ -888,7 +1053,7 @@ export async function obtenerNotas() {
     throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
 
-  return Array.isArray(data) ? data : (data.data || []);
+  return normalizarListaRespuesta(data, ['notas', 'evaluaciones']).map(normalizarNota);
 }
 
 export async function obtenerContextoNotas(idCiclo) {
@@ -903,7 +1068,13 @@ export async function obtenerContextoNotas(idCiclo) {
     throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
 
-  return data;
+  const contexto = data.data && typeof data.data === 'object' && !Array.isArray(data.data) ? data.data : data;
+  return {
+    ...contexto,
+    idCiclo: contexto.idCiclo ?? contexto.IdCiclo,
+    escalaMaxima: numeroSeguro(contexto.escalaMaxima ?? contexto.EscalaMaxima, null),
+    universidadObjetivo: contexto.universidadObjetivo ?? contexto.UniversidadObjetivo ?? '',
+  };
 }
 
 export async function obtenerMatriculasNotas(idCiclo) {
@@ -918,35 +1089,74 @@ export async function obtenerMatriculasNotas(idCiclo) {
     throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
   }
 
-  return Array.isArray(data) ? data : (data.data || data.matriculas || []);
+  return normalizarListaRespuesta(data, ['matriculas']);
 }
 
 export async function guardarNotasDocente(idCiclo, notas, periodo = 'General') {
+  // Validar que cada nota tenga Calificación entero dentro de la escala antes de enviar.
+  const notasValidadas = (Array.isArray(notas) ? notas : []).map((n) => {
+    const calificacion = n.Calificacion ?? n.calificacion;
+    const entero = calificacionEntera(calificacion);
+    if (entero === null) {
+      throw new Error('Cada calificación debe ser un número entero dentro de la escala permitida.');
+    }
+    return { ...n, Calificacion: entero };
+  });
+
+  if (notasValidadas.length === 0) {
+    throw new Error('No hay calificaciones válidas para enviar.');
+  }
+
   const response = await fetchWithAuth('/api/notas', {
     method: 'POST',
     body: JSON.stringify({
       idCiclo: Number(idCiclo),
       periodo: String(periodo || 'General').trim(),
-      notas
+      notas: notasValidadas
     })
   });
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+    // Traducir códigos HTTP a mensajes entendibles para el frontend.
+    const status = response.status;
+    const mensajeBackend = data.error || data.mensaje || data.message || '';
+    if (status === 400) {
+      throw new Error('El servidor rechazó la calificación: debe ser un número entero dentro de la escala.');
+    }
+    if (status === 403) {
+      throw new Error('El periodo o el acta de este ciclo está cerrada; no se pueden registrar calificaciones.');
+    }
+    if (status === 404) {
+      throw new Error('El ciclo indicado no existe.');
+    }
+    if (status === 409) {
+      throw new Error('Ya existe una evaluación con esa matrícula, tipo y periodo.');
+    }
+    // 413, 500 y demás: mensaje genérico sin exponer detalles internos.
+    throw new Error(mensajeBackend || `Error HTTP: ${status}`);
   }
 
   return data;
 }
 
 export async function actualizarNotaDocente(idEvaluacion, calificacion) {
+  if (!Number.isSafeInteger(Number(idEvaluacion)) || Number(idEvaluacion) <= 0) {
+    throw new Error('La evaluación no tiene un identificador válido.');
+  }
+  // Validar que la calificación sea un entero dentro de la escala.
+  const entero = calificacionEntera(calificacion);
+  if (entero === null) {
+    throw new Error('La calificación debe ser un número entero dentro de la escala permitida.');
+  }
+
   const response = await fetchWithAuth(
     `/api/notas/${encodeURIComponent(idEvaluacion)}`,
     {
       method: 'PUT',
       body: JSON.stringify({
-        Calificacion: Number(calificacion)
+        Calificacion: entero
       })
     }
   );
@@ -954,7 +1164,19 @@ export async function actualizarNotaDocente(idEvaluacion, calificacion) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || `Error HTTP: ${response.status}`);
+    const status = response.status;
+    const mensajeBackend = data.error || data.mensaje || data.message || '';
+    if (status === 400) {
+      throw new Error('La calificación debe ser un número entero dentro de la escala.');
+    }
+    if (status === 403) {
+      throw new Error('El acta o el periodo está cerrado: la evaluación no puede modificarse.');
+    }
+    if (status === 404) {
+      throw new Error('La nota no existe o no pertenece a esta academia.');
+    }
+    // 409 no se espera en PUT para una sola nota; si llega, usar mensaje genérico.
+    throw new Error(mensajeBackend || `Error HTTP: ${status}`);
   }
 
   return data;
@@ -970,7 +1192,12 @@ export async function obtenerComunicados() {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || errData.message || `Error HTTP: ${response.status}`);
   }
-  return await response.json();
+  return normalizarListaRespuesta(await response.json(), ['comunicados']).map((item) => ({
+    ...item,
+    id: item.id ?? item.idComunicado ?? item.IdComunicado,
+    confirmado: item.confirmado === true || Number(item.confirmado) === 1,
+    leido: item.leido === true || Number(item.leido) === 1,
+  }));
 }
 
 export async function crearComunicado(nuevo) {
@@ -1004,20 +1231,12 @@ export async function confirmarLecturaComunicado(id) {
 // HU-06: TUTOR PEDAGÃ“GICO IA (GEMINI PREU)
 // ==========================================
 
-export async function consultarTutorIA(pregunta, contextoPreu = {}) {
-  const payload = typeof contextoPreu === 'object' && contextoPreu !== null
-    ? {
-        pregunta: (pregunta || '').trim(),
-        estudiante: contextoPreu.estudiante || 'Alumno AcadeSys',
-        codigoUsuario: contextoPreu.codigoUsuario || '',
-        universidadObjetivo: contextoPreu.universidadObjetivo || 'UNMSM',
-        carrera: contextoPreu.carrera || 'IngenierÃ­a de Sistemas',
-        historialSimulacros: contextoPreu.historialSimulacros || []
-      }
-    : {
-        pregunta: (pregunta || '').trim(),
-        estudiante: String(contextoPreu || 'Alumno AcadeSys')
-      };
+export async function consultarTutorIA(pregunta) {
+  // El expediente lo construye el backend desde el JWT, no desde datos inventados.
+  const payload = { pregunta: String(pregunta || '').trim() };
+  if (!payload.pregunta || payload.pregunta.length > 2000) {
+    throw new Error('La pregunta debe tener entre 1 y 2000 caracteres.');
+  }
 
   const response = await fetchWithAuth(`/api/tutor-ia`, {
     method: "POST",
@@ -1037,7 +1256,7 @@ export async function consultarTutorIA(pregunta, contextoPreu = {}) {
   }
 
   if (data.consejoAdmision) {
-    textoFinal += `\n\nðŸŽ¯ Tip AdmisiÃ³n: ${data.consejoAdmision}`;
+    textoFinal += `\n\nConsejo de admisión: ${data.consejoAdmision}`;
   }
 
   return {
@@ -1070,7 +1289,7 @@ export async function obtenerNotasSimulacroAlumno(idEstudiante) {
 }
 
 export async function obtenerCiclosPublicos() {
-  const response = await fetch(`${API_URL}/api/ciclos/publicos`);
+  const response = await solicitarApi('/api/ciclos/publicos');
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -1079,27 +1298,15 @@ export async function obtenerCiclosPublicos() {
     throw error;
   }
 
-  const lista = Array.isArray(data) ? data : (data.data || data.ciclos || []);
+  const lista = normalizarListaRespuesta(data, ['ciclos', 'publicos']);
 
-  return lista.map((c) => ({
-    idCiclo: c.IdCiclo ?? c.idCiclo ?? c.id,
-    nombre: c.Nombre ?? c.nombre,
-    turno: c.Turno ?? c.turno ?? '',
-    horario: c.Horario ?? c.horario ?? '',
-    diasClase: c.DiasClase ?? c.diasClase ?? '',
-    universidadObjetivo: c.UniversidadObjetivo ?? c.universidadObjetivo ?? '',
-    totalAlumnos: Number(c.TotalAlumnos ?? c.totalAlumnos ?? c.cantidadAlumnos ?? 0),
-    totalCursos: Number(c.TotalCursos ?? c.totalCursos ?? 0),
-    capacidad: Number(c.Capacidad ?? c.capacidad ?? 0),
-    prefijo: c.PrefijoCodigo ?? c.prefijo ?? null,
-    fechaInicio: c.FechaInicio ?? c.fechaInicio ?? null,
-    fechaFin: c.FechaFin ?? c.fechaFin ?? null,
-    precio: Number(c.Precio ?? c.precio ?? 1)
-  }));
+  return lista
+    .map(normalizarCiclo)
+    .filter((ciclo) => Number.isSafeInteger(ciclo.idCiclo) && ciclo.idCiclo > 0);
 }
 
 export async function obtenerCursosCiclo(idCiclo) {
-  const response = await fetch(`${API_URL}/api/ciclos/${idCiclo}/cursos`);
+  const response = await solicitarApi(`/api/ciclos/${idCiclo}/cursos`);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -1108,7 +1315,7 @@ export async function obtenerCursosCiclo(idCiclo) {
     throw error;
   }
 
-  const lista = Array.isArray(data) ? data : (data.data || data.cursos || []);
+  const lista = normalizarListaRespuesta(data, ['cursos']);
   return lista.map((c) => ({
     idCurso: c.IdCurso ?? c.idCurso ?? c.id,
     nombre: c.Nombre ?? c.nombre,
@@ -1123,7 +1330,7 @@ export async function verificarMatriculaExistente(correo, idCiclo) {
   const correoNormalizado = String(correo || '').trim().toLowerCase();
   const cicloNormalizado = Number(idCiclo);
 
-  const response = await fetch(`${API_URL}/api/matriculas/verificar`, {
+  const response = await solicitarApi('/api/matriculas/verificar', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1150,7 +1357,20 @@ export async function verificarMatriculaExistente(correo, idCiclo) {
     throw error;
   }
 
-  return data;
+  // Normalizar al contrato reducido: el backend puede devolver varios
+  // subconjuntos de campos; conservamos solo los permitidos y unificamos
+  // `mensaje`/`message` y el objeto `cicloSeleccionado`/`ciclos`.
+  const resultado = {
+    existe: data.existe,
+    esAlumno: data.esAlumno,
+    puedeReinscribirse: data.puedeReinscribirse,
+    yaInscritoEnCiclo: data.yaInscritoEnCiclo,
+    mensaje: data.mensaje || data.message || undefined,
+    cicloSeleccionado: data.cicloSeleccionado || (data.ciclos && data.ciclos.length > 0 ? { nombre: data.ciclos[0].nombre } : null),
+    ciclos: Array.isArray(data.ciclos) ? data.ciclos.map((c) => ({ nombre: c.nombre || String(c) })) : undefined
+  };
+
+  return resultado;
 }
 
 export async function procesarCheckoutMatricula(payload) {
@@ -1167,7 +1387,7 @@ export async function procesarCheckoutMatricula(payload) {
     monto: payload.monto
   };
 
-  const response = await fetch(`${API_URL}/api/matriculas/checkout`, {
+  const response = await solicitarApi('/api/matriculas/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(cuerpo)
@@ -1180,7 +1400,7 @@ export async function procesarCheckoutMatricula(payload) {
       data.message ||
       data.error ||
       data.mensaje ||
-      'Error al procesar la inscripciÃ³n'
+      'Error al procesar la inscripción'
     );
     error.status = response.status;
     error.data = data;
@@ -1190,17 +1410,34 @@ export async function procesarCheckoutMatricula(payload) {
   return data;
 }
 
-export async function obtenerMiIntranetAlumno() {
-  const response = await fetchWithAuth('/api/alumno/me');
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
-    error.status = response.status;
-    throw error;
+export async function obtenerMiIntranetAlumno({ force = false } = {}) {
+  // Evita repetir GET /api/alumno/me cuando App, la intranet y el Tutor IA
+  // arrancan casi al mismo tiempo. Comparte la petición/respuesta durante 10 s,
+  // siempre acotada al token actual; Actualizar permite forzar una lectura.
+  const ahora = Date.now();
+  const tokenSesion = obtenerToken();
+  if (!force && miIntranetCache.token === tokenSesion && miIntranetCache.promesa && ahora - miIntranetCache.creadaEn < 10000) {
+    return miIntranetCache.promesa;
   }
 
-  return data;
+  const promesa = (async () => {
+    const response = await fetchWithAuth('/api/alumno/me');
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  })();
+
+  miIntranetCache = { promesa, creadaEn: ahora, token: tokenSesion };
+  try {
+    return await promesa;
+  } catch (error) {
+    if (miIntranetCache.promesa === promesa) miIntranetCache = { promesa: null, creadaEn: 0 };
+    throw error;
+  }
 }
 
 export async function obtenerMaterialesAdmin(idCiclo) {
@@ -1214,7 +1451,7 @@ export async function obtenerMaterialesAdmin(idCiclo) {
     throw error;
   }
 
-  return Array.isArray(data) ? data : (data.data || []);
+  return normalizarListaRespuesta(data, ['materiales']).map(normalizarMaterial);
 }
 
 export async function subirMaterialPDF(payload) {
@@ -1225,12 +1462,16 @@ export async function subirMaterialPDF(payload) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    const error = new Error(
+      response.status === 413
+        ? 'El PDF no puede superar los 10 MB.'
+        : (data.error || data.message || `HTTP: ${response.status}`)
+    );
     error.status = response.status;
     throw error;
   }
 
-  return data;
+  return normalizarMaterial(data);
 }
 
 export async function eliminarMaterial(idMaterial) {
@@ -1275,7 +1516,69 @@ export async function obtenerCiclosAdmin() {
     );
   }
 
-  return Array.isArray(data) ? data : (data.data || data.ciclos || []);
+  return normalizarListaRespuesta(data, ['ciclos'])
+    .map(normalizarCiclo)
+    .filter((ciclo) => Number.isSafeInteger(ciclo.idCiclo) && ciclo.idCiclo > 0);
+}
+
+// Fuente única para páginas internas: intenta el endpoint autenticado de
+// administración y, si el perfil no es administrador (403 real del backend),
+// cae al catálogo público de ciclos activos. Así docentes/tutores no reciben 403.
+export async function obtenerCiclosGestionActivos() {
+  let lista;
+  try {
+    lista = await obtenerCiclosAdmin();
+  } catch (error) {
+    if (![403, 404].includes(Number(error?.status))) throw error;
+    lista = await obtenerCiclosPublicos();
+  }
+  return lista.filter((ciclo) => ciclo.estadoRegistro === null || ciclo.estadoRegistro === 1);
+}
+
+function prepararPayloadCiclo(datosCiclo = {}) {
+  const idCursos = Array.isArray(datosCiclo.cursosSeleccionados)
+    ? datosCiclo.cursosSeleccionados.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0)
+    : [];
+  return {
+    nombre: String(datosCiclo.nombre || '').trim(),
+    universidadObjetivo: String(datosCiclo.universidadObjetivo || '').trim(),
+    turno: String(datosCiclo.turno || '').trim(),
+    horario: String(datosCiclo.horario || '').trim(),
+    fechaInicio: datosCiclo.fechaInicio || null,
+    fechaFin: datosCiclo.fechaFin || null,
+    capacidad: Number(datosCiclo.capacidad),
+    cursosSeleccionados: idCursos,
+    precio: Number(datosCiclo.precio),
+    diasClase: String(datosCiclo.diasClase || '').trim(),
+    prefijoCodigo: String(datosCiclo.prefijoCodigo || '').trim(),
+    publicar: Boolean(datosCiclo.publicar)
+  };
+}
+
+export async function obtenerDashboardAdmin() {
+  const response = await fetchWithAuth('/api/admin/dashboard/overview');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || `HTTP: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return {
+    resumen: {
+      estudiantes: numeroSeguro(data?.resumen?.estudiantes, 0),
+      matriculasActivas: numeroSeguro(data?.resumen?.matriculasActivas, 0),
+      ciclosActivos: numeroSeguro(data?.resumen?.ciclosActivos, 0),
+      ciclosProximos: numeroSeguro(data?.resumen?.ciclosProximos, 0),
+      ciclosCerrados: numeroSeguro(data?.resumen?.ciclosCerrados, 0),
+      estudiantesMorosos: numeroSeguro(data?.resumen?.estudiantesMorosos, 0),
+      promedioInstitucional: numeroSeguro(data?.resumen?.promedioInstitucional, 0),
+      vacantesDisponibles: numeroSeguro(data?.resumen?.vacantesDisponibles, 0),
+    },
+    pagos: data?.pagos || { total: 0, pagados: 0, pendientes: 0 },
+    rendimientoPorCiclo: normalizarListaRespuesta(data, ['rendimientoPorCiclo']),
+    ciclos: normalizarListaRespuesta(data, ['ciclos']).map(normalizarCiclo),
+    actualizadoEn: data?.actualizadoEn || null,
+  };
 }
 
 export async function obtenerDetalleCicloAdmin(idCiclo) {
@@ -1299,20 +1602,7 @@ export async function obtenerDetalleCicloAdmin(idCiclo) {
 }
 
 export async function crearCicloAdmin(datosCiclo) {
-  const payload = {
-    nombre: String(datosCiclo.nombre || '').trim(),
-    universidadObjetivo: String(datosCiclo.universidadObjetivo || '').trim(),
-    turno: String(datosCiclo.turno || '').trim(),
-    horario: String(datosCiclo.horario || '').trim(),
-    fechaInicio: datosCiclo.fechaInicio || null,
-    fechaFin: datosCiclo.fechaFin || null,
-    capacidad: Number(datosCiclo.capacidad),
-    cursosSeleccionados: Array.isArray(datosCiclo.cursosSeleccionados) ? datosCiclo.cursosSeleccionados.map(Number) : [],
-    precio: Number(datosCiclo.precio),
-    diasClase: String(datosCiclo.diasClase || '').trim(),
-    prefijoCodigo: String(datosCiclo.prefijoCodigo || '').trim(),
-    publicar: Boolean(datosCiclo.publicar)
-  };
+  const payload = prepararPayloadCiclo(datosCiclo);
 
   const response = await fetchWithAuth('/api/admin/ciclos', {
     method: 'POST',
@@ -1341,7 +1631,7 @@ export async function actualizarCicloAdmin(idCiclo, datosCiclo) {
     `/api/admin/ciclos/${encodeURIComponent(idCiclo)}`,
     {
       method: 'PUT',
-      body: JSON.stringify(datosCiclo)
+      body: JSON.stringify(prepararPayloadCiclo(datosCiclo))
     }
   );
 

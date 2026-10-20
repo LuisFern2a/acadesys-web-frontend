@@ -1,85 +1,28 @@
 import React, { useState, useEffect } from 'react';
 
 export default function OfflineFallback({ children }) {
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Permite alternar la vista manualmente desde la consola con: window.setAcadeSysOffline(true/false)
-    window.setAcadeSysOffline = (estado) => setIsOffline(Boolean(estado));
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      delete window.setAcadeSysOffline;
     };
   }, []);
 
-  if (!isOffline) {
-    return children;
-  }
-
+  // No desmontar la aplicación: se conservan los formularios sin guardar.
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-slate-900 select-none">
-      {/* Tarjeta principal */}
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm px-6 py-10 flex flex-col items-center">
-        {/* Ícono de estado */}
-        <div className="relative mb-6">
-          <div className="w-20 h-20 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center">
-            <svg
-              className="w-10 h-10 text-rose-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.8"
-                d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824-2.179a4.978 4.978 0 012.83 1.414m-8.484 8.486l14.142-14.142"
-              />
-            </svg>
-          </div>
-          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4" aria-hidden="true">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
-          </span>
+    <>
+      {isOffline && (
+        <div role="status" aria-live="polite" className="fixed inset-x-0 top-0 z-[100] border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
+          Sin conexión. Los cambios no se guardarán hasta recuperar Internet; conserva esta ventana abierta.
         </div>
-
-        {/* Etiqueta de estado */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold uppercase tracking-wider mb-4">
-          <span className="w-2 h-2 rounded-full bg-rose-500" aria-hidden="true"></span>
-          Sin Conexión a Internet
-        </div>
-
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-3">
-          Modo Fuera de Línea
-        </h1>
-
-        <p className="text-slate-500 max-w-md text-sm leading-relaxed mb-8">
-          No se pudo establecer contacto con los servidores de AcadeSys. Verifica tu conexión de red o continúa navegando en los datos cacheados por el Service Worker.
-        </p>
-
-        {/* Botón de acción */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="w-full py-3 px-5 bg-blue-700 hover:bg-blue-600 text-white font-semibold text-sm rounded-lg transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Reintentar conexión
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+      {children}
+    </>
   );
 }

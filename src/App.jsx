@@ -257,6 +257,7 @@ export default function App() {
                 activeTab === 'academico-ciclos' ||
                 activeTab === 'academico-turnos') && esStaff && (
                 <AcademicoPage
+                  user={session}
                   vistaInicial={
                     activeTab === 'academico-ciclos'
                       ? 'ciclos'

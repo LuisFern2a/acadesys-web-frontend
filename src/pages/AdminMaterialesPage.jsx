@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
 
@@ -24,7 +24,7 @@ import {
 
 import {
 
-  obtenerCiclosPublicos,
+  obtenerCiclosGestionActivos,
 
   obtenerCursosCiclo,
 
@@ -32,7 +32,9 @@ import {
 
   subirMaterialPDF,
 
-  eliminarMaterial
+  eliminarMaterial,
+
+  mensajeErrorApi
 
 } from '../services/api';
 
@@ -57,12 +59,22 @@ export default function AdminMaterialesPage() {
   const [loading, setLoading] = useState(true);
 
   const [guardando, setGuardando] = useState(false);
+  const [cargandoSeleccion, setCargandoSeleccion] = useState(false);
 
   const [mensaje, setMensaje] = useState('');
 
   const [error, setError] = useState('');
 
-  const cargar = async () => {
+  const cargaSeqRef = useRef(0);
+
+  const guardandoRef = useRef(false);
+  const eliminandoRef = useRef(new Set());
+
+  const cargar = useCallback(async (cicloPreferido = '') => {
+
+    const secuencia = ++cargaSeqRef.current;
+
+    const vigente = () => secuencia === cargaSeqRef.current;
 
     setLoading(true);
 
@@ -70,11 +82,13 @@ export default function AdminMaterialesPage() {
 
     try {
 
-      const listaCiclos = await obtenerCiclosPublicos();
+      const listaCiclos = await obtenerCiclosGestionActivos();
+
+      if (!vigente()) return;
 
       setCiclos(listaCiclos);
 
-      const cicloActivo = listaCiclos.find((c) => String(c.idCiclo) === String(idCiclo)) || listaCiclos[0];
+      const cicloActivo = listaCiclos.find((c) => String(c.idCiclo) === String(cicloPreferido)) || listaCiclos[0];
 
       if (cicloActivo) {
 
@@ -82,11 +96,15 @@ export default function AdminMaterialesPage() {
 
         const listaCursos = await obtenerCursosCiclo(cicloActivo.idCiclo);
 
+        if (!vigente()) return;
+
         setCursos(listaCursos);
 
         setIdCurso(listaCursos[0]?.idCurso ? String(listaCursos[0].idCurso) : '');
 
         const listaMateriales = await obtenerMaterialesAdmin(cicloActivo.idCiclo);
+
+        if (!vigente()) return;
 
         setMateriales(listaMateriales);
 
@@ -100,44 +118,68 @@ export default function AdminMaterialesPage() {
 
     } catch (err) {
 
-      setError(err.message || 'No se pudo cargar la gestión de materiales.');
+      if (!vigente()) return;
+
+      setError(mensajeErrorApi(err, 'No se pudo cargar la gestión de materiales.'));
 
     } finally {
 
-      setLoading(false);
+      if (vigente()) setLoading(false);
 
     }
 
-  };
+  }, []);
 
   useEffect(() => {
 
     cargar();
 
-  }, []);
+  }, [cargar]);
 
   const cambiarCiclo = async (value) => {
 
+    const secuencia = ++cargaSeqRef.current;
+
+    const vigente = () => secuencia === cargaSeqRef.current;
+
     setIdCiclo(value);
+    setCargandoSeleccion(true);
+    setCursos([]);
+    setMateriales([]);
+    setIdCurso('');
 
     setError('');
 
     setMensaje('');
 
-    const listaCursos = await obtenerCursosCiclo(value);
-
-    setCursos(listaCursos);
-
-    setIdCurso(listaCursos[0]?.idCurso ? String(listaCursos[0].idCurso) : '');
-
     try {
 
-      setMateriales(await obtenerMaterialesAdmin(value));
+      const listaCursos = await obtenerCursosCiclo(value);
+
+      if (!vigente()) return;
+
+      setCursos(listaCursos);
+
+      setIdCurso(listaCursos[0]?.idCurso ? String(listaCursos[0].idCurso) : '');
+
+      const listaMateriales = await obtenerMaterialesAdmin(value);
+
+      if (!vigente()) return;
+
+      setMateriales(listaMateriales);
 
     } catch (err) {
 
-      setError(err.message || 'No se pudieron cargar los materiales.');
+      if (!vigente()) return;
 
+      setCursos([]);
+
+      setMateriales([]);
+
+      setError(mensajeErrorApi(err, 'No se pudieron cargar los materiales.'));
+
+    } finally {
+      if (vigente()) setCargandoSeleccion(false);
     }
 
   };
@@ -158,6 +200,8 @@ export default function AdminMaterialesPage() {
 
     e.preventDefault();
 
+    if (guardandoRef.current || cargandoSeleccion) return;
+
     setMensaje('');
 
     setError('');
@@ -170,7 +214,9 @@ export default function AdminMaterialesPage() {
 
     }
 
-    if (archivo.type !== 'application/pdf') {
+    const esPdf = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
+
+    if (!esPdf) {
 
       setError('Solo se permiten archivos PDF.');
 
@@ -186,9 +232,23 @@ export default function AdminMaterialesPage() {
 
     }
 
+    if (archivo.size === 0) {
+
+      setError('El archivo PDF está vacío.');
+
+      return;
+
+    }
+
+    guardandoRef.current = true;
+
     setGuardando(true);
 
     try {
+
+      if (await archivo.slice(0, 5).text() !== '%PDF-') {
+        throw new Error('El archivo seleccionado no contiene una cabecera PDF válida.');
+      }
 
       const fileData = await leerArchivo(archivo);
 
@@ -224,9 +284,11 @@ export default function AdminMaterialesPage() {
 
     } catch (err) {
 
-      setError(err.message || 'No se pudo publicar el material.');
+      setError(mensajeErrorApi(err, 'No se pudo publicar el material.'));
 
     } finally {
+
+      guardandoRef.current = false;
 
       setGuardando(false);
 
@@ -236,8 +298,18 @@ export default function AdminMaterialesPage() {
 
   const handleEliminar = async (material) => {
 
+    if (eliminandoRef.current.has(material.idMaterial)) return;
     if (!window.confirm(`¿Eliminar el material "${material.titulo}"?`)) return;
 
+    if (!material.idMaterial) {
+
+      setError('El material no tiene un identificador válido.');
+
+      return;
+
+    }
+
+    eliminandoRef.current.add(material.idMaterial);
     try {
 
       await eliminarMaterial(material.idMaterial);
@@ -248,13 +320,15 @@ export default function AdminMaterialesPage() {
 
     } catch (err) {
 
-      setError(err.message || 'No se pudo eliminar el material.');
+      setError(mensajeErrorApi(err, 'No se pudo eliminar el material.'));
 
+    } finally {
+      eliminandoRef.current.delete(material.idMaterial);
     }
 
   };
 
-  if (loading) {
+  if (loading && ciclos.length === 0) {
 
     return (
 
@@ -294,7 +368,8 @@ export default function AdminMaterialesPage() {
 
             type="button"
 
-            onClick={cargar}
+            onClick={() => cargar(idCiclo)}
+            disabled={loading || guardando || cargandoSeleccion}
 
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50"
 
@@ -351,6 +426,7 @@ export default function AdminMaterialesPage() {
               <select
 
                 value={idCiclo}
+                disabled={loading || guardando}
 
                 onChange={(e) => cambiarCiclo(e.target.value)}
 
@@ -375,6 +451,7 @@ export default function AdminMaterialesPage() {
               <select
 
                 value={idCurso}
+                disabled={loading || guardando || cargandoSeleccion}
 
                 onChange={(e) => setIdCurso(e.target.value)}
 
@@ -460,7 +537,7 @@ export default function AdminMaterialesPage() {
 
               type="submit"
 
-              disabled={guardando}
+              disabled={loading || guardando || cargandoSeleccion || !idCiclo || !idCurso}
 
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-700 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 text-sm font-bold text-white"
 

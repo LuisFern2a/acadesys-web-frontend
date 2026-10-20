@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useModalDialog from '../hooks/useModalDialog';
 import { 
   Shield, 
   Plus, 
@@ -26,6 +27,8 @@ export default function PerfilesPage() {
   // Modal para crear / editar perfil
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const dialogRef = useModalDialog(isModalOpen, () => setIsModalOpen(false), saving);
   const [editandoId, setEditandoId] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -84,13 +87,14 @@ export default function PerfilesPage() {
   };
 
   const handleToggleEstado = async (p) => {
-    if (saving || loading) return;
+    if (savingRef.current || loading) return;
     const id = p.IdPerfil ?? p.id_perfil ?? p.id;
     const estado = p.EstadoRegistro ?? p.estadoRegistro ?? p.estado ?? 1;
     const activo = String(estado) === '1' || String(estado).toUpperCase() === 'ACTIVO';
     const nuevoEstado = activo ? 0 : 1;
 
     setErrorAccion('');
+    savingRef.current = true;
     setSaving(true);
     try {
       await actualizarPerfil(id, { EstadoRegistro: nuevoEstado });
@@ -101,17 +105,19 @@ export default function PerfilesPage() {
     } catch (err) {
       setErrorAccion(err.message || 'No se pudo cambiar el estado del perfil.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const handleEliminar = async (p) => {
-    if (saving || loading) return;
+    if (savingRef.current || loading) return;
     const id = p.IdPerfil ?? p.id_perfil ?? p.id;
     const nombre = p.Nombre || p.nombre || `Perfil #${id}`;
 
     if (window.confirm(`¿Estás seguro de eliminar el rol "${nombre}"? Los usuarios vinculados deberán ser reasignados.`)) {
       setErrorAccion('');
+      savingRef.current = true;
       setSaving(true);
       try {
         await eliminarPerfil(id);
@@ -121,6 +127,7 @@ export default function PerfilesPage() {
       } catch (err) {
         setErrorAccion(err.message || 'No se pudo eliminar el perfil.');
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     }
@@ -128,13 +135,14 @@ export default function PerfilesPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (saving || loading) return;
+    if (savingRef.current || loading) return;
     setErrorAccion('');
     if (!formData.nombre.trim()) {
       setErrorAccion('Ingresa el nombre del perfil.');
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     const payload = {
       NombrePerfil: formData.nombre.trim(),
@@ -155,6 +163,7 @@ export default function PerfilesPage() {
     } catch (err) {
       setErrorAccion(err.message || 'No se pudo guardar el perfil.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -353,7 +362,7 @@ export default function PerfilesPage() {
       {/* Modal Crear / Editar Perfil */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Perfil de acceso" tabIndex={-1} className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">
                 {editandoId ? 'Actualizar Perfil RBAC' : 'Registrar Nuevo Perfil'}
@@ -361,6 +370,7 @@ export default function PerfilesPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                disabled={saving}
                 aria-label="Cerrar"
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -401,6 +411,7 @@ export default function PerfilesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={saving}
                   className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar

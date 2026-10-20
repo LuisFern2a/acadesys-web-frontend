@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Users, Search, Loader2, X, AlertCircle, Pencil, Trash2, Lock, Unlock } from 'lucide-react';
-import { obtenerPerfiles, obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../services/api';
+import { obtenerPerfiles, obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario, mensajeErrorApi } from '../services/api';
 import { grupoDeRol, GRUPO_ADMIN, GRUPO_DOCENTE, GRUPO_TUTOR, GRUPO_ALUMNO, GRUPO_PADRE } from '../utils/roles';
+import useModalDialog from '../hooks/useModalDialog';
 
-export default function UsuariosPage() {
+export default function UsuariosPage({ user }) {
   const [perfiles, setPerfiles] = useState([]);
 
   const [usuarios, setUsuarios] = useState([]);
@@ -23,6 +24,7 @@ export default function UsuariosPage() {
     dni: '',
     nombre: '',
     apellido: '',
+    apellidoMaterno: '',
     correo: '',
     contrasena: '',
     estadoRegistro: 'Activo',
@@ -30,11 +32,13 @@ export default function UsuariosPage() {
 
   const [errores, setErrores] = useState({});
   const [perfilesSeleccionados, setPerfilesSeleccionados] = useState([]);
+  const guardandoRef = useRef(false);
+  const dialogRef = useModalDialog(isModalOpen, () => setIsModalOpen(false), guardando);
 
   // Validaciones RegEx
-  const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
+  const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü '-]+$/;
   const DNI_REGEX = /^\d{8}$/;
-  const CORREO_PERMITIDO = /^[^\s@]+@(gmail\.com|acadesys\.edu|acadesys\.edu\.pe)$/;
+  const CORREO_PERMITIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const CONTRASENA_PERMITIDA = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&._-]{8,}$/;
 
   async function cargarPerfiles() {
@@ -170,6 +174,12 @@ export default function UsuariosPage() {
     return String(est) === '1' || String(est).toUpperCase() === 'ACTIVO' ? 'Activo' : 'Inactivo';
   };
 
+  const idUsuarioSesion = user?.idUsuario ?? user?.IdUsuario ?? user?.id ?? null;
+  const esMiCuenta = (u) => {
+    const id = u?.idUsuario ?? u?.IdUsuario ?? u?.id_usuario ?? u?.id;
+    return idUsuarioSesion !== null && String(id) === String(idUsuarioSesion);
+  };
+
   // Solo se pueden asignar perfiles activos; el backend lo valida igualmente.
   const perfilesAsignables = perfiles.filter((p) => {
     const estado = p.EstadoRegistro ?? p.estadoRegistro ?? p.estado;
@@ -184,6 +194,7 @@ export default function UsuariosPage() {
       dni: '',
       nombre: '',
       apellido: '',
+      apellidoMaterno: '',
       correo: '',
       contrasena: '',
       estadoRegistro: 'Activo',
@@ -201,6 +212,7 @@ export default function UsuariosPage() {
       dni: resolverDni(u) !== '-' ? resolverDni(u) : '',
       nombre: u.Nombres ?? u.nombre ?? u.Nombre ?? u.nombres ?? '',
       apellido: u.ApellidoPaterno || u.apellido || u.Apellido || u.apellidos || '',
+      apellidoMaterno: u.ApellidoMaterno || u.apellidoMaterno || '',
       correo: resolverCorreo(u) !== '-' ? resolverCorreo(u) : '',
       contrasena: '',
       estadoRegistro: resolverEstado(u),
@@ -218,11 +230,16 @@ export default function UsuariosPage() {
   };
 
   const handleToggleEstado = async (u) => {
-    if (operandoId !== null || guardando) return;
+    if (operandoId !== null || guardandoRef.current) return;
+    if (esMiCuenta(u)) {
+      setErrorOperacion('No puedes desactivar tu propia cuenta desde este módulo.');
+      return;
+    }
     const id = u.idUsuario ?? u.IdUsuario ?? u.id_usuario ?? u.id;
     const estadoActual = resolverEstado(u);
     const nuevoEstado = estadoActual === 'Activo' ? 'Inactivo' : 'Activo';
 
+    guardandoRef.current = true;
     setOperandoId(id ?? 'sin-id');
     setErrorOperacion('');
     try {
@@ -235,18 +252,24 @@ export default function UsuariosPage() {
         setErrorOperacion('El servidor confirmó el cambio de estado, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
       }
     } catch (error) {
-      setErrorOperacion(error.message || 'No se pudo cambiar el estado del usuario.');
+      setErrorOperacion(mensajeErrorApi(error, 'No se pudo cambiar el estado del usuario.'));
     } finally {
+      guardandoRef.current = false;
       setOperandoId(null);
     }
   };
 
   const handleEliminar = async (u) => {
-    if (operandoId !== null || guardando) return;
+    if (operandoId !== null || guardandoRef.current) return;
+    if (esMiCuenta(u)) {
+      setErrorOperacion('No puedes eliminar tu propia cuenta.');
+      return;
+    }
     const nombre = resolverNombreCompleto(u);
     const id = u.idUsuario ?? u.IdUsuario ?? u.id_usuario ?? u.id;
 
     if (window.confirm(`¿Estás seguro de que deseas eliminar a "${nombre}"?`)) {
+      guardandoRef.current = true;
       setOperandoId(id ?? 'sin-id');
       setErrorOperacion('');
       try {
@@ -255,8 +278,9 @@ export default function UsuariosPage() {
           setErrorOperacion('El servidor confirmó la eliminación, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
         }
       } catch (error) {
-        setErrorOperacion(error.message || 'No se pudo eliminar el usuario.');
+        setErrorOperacion(mensajeErrorApi(error, 'No se pudo eliminar el usuario.'));
       } finally {
+        guardandoRef.current = false;
         setOperandoId(null);
       }
     }
@@ -274,19 +298,24 @@ export default function UsuariosPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (guardando || operandoId !== null) return;
+    if (guardandoRef.current || operandoId !== null) return;
     setErrorOperacion('');
     const nuevosErrores = {};
 
     if (!formData.nombreUsuario.trim()) nuevosErrores.nombreUsuario = 'El nombre de usuario es obligatorio.';
-    if (!DNI_REGEX.test(formData.dni)) nuevosErrores.dni = 'El DNI debe tener exactamente 8 dígitos.';
-    if (!SOLO_LETRAS.test(formData.nombre)) nuevosErrores.nombre = 'El nombre debe contener solo letras.';
-    if (!SOLO_LETRAS.test(formData.apellido)) nuevosErrores.apellido = 'El apellido debe contener solo letras.';
-    if (!CORREO_PERMITIDO.test(formData.correo)) nuevosErrores.correo = 'El correo institucional o Gmail es requerido.';
+    if (!DNI_REGEX.test(formData.dni.trim())) nuevosErrores.dni = 'El DNI debe tener exactamente 8 dígitos.';
+    if (!SOLO_LETRAS.test(formData.nombre.trim())) nuevosErrores.nombre = 'El nombre debe contener solo letras.';
+    if (!SOLO_LETRAS.test(formData.apellido.trim())) nuevosErrores.apellido = 'El apellido paterno debe contener solo letras.';
+    if (formData.apellidoMaterno.trim() && !SOLO_LETRAS.test(formData.apellidoMaterno.trim())) nuevosErrores.apellidoMaterno = 'El apellido materno debe contener solo letras.';
+    if (!CORREO_PERMITIDO.test(formData.correo.trim())) nuevosErrores.correo = 'Ingresa un correo electrónico válido.';
     if ((!usuarioEditando || formData.contrasena) && !CONTRASENA_PERMITIDA.test(formData.contrasena)) {
       nuevosErrores.contrasena = 'La contraseña requiere mínimo 8 caracteres con letras y números.';
     }
     if (perfilesSeleccionados.length !== 1) nuevosErrores.perfiles = 'La API requiere seleccionar un único perfil.';
+    if (usuarioEditando && esMiCuenta(usuarioEditando) &&
+        (formData.estadoRegistro !== 'Activo' || String(perfilesSeleccionados[0]) !== String(user?.idPerfil ?? user?.IdPerfil))) {
+      nuevosErrores.perfiles = 'No puedes desactivar tu cuenta ni cambiar tu propio perfil desde este módulo.';
+    }
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores);
@@ -303,6 +332,7 @@ export default function UsuariosPage() {
       IdPerfil: primerPerfil
     };
 
+    guardandoRef.current = true;
     setGuardando(true);
     try {
       if (usuarioEditando) {
@@ -316,8 +346,9 @@ export default function UsuariosPage() {
         setErrorOperacion('El servidor confirmó el guardado, pero no se pudo actualizar la lista. Recarga la página para verificarlo.');
       }
     } catch (error) {
-      setErrorOperacion(error.message || 'No se pudo guardar el usuario.');
+      setErrorOperacion(mensajeErrorApi(error, 'No se pudo guardar el usuario.'));
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   };
@@ -465,7 +496,7 @@ export default function UsuariosPage() {
 
                         <button
                           type="button"
-                          disabled={operandoId !== null || guardando}
+                          disabled={operandoId !== null || guardando || esMiCuenta(u)}
                           onClick={() => handleToggleEstado(u)}
                           title={esActivo ? 'Bloquear acceso' : 'Desbloquear acceso'}
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -479,7 +510,7 @@ export default function UsuariosPage() {
 
                         <button
                           type="button"
-                          disabled={operandoId !== null || guardando}
+                          disabled={operandoId !== null || guardando || esMiCuenta(u)}
                           onClick={() => handleEliminar(u)}
                           title="Eliminar usuario"
                           className="p-1.5 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -499,7 +530,7 @@ export default function UsuariosPage() {
       {/* MODAL CREAR / EDITAR */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={usuarioEditando ? 'Editar credenciales' : 'Registrar usuario'} tabIndex={-1} className="bg-white rounded-xl max-w-xl w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">
                 {usuarioEditando ? 'Editar Credenciales' : 'Registrar Nuevo Usuario'}
@@ -507,6 +538,7 @@ export default function UsuariosPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                disabled={guardando}
                 aria-label="Cerrar"
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
               >
@@ -519,10 +551,11 @@ export default function UsuariosPage() {
               {errorPerfiles && <p role="alert" className="text-[11px] text-rose-600">{errorPerfiles}</p>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre de Usuario</label>
+                  <label htmlFor="usuario-codigo" className="block text-xs font-semibold text-slate-700 mb-1">Nombre de Usuario</label>
                   <input
                     type="text"
                     name="nombreUsuario"
+                    id="usuario-codigo"
                     readOnly={Boolean(usuarioEditando)}
                     value={formData.nombreUsuario}
                     onChange={handleChange}
@@ -540,10 +573,12 @@ export default function UsuariosPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">DNI (8 dígitos)</label>
+                  <label htmlFor="usuario-dni" className="block text-xs font-semibold text-slate-700 mb-1">DNI (8 dígitos)</label>
                   <input
                     type="text"
                     name="dni"
+                    id="usuario-dni"
+                    inputMode="numeric"
                     maxLength={8}
                     value={formData.dni}
                     onChange={(e) => {
@@ -565,14 +600,15 @@ export default function UsuariosPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre</label>
+                  <label htmlFor="usuario-nombre" className="block text-xs font-semibold text-slate-700 mb-1">Nombre</label>
                   <input
                     type="text"
                     name="nombre"
+                    id="usuario-nombre"
                     value={formData.nombre}
                     onChange={(e) => {
                       const val = e.target.value;
-                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(val)) {
+                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü '-]*$/.test(val)) {
                         setFormData((prev) => ({ ...prev, nombre: val }));
                       }
                     }}
@@ -589,14 +625,15 @@ export default function UsuariosPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Apellido</label>
+                  <label htmlFor="usuario-apellido" className="block text-xs font-semibold text-slate-700 mb-1">Apellido paterno</label>
                   <input
                     type="text"
                     name="apellido"
+                    id="usuario-apellido"
                     value={formData.apellido}
                     onChange={(e) => {
                       const val = e.target.value;
-                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]*$/.test(val)) {
+                      if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü '-]*$/.test(val)) {
                         setFormData((prev) => ({ ...prev, apellido: val }));
                       }
                     }}
@@ -613,14 +650,20 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
+              <label className="block text-xs font-semibold text-slate-700">
+                Apellido materno (opcional)
+                <input name="apellidoMaterno" value={formData.apellidoMaterno} onChange={handleChange} maxLength={100} className="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 outline-none focus:border-blue-600" />
+                {errores.apellidoMaterno && <span className="text-rose-600">{errores.apellidoMaterno}</span>}
+              </label>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+                <label htmlFor="usuario-correo" className="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
                 <input
                   type="email"
                   name="correo"
+                  id="usuario-correo"
                   value={formData.correo}
                   onChange={handleChange}
-                  placeholder="usuario@acadesys.edu.pe o @gmail.com"
+                  placeholder="usuario@ejemplo.com"
                   className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
                     errores.correo ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
                   }`}
@@ -633,12 +676,14 @@ export default function UsuariosPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="usuario-clave" className="block text-xs font-semibold text-slate-700 mb-1">
                   Contraseña {usuarioEditando && <span className="text-slate-500 font-normal">(dejar en blanco para conservar la actual)</span>}
                 </label>
                 <input
                   type="password"
                   name="contrasena"
+                  id="usuario-clave"
+                  autoComplete="new-password"
                   value={formData.contrasena}
                   onChange={handleChange}
                   placeholder={usuarioEditando ? "••••••••••••••••" : "Mínimo 8 caracteres con letras y números"}
@@ -689,6 +734,7 @@ export default function UsuariosPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={guardando}
                   className="px-4 py-2 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Cancelar

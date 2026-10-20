@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import useModalDialog from '../hooks/useModalDialog';
 import { 
   Menu as MenuIcon, 
   Plus, 
@@ -24,6 +25,8 @@ export default function OpcionesMenuPage() {
   const [errorAccion, setErrorAccion] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [menuCreado, setMenuCreado] = useState(null);
+  const guardandoRef = useRef(false);
+  const dialogRef = useModalDialog(isModalOpen, () => setIsModalOpen(false), guardando);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -74,7 +77,7 @@ export default function OpcionesMenuPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (guardando || cargando) return;
+    if (guardandoRef.current || cargando) return;
     setErrorAccion('');
     setMensaje('');
     if (!formData.nombre.trim() || !formData.ruta.trim() || !Number.isInteger(Number(formData.orden)) || Number(formData.orden) <= 0) {
@@ -90,6 +93,7 @@ export default function OpcionesMenuPage() {
       return;
     }
 
+    guardandoRef.current = true;
     setGuardando(true);
     let creado = menuCreado;
     try {
@@ -116,6 +120,7 @@ export default function OpcionesMenuPage() {
         : (error.message || 'No se pudo crear el menú.'));
     } finally {
       if (creado) await cargarDatos();
+      guardandoRef.current = false;
       setGuardando(false);
     }
   };
@@ -267,12 +272,13 @@ export default function OpcionesMenuPage() {
       {/* Modal Crear Opción */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Nueva opción de menú" tabIndex={-1} className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Nueva Opción de Menú</h2>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Cerrar"
                 disabled={guardando}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition cursor-pointer"
               >

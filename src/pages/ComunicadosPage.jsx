@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useModalDialog from '../hooks/useModalDialog';
 import {
   Bell,
   Megaphone,
@@ -44,6 +45,9 @@ export default function ComunicadosPage({ user }) {
   const [errorAccion, setErrorAccion] = useState('');
   const [errorModal, setErrorModal] = useState('');
   const [mensajeExito, setMensajeExito] = useState('');
+  const guardandoRef = useRef(false);
+  const confirmacionesRef = useRef(new Set());
+  const dialogRef = useModalDialog(modalAbierto, () => setModalAbierto(false), guardando);
 
   // Autorización visual por perfil real (comparación exacta, sin `includes`).
   const puedePublicar = esAdmin(user) || esDocente(user);
@@ -90,6 +94,8 @@ export default function ComunicadosPage({ user }) {
 };
 
   const handleConfirmar = async (id) => {
+  if (!id || confirmacionesRef.current.has(id)) return;
+  confirmacionesRef.current.add(id);
   setErrorAccion('');
   setMensajeExito('');
 
@@ -110,31 +116,35 @@ export default function ComunicadosPage({ user }) {
     );
 
     setMensajeExito('La lectura se confirmó correctamente.');
+    window.dispatchEvent(new Event('acadesys-comunicados-actualizados'));
   } catch (err) {
     console.error('Error al confirmar la lectura:', err);
 
     setErrorAccion(
       err.message || 'No se pudo guardar la confirmación de lectura.'
     );
+  } finally {
+    confirmacionesRef.current.delete(id);
   }
 };
 
   const handleCrear = async (e) => {
   e.preventDefault();
 
-  if (guardando) return;
+  if (guardandoRef.current || !puedePublicar) return;
 
-  if (titulo.trim().length < 3) {
-    setErrorModal('El título debe tener al menos 3 caracteres.');
+  if (titulo.trim().length < 3 || titulo.trim().length > 180) {
+    setErrorModal('El título debe tener entre 3 y 180 caracteres.');
     return;
   }
 
-  if (!contenido.trim()) {
-    setErrorModal('Completa el contenido del comunicado.');
+  if (!contenido.trim() || contenido.trim().length > 10000) {
+    setErrorModal('El contenido debe tener entre 1 y 10 000 caracteres.');
     return;
   }
 
   setErrorModal('');
+  guardandoRef.current = true;
   setGuardando(true);
   setErrorAccion('');
   setMensajeExito('');
@@ -163,6 +173,7 @@ export default function ComunicadosPage({ user }) {
 
     // Volvemos a consultar el servidor para mostrar los datos persistidos.
     await cargarLista();
+    window.dispatchEvent(new Event('acadesys-comunicados-actualizados'));
   } catch (err) {
     console.error('Error creando comunicado:', err);
 
@@ -170,12 +181,13 @@ export default function ComunicadosPage({ user }) {
       err.message || 'No se pudo publicar el comunicado.'
     );
   } finally {
+    guardandoRef.current = false;
     setGuardando(false);
   }
 };
 
   const normalizarTexto = (txt = '') =>
-    txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    String(txt ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
   const comunicadosFiltrados = comunicados.filter(c => {
     const catNorm = normalizarTexto(c.categoria);
@@ -420,8 +432,10 @@ export default function ComunicadosPage({ user }) {
     <div
       role="dialog"
       aria-modal="true"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-labelledby="titulo-modal-comunicado"
-      className="bg-white rounded-xl w-full max-w-lg shadow-xl border border-slate-200 overflow-hidden"
+      className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl border border-slate-200"
     >
             <div className="border-b border-slate-200 p-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -433,6 +447,7 @@ export default function ComunicadosPage({ user }) {
               <button
   type="button"
   aria-label="Cerrar formulario"
+  disabled={guardando}
   onClick={() => setModalAbierto(false)}
   className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1 rounded-lg transition-colors cursor-pointer"
 >
@@ -549,6 +564,7 @@ export default function ComunicadosPage({ user }) {
                 <button
                   type="button"
                   onClick={() => setModalAbierto(false)}
+                  disabled={guardando}
                   className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar

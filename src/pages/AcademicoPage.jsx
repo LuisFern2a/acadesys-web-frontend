@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useModalDialog from '../hooks/useModalDialog';
 import {
   Layers,
   School,
@@ -41,7 +42,7 @@ import {
   actualizarHorario,
   eliminarHorario
 } from '../services/api';
-import { esDocente, esTutor } from '../utils/roles';
+import { esAdmin, esDocente, esTutor } from '../utils/roles';
 import UniversidadLogo from '../components/UniversidadLogo';
 import CursoIcon from '../components/CursoIcon';
 function CampoCiclo({ label, children }) {
@@ -109,7 +110,8 @@ function normalizarHorarioParaFormulario(valor) {
   }
   return { horaInicio: '', horaFin: '', crudo: original };
 }
-export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
+export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
+  const puedeGestionar = esAdmin(user);
   const [tabActiva, setTabActiva] = useState(vistaInicial);
   useEffect(() => {
     setTabActiva(vistaInicial);
@@ -125,11 +127,18 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [filtroNivel, setFiltroNivel] = useState('todos');
   // Modal y modo edición
   const [modalAbierto, setModalAbierto] = useState(false);
+  const operacionRef = useRef(false);
+  const edicionSeqRef = useRef(0);
+  useEffect(() => {
+    edicionSeqRef.current += 1;
+    return () => { edicionSeqRef.current += 1; };
+  }, [tabActiva]);
   const [editandoId, setEditandoId] = useState(null);
   const [pasoCiclo, setPasoCiclo] = useState(1);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
   const [guardandoDatos, setGuardandoDatos] = useState(false);
+  const dialogRef = useModalDialog(modalAbierto, () => setModalAbierto(false), guardandoCiclo || guardandoDatos);
   const [avisoHorario, setAvisoHorario] = useState('');
   const [publicadoOriginal, setPublicadoOriginal] = useState(null);
   // Formularios
@@ -137,10 +146,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
   const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', horas: 4 });
   const [formCiclo, setFormCiclo] = useState({
-    tipo: 'Anual',
     universidadObjetivo: 'UNMSM',
-    modalidad: 'Presencial',
-    periodo: String(new Date().getFullYear()),
     nombre: '',
     turno: 'Mañana',
     horaInicio: '08:00',
@@ -173,7 +179,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       obtenerAulas(),
       obtenerCursos(),
       obtenerAsignacionesDocente(),
-      obtenerCiclosAdmin().catch(() => obtenerCiclosPublicos()),
+      obtenerCiclosAdmin().catch((error) => {
+        if (![403, 404].includes(error.status)) throw error;
+        return obtenerCiclosPublicos();
+      }),
       obtenerDirectorioUsuarios(),
       obtenerHorarios(),
     ]);
@@ -250,6 +259,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     });
   };
   const abrirCrear = () => {
+    if (operacionRef.current) return;
+    edicionSeqRef.current += 1;
     setEditandoId(null);
     setFormAula({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
     setFormCurso({ nombre: '', codigo: '', descripcion: '' });
@@ -260,10 +271,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       horas: 4,
     });
     setFormCiclo({
-      tipo: 'Anual',
       universidadObjetivo: 'UNMSM',
-      modalidad: 'Presencial',
-      periodo: String(new Date().getFullYear()),
       nombre: '',
       turno: 'Mañana',
       horaInicio: '08:00',
@@ -293,6 +301,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setModalAbierto(true);
   };
   const abrirEditarAula = (aula) => {
+    if (operacionRef.current) return;
+    edicionSeqRef.current += 1;
     setEditandoId(aula.idAula ?? aula.IdAula);
     setFormAula({
       nombre: aula.nombre ?? aula.Nombre,
@@ -302,29 +312,33 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setModalAbierto(true);
   };
   const abrirEditarCurso = (curso) => {
+    if (operacionRef.current) return;
+    edicionSeqRef.current += 1;
     setEditandoId(curso.idCurso ?? curso.IdCurso);
     setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
     setModalAbierto(true);
   };
   const abrirEditarCiclo = async (ciclo) => {
-    setEditandoId(ciclo.idCiclo);
-    setPublicadoOriginal(Boolean(ciclo.publicar));
+    if (operacionRef.current) return;
+    const secuencia = ++edicionSeqRef.current;
     setErrorCiclo('');
     let cursosSeleccionados = [];
     try {
       const detalle = await obtenerDetalleCicloAdmin(ciclo.idCiclo);
+      if (secuencia !== edicionSeqRef.current) return;
       cursosSeleccionados = (detalle.cursos || [])
         .map((curso) => Number(curso.IdCurso ?? curso.idCurso))
         .filter((id) => Number.isInteger(id) && id > 0);
     } catch (error) {
-      setErrorCiclo(error.message || 'No se pudo cargar la oferta de cursos de este ciclo.');
+      if (secuencia !== edicionSeqRef.current) return;
+      setErrorDatos(error.message || 'No se pudo cargar la oferta de cursos de este ciclo. No se abrió la edición para evitar perder relaciones.');
+      return;
     }
     const horarioNormalizado = normalizarHorarioParaFormulario(ciclo.horario);
+    setEditandoId(ciclo.idCiclo);
+    setPublicadoOriginal(Boolean(ciclo.publicar));
     setFormCiclo({
-      tipo: ciclo.nombre?.includes('Semestral') ? 'Semestral' : ciclo.nombre?.includes('Intensivo') ? 'Intensivo' : ciclo.nombre?.includes('Repaso') ? 'Repaso' : 'Anual',
       universidadObjetivo: ciclo.universidadObjetivo || 'UNMSM',
-      modalidad: 'Presencial',
-      periodo: String(new Date(ciclo.fechaInicio || Date.now()).getFullYear()),
       nombre: ciclo.nombre || '',
       turno: ciclo.turno || 'Mañana',
       horaInicio: horarioNormalizado.horaInicio,
@@ -347,6 +361,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setModalAbierto(true);
   };
   const abrirEditarTurno = (turno) => {
+    if (operacionRef.current) return;
+    edicionSeqRef.current += 1;
     setEditandoId(turno.idHorario);
     setFormTurno({
       idCiclo: String(turno.idCiclo ?? ''),
@@ -388,7 +404,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
   })();
   const handleGuardar = async (e) => {
     e.preventDefault();
-    if (guardandoDatos) return;
+    if (operacionRef.current || !puedeGestionar) return;
+    operacionRef.current = true;
     setErrorDatos('');
     setGuardandoDatos(true);
     try {
@@ -437,59 +454,36 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     } catch (err) {
       window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
     } finally {
+      operacionRef.current = false;
       setGuardandoDatos(false);
     }
   };
-  const handleEliminarAula = async (id, nombre) => {
-    if (!window.confirm(`¿Desactivar el aula "${nombre}"?`)) return;
+  const eliminarRegistro = async (id, pregunta, operacion) => {
+    if (!puedeGestionar || operacionRef.current || !window.confirm(pregunta)) return;
+    operacionRef.current = true;
+    setGuardandoDatos(true);
     try {
-      await eliminarAula(id);
+      await operacion(id);
+      // Consultar el resultado real: no se presupone la forma de eliminación.
       await cargarDatos();
     } catch (err) {
-      window.alert(err?.message || 'No se pudo desactivar el aula.');
+      setErrorDatos(err?.message || 'No se pudo completar la operación.');
+    } finally {
+      operacionRef.current = false;
+      setGuardandoDatos(false);
     }
   };
-  const handleEliminarCurso = async (id, nombre) => {
-    if (!window.confirm(`¿Desactivar el curso "${nombre}"?`)) return;
-    try {
-      await eliminarCurso(id);
-      await cargarDatos();
-    } catch (err) {
-      window.alert(err?.message || 'No se pudo desactivar el curso.');
-    }
-  };
-  const handleEliminarAsignacion = async (id, docente, curso) => {
-    if (!window.confirm(`¿Desactivar la carga de "${curso}" asignada a ${docente}?`)) return;
-    try {
-      await eliminarAsignacionDocente(id);
-      await cargarDatos();
-    } catch (err) {
-      window.alert(err?.message || 'No se pudo desactivar la asignación.');
-    }
-  };
-  const handleEliminarCiclo = async (id, nombre) => {
-    if (!window.confirm(`¿Eliminar el ciclo "${nombre}"?`)) return;
-    try {
-      await eliminarCicloAdmin(id);
-      setCiclos((prev) => prev.filter((ciclo) => ciclo.idCiclo !== id));
-    } catch (err) {
-      window.alert(err?.message || 'No se pudo eliminar el ciclo.');
-    }
-  };
-  const handleEliminarTurno = async (id, descripcion) => {
-    if (!window.confirm(`¿Desactivar el horario "${descripcion}"?`)) return;
-    try {
-      await eliminarHorario(id);
-      await cargarDatos();
-    } catch (err) {
-      window.alert(err?.message || 'No se pudo desactivar el horario.');
-    }
-  };
-  const pasosCiclo = ['Identidad', 'Nombre', 'Fechas y capacidad', 'Oferta', 'Horarios', 'Revisión'];
+  const handleEliminarAula = (id, nombre) => eliminarRegistro(id, `¿Desactivar el aula "${nombre}"?`, eliminarAula);
+  const handleEliminarCurso = (id, nombre) => eliminarRegistro(id, `¿Desactivar el curso "${nombre}"?`, eliminarCurso);
+  const handleEliminarAsignacion = (id, docente, curso) => eliminarRegistro(id, `¿Desactivar la carga de "${curso}" asignada a ${docente}?`, eliminarAsignacionDocente);
+  const handleEliminarCiclo = (id, nombre) => eliminarRegistro(id, `¿Eliminar el ciclo "${nombre}"?`, eliminarCicloAdmin);
+  const handleEliminarTurno = (id, descripcion) => eliminarRegistro(id, `¿Desactivar el horario "${descripcion}"?`, eliminarHorario);
+  const pasosCiclo = ['Universidad', 'Nombre', 'Fechas y capacidad', 'Oferta', 'Horarios', 'Revisión'];
+  const anioSugerido = new Date().getFullYear();
   const validarPasoCiclo = (paso) => {
     if (paso === 1) {
-      if (!formCiclo.tipo || !formCiclo.universidadObjetivo || !formCiclo.modalidad || !/^\d{4}$/.test(formCiclo.periodo)) {
-        return 'Completa correctamente la identidad académica.';
+      if (!formCiclo.universidadObjetivo) {
+        return 'Selecciona la universidad objetivo del ciclo.';
       }
     }
     if (paso === 2) {
@@ -539,7 +533,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     setErrorCiclo('');
   };
   const guardarCiclo = async () => {
-    if (guardandoCiclo) return;
+    if (operacionRef.current || !puedeGestionar) return;
     for (let paso = 1; paso <= 5; paso += 1) {
       const error = validarPasoCiclo(paso);
       if (error) {
@@ -568,6 +562,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       publicar: Boolean(formCiclo.publicar)
     };
     try {
+      operacionRef.current = true;
       setGuardandoCiclo(true);
       setErrorCiclo('');
       if (editandoId) {
@@ -594,6 +589,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
     } catch (err) {
       setErrorCiclo(err?.message || 'No se pudo guardar el ciclo.');
     } finally {
+      operacionRef.current = false;
       setGuardandoCiclo(false);
     }
   };
@@ -642,6 +638,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
             </div>
           </div>
         </div>
+        {puedeGestionar && (
         <button
           type="button"
           onClick={abrirCrear}
@@ -654,6 +651,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
           {tabActiva === 'ciclos' && 'Nuevo Ciclo'}
           {tabActiva === 'turnos' && 'Nuevo Horario'}
         </button>
+        )}
       </div>
       {errorDatos && (
         <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
@@ -697,6 +695,18 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
         >
           <UserCheck className="w-4 h-4" />
           Carga Docente ({asignaciones.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setTabActiva('aulas')}
+          className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tabActiva === 'aulas'
+              ? 'border-blue-600 text-blue-700'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <School className="w-4 h-4" />
+          Aulas ({aulas.length})
         </button>
         <button
           type="button"
@@ -762,12 +772,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${ciclo.estado === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                         {ciclo.estado}
                       </span>
+                      {puedeGestionar && (
+                      <>
                       <button type="button" title="Editar ciclo" onClick={() => abrirEditarCiclo(ciclo)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar ciclo" onClick={() => handleEliminarCiclo(ciclo.idCiclo, ciclo.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mt-4">{ciclo.nombre}</h3>
@@ -803,12 +817,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                     <CursoIcon nombre={turno.curso} className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-1">
+                    {puedeGestionar && (
+                    <>
                     <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button type="button" title="Eliminar horario" onClick={() => handleEliminarTurno(turno.idHorario, `${turno.curso} - ${turno.diaSemana}`)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
                       <Trash2 className="w-4 h-4" />
                     </button>
+                    </>
+                    )}
                   </div>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mt-4">{turno.curso}</h3>
@@ -868,9 +886,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
+                      {puedeGestionar && (
                       <button type="button" title="Eliminar asignación" onClick={() => handleEliminarAsignacion(asig.idAsignacion, asig.docente, asig.curso)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -899,12 +919,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       <School className="w-5 h-5" />
                     </span>
                     <div className="flex items-center gap-1">
+                      {puedeGestionar && (
+                      <>
                       <button type="button" title="Editar Aula" onClick={() => abrirEditarAula(aula)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar Aula" onClick={() => handleEliminarAula(aula.idAula, aula.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
                   <h3 className="font-bold text-slate-900 text-base">{aula.nombre}</h3>
@@ -942,12 +966,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                       <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-blue-700 rounded-md">{c.codigo}</span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {puedeGestionar && (
+                      <>
                       <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar Curso" onClick={() => handleEliminarCurso(c.idCurso, c.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
                   <h3 className="font-bold text-slate-900 text-base">{c.nombre}</h3>
@@ -964,7 +992,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
       {/* MODAL CREAR / EDITAR */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 bg-[#0F172A]/80 flex items-center justify-center p-4">
-          <div className={`bg-white rounded-xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-xl border border-slate-200`}>
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Gestión académica" tabIndex={-1} className={`bg-white rounded-xl p-6 w-full ${tabActiva === 'ciclos' ? 'max-w-5xl' : 'max-w-md'} max-h-[94vh] overflow-y-auto shadow-xl border border-slate-200`}>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">
                 {tabActiva === 'asignaciones' && 'Asignar Docente a Curso y Ciclo'}
@@ -973,11 +1001,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                 {tabActiva === 'ciclos' && (editandoId ? 'Editar Ciclo' : 'Registrar Nuevo Ciclo')}
                 {tabActiva === 'turnos' && (editandoId ? 'Editar Horario' : 'Registrar Nuevo Horario')}
               </h3>
-              <button type="button" onClick={() => setModalAbierto(false)} className="text-slate-500 hover:text-slate-600 cursor-pointer">
+              <button type="button" aria-label="Cerrar" disabled={guardandoCiclo || guardandoDatos} onClick={() => setModalAbierto(false)} className="text-slate-500 hover:text-slate-600 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleGuardar} className="space-y-4">
+            <form onSubmit={tabActiva === 'ciclos' ? (event) => {
+              event.preventDefault();
+              if (pasoCiclo === 6) guardarCiclo();
+              else siguientePasoCiclo();
+            } : handleGuardar} className="space-y-4">
               {tabActiva === 'ciclos' && (
                 <div className="space-y-5">
                   <div className="overflow-x-auto pb-1">
@@ -1009,32 +1041,19 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones' }) {
                   )}
                   {pasoCiclo === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <CampoCiclo label="Tipo de ciclo">
-                        <select value={formCiclo.tipo} onChange={(e) => setFormCiclo({ ...formCiclo, tipo: e.target.value })} className="campo-ciclo">
-                          <option>Anual</option><option>Semestral</option><option>Intensivo</option><option>Repaso</option>
-                        </select>
-                      </CampoCiclo>
                       <CampoCiclo label="Universidad objetivo">
                         <select value={formCiclo.universidadObjetivo} onChange={(e) => setFormCiclo({ ...formCiclo, universidadObjetivo: e.target.value })} className="campo-ciclo">
                           {['UNMSM','UNI','PUCP','UNFV','UNAC','UNT','Preuniversitario'].map((u) => <option key={u}>{u}</option>)}
                         </select>
-                      </CampoCiclo>
-                      <CampoCiclo label="Modalidad">
-                        <select value={formCiclo.modalidad} onChange={(e) => setFormCiclo({ ...formCiclo, modalidad: e.target.value })} className="campo-ciclo">
-                          <option>Presencial</option><option>Virtual</option><option>Mixta</option>
-                        </select>
-                      </CampoCiclo>
-                      <CampoCiclo label="Periodo">
-                        <input value={formCiclo.periodo} maxLength={4} onChange={(e) => setFormCiclo({ ...formCiclo, periodo: e.target.value })} className="campo-ciclo" placeholder="2027" />
                       </CampoCiclo>
                     </div>
                   )}
                   {pasoCiclo === 2 && (
                     <div>
                       <CampoCiclo label="Nombre oficial del ciclo">
-                        <input value={formCiclo.nombre} maxLength={100} onChange={(e) => setFormCiclo({ ...formCiclo, nombre: e.target.value })} className="campo-ciclo" placeholder={`Ciclo ${formCiclo.tipo} ${formCiclo.universidadObjetivo} ${formCiclo.periodo}`} />
+                        <input value={formCiclo.nombre} maxLength={100} onChange={(e) => setFormCiclo({ ...formCiclo, nombre: e.target.value })} className="campo-ciclo" placeholder={`Ciclo ${formCiclo.universidadObjetivo} ${anioSugerido}`} />
                       </CampoCiclo>
-                      <button type="button" onClick={() => setFormCiclo({ ...formCiclo, nombre: `Ciclo ${formCiclo.tipo} ${formCiclo.universidadObjetivo} ${formCiclo.periodo}` })} className="mt-3 text-xs font-bold text-blue-700 hover:text-blue-800">
+                      <button type="button" onClick={() => setFormCiclo({ ...formCiclo, nombre: `Ciclo ${formCiclo.universidadObjetivo} ${anioSugerido}` })} className="mt-3 text-xs font-bold text-blue-700 hover:text-blue-800">
                         Usar nombre sugerido
                       </button>
                     </div>
