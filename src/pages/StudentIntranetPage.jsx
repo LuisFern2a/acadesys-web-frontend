@@ -220,7 +220,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const promedio = promedioCalificaciones(notas.map((nota) => nota.calificacion ?? nota.Calificacion));
   const ranking = data?.notas?.puestoRanking ?? null;
   const ciclo = data?.ciclo;
-const escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
+const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
 
   // Filtro por curso: es el único filtro con datos reales (los materiales del
   // alumno ya vienen acotados a su ciclo activo y siempre son PDF).
@@ -551,7 +551,7 @@ const escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || 
                 {cursosMaterial.length > 1 && (
                   <div className="flex flex-wrap items-center gap-2">
                     {['Todos', ...cursosMaterial].map((curso) => {
-                      const activo = filtroCurso === curso;
+                      const _activo = filtroCurso === curso;
                       const total = curso === 'Todos' ? materiales.length : (conteoCurso[curso] || 0);
                       return (
                         <button
