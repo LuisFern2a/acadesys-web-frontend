@@ -8,14 +8,11 @@ import {
   Download,
   GraduationCap,
   Loader2,
-  Mail,
-  UserRound,
   FileText,
-  MapPin,
   RefreshCcw,
   AlertCircle
 } from 'lucide-react';
-import { obtenerMiIntranetAlumno } from '../services/api';
+import { API_URL, actualizarMiUsuario, obtenerMiIntranetAlumno } from '../services/api';
 import { promedioCalificaciones, escalaPorUniversidad } from '../utils/calificaciones';
 
 const VIEWS = {
@@ -33,6 +30,20 @@ const normalizarFecha = (valor) => {
   const fecha = String(valor).slice(0, 10);
   const partes = fecha.split('-');
   return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : valor;
+};
+
+const getFotoPerfilUrl = (fotoUrl) => {
+  if (!fotoUrl) return null;
+  if (
+    fotoUrl.startsWith('http://') ||
+    fotoUrl.startsWith('https://') ||
+    fotoUrl.startsWith('data:') ||
+    fotoUrl.startsWith('blob:')
+  )
+    return fotoUrl;
+  // URL relativa: combinar con API_URL (quitar /api del final si existe)
+  const base = API_URL.replace(/\/api$/, '') || 'https://acadesys-web-frontend';
+  return `${base}${fotoUrl}`;
 };
 
 // Tipo de archivo derivado EXCLUSIVAMENTE del dato real (tipoMime o extensión
@@ -88,6 +99,9 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cursoMaterial, setCursoMaterial] = useState('Todos');
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const cargar = useCallback(async (force = false) => {
     setLoading(true);
@@ -105,6 +119,99 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  // Manejo de cambio de archivo para foto de perfil
+  const handleFotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validación de tipo de archivo
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      e.target.value = '';
+      alert('Formato de imagen no válido. Use JPG, PNG o WebP.');
+      return;
+    }
+
+    // Validación de tamaño (máximo 2 MB)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      e.target.value = '';
+      alert('La imagen no puede superar los 2 MB.');
+      return;
+    }
+
+    // Validación de archivo vacío
+    if (file.size === 0) {
+      e.target.value = '';
+      alert('El archivo está vacío.');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Crear preview local usando FileReader
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result || null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Subir foto al backend
+  const handleFotoUpload = async () => {
+    if (!selectedFile) return;
+
+    setCargandoPerfil(true);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result?.toString().split(',')[1];
+      if (!base64) {
+        setCargandoPerfil(false);
+        alert('Error al leer el archivo.');
+        return;
+      }
+
+      const tipoMime = selectedFile.type || 'image/jpeg';
+      const tamanoBytes = selectedFile.size;
+
+      try {
+        const result = await actualizarMiUsuario({ fotoBase64: base64, tipoMime, tamanoBytes });
+
+        // Actualizar fotoUrl con la respuesta del backend
+        if (data) {
+          setData({
+            ...data,
+            usuario: {
+              ...data.usuario,
+              fotoUrl: result?.usuario?.fotoUrl || data.usuario.fotoUrl
+            }
+          });
+        }
+
+        // Recargar datos del servidor para reflejar el cambio
+        await cargar();
+        setCargandoPerfil(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+
+        alert('Foto de perfil actualizada correctamente.');
+      } catch (err) {
+        const mensaje = err.message || 'Error desconocido';
+        alert('No fue posible subir la foto: ' + mensaje);
+
+        // Mantener foto anterior si falla
+        if (data?.usuario?.fotoUrl) {
+          // Foto existente se mantiene
+        }
+
+        setCargandoPerfil(false);
+      }
+    };
+
+    reader.readAsDataURL(selectedFile);
+  };
 
   const ciclo = data?.ciclo;
   const cursos = Array.isArray(data?.cursos) ? data.cursos : [];
@@ -271,7 +378,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
                 {[
                   [VIEWS.horario, Clock3, 'Mi horario', 'Revisa tu turno y horario de clases.'],
                   [VIEWS.cursos, BookOpen, 'Mis cursos', `${cursos.length} cursos asignados a tu ciclo.`],
-                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros${promedio !== null ? ` y promedio ${promedio.toFixed(2)} / ${escalaMaxima}` : ''}.`],
+                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros${promedio !== null ? ` y promedio{promedio.toFixed(2)} /{escalaMaxima}` : ''}.`],
                   [VIEWS.materiales, FileText, 'Materiales', `${materiales.length} archivos disponibles.`]
                 ].map(([id, Icon, title, text]) => (
                   <button
@@ -353,7 +460,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
 
         {view === VIEWS.cursos && (
           <div>
-            <SectionHeader icon={BookOpen} title="Mis cursos" subtitle={`Cursos asignados a ${ciclo.nombre}.`} />
+            <SectionHeader icon={BookOpen} title="Mis cursos" subtitle={`Cursos asignados a{ciclo.nombre}.`} />
             {cursos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {cursos.map((curso) => (
@@ -386,7 +493,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Promedio general</span>
                 <p className="text-3xl font-bold text-slate-900 mt-2">{promedio !== null ? promedio.toFixed(2) : '—'}</p>
-                <p className="text-xs text-slate-500 mt-1">{promedio !== null ? `Escala máxima ${escalaMaxima}` : 'Sin evaluaciones registradas'}</p>
+                <p className="text-xs text-slate-500 mt-1">{promedio !== null ? `Escala máxima{escalaMaxima}` : 'Sin evaluaciones registradas'}</p>
               </div>
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Puesto</span>
@@ -451,7 +558,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
                           type="button"
                           key={curso}
                           onClick={() => setCursoMaterial(curso)}
-                          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors{
                             activo
                               ? 'border-blue-200 bg-blue-50 text-blue-700'
                               : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'
@@ -459,7 +566,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
                         >
                           {curso}
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold{
                               activo ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
                             }`}
                           >
@@ -563,23 +670,140 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
         )}
 
         {view === VIEWS.perfil && (
-          <div className="max-w-3xl">
-            <SectionHeader icon={UserRound} title="Mi perfil" subtitle="Datos básicos de tu cuenta institucional." />
-            <div className="p-6 rounded-xl bg-white border border-slate-200">
-              <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
-                <div className="w-14 h-14 rounded-xl bg-blue-700 flex items-center justify-center text-xl font-bold text-white">
-                  {(data?.usuario?.nombreCompleto || user?.nombre || 'AL').slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">{data?.usuario?.nombreCompleto || user?.nombre}</h2>
-                  <p className="text-xs text-slate-500">Código: {data?.usuario?.codigoUsuario || user?.codigoUsuario || '—'}</p>
+          <div className="max-w-7xl mx-auto">
+            {/* Sin subtitle redundante */}
+
+            {/* TARJETA DE IDENTIDAD CON FOTO */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
+              <div className="relative">
+                {/* Foto de perfil o iniciales */}
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Foto de perfil (preview)"
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white"
+                  />
+                ) : data?.usuario?.fotoUrl ? (
+                  <img
+                    src={getFotoPerfilUrl(data.usuario.fotoUrl, API_URL)}
+                    alt="Foto de perfil"
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white"
+                  />
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-xl bg-blue-700 flex items-center justify-center text-xl font-bold text-white"
+                  >
+                    {(data?.usuario?.nombreCompleto || user?.nombre || 'AL').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                
+                {/* Botón Cambiar foto - visible solo si hay sesión y no está cargando */}
+                {user && !cargandoPerfil && (
+                  <div className="absolute bottom-1 right-1">
+                    <button
+                      type="button"
+                      onClick={
+                        selectedFile && !cargandoPerfil ? handleFotoUpload : () => document.getElementById('foto-perfil-input').click()
+                      }
+                      disabled={selectedFile && cargandoPerfil}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      {selectedFile && !cargandoPerfil ? (
+                        <>
+                          Guardar foto
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCcw className="w-3 h-3" aria-hidden="true" />
+                          Cambiar foto
+                        </>
+                      )}
+                      {selectedFile && cargandoPerfil && (
+                        <span className="ml-2 text-xs text-slate-500">Subiendo...</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+                
+                {/* Input file oculto */}
+                <input
+                  id="foto-perfil-input"
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={e => handleFotoChange(e)}
+                />
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <p className="font-medium text-slate-900">{data?.usuario?.nombreCompleto || user?.nombre}</p>
+                <p className="text-xs text-slate-500">ACAD-{data?.usuario?.codigoUsuario || user?.codigoUsuario || ''}</p>
+              </div>
+            </div>
+
+            {/* GRID: Dos tarjetas separadas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              {/* TARJETA: Información Personal */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3">Información personal</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Nombres</p>
+                    <span className="text-slate-900">{data?.usuario?.nombres || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Apellido paterno</p>
+                    <span className="text-slate-900">{data?.usuario?.apellidoPaterno || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Apellido materno</p>
+                    <span className="text-slate-900">{data?.usuario?.apellidoMaterno || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">DNI</p>
+                    <span className="text-slate-900">{data?.usuario?.dni || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Correo</p>
+                    <span className="text-slate-900">{data?.usuario?.correo || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Teléfono</p>
+                    <span className="text-slate-900">{data?.usuario?.telefono || data?.usuario?.celular || 'No registrado'}</span>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 text-sm">
-                <div className="flex items-center gap-3"><UserRound className="w-4 h-4 text-blue-700" aria-hidden="true" /><div><span className="block text-[10px] uppercase text-slate-500 font-bold">Nombres</span><span className="text-slate-900">{data?.usuario?.nombres || '—'}</span></div></div>
-                <div className="flex items-center gap-3"><FileText className="w-4 h-4 text-blue-700" aria-hidden="true" /><div><span className="block text-[10px] uppercase text-slate-500 font-bold">DNI</span><span className="text-slate-900">{data?.usuario?.dni || '—'}</span></div></div>
-                <div className="flex items-center gap-3"><Mail className="w-4 h-4 text-blue-700" aria-hidden="true" /><div><span className="block text-[10px] uppercase text-slate-500 font-bold">Correo</span><span className="text-slate-900">{data?.usuario?.correo || '—'}</span></div></div>
-                <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-blue-700" aria-hidden="true" /><div><span className="block text-[10px] uppercase text-slate-500 font-bold">Universidad objetivo</span><span className="text-slate-900">{ciclo.universidadObjetivo || '—'}</span></div></div>
+
+              {/* TARJETA: Información Académica */}
+              <div>
+                <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Información académica</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Universidad objetivo</p>
+                    <span className="text-slate-900">{ciclo?.universidadObjetivo || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Ciclo actual</p>
+                    <span className="text-slate-900">{ciclo?.nombre || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Modalidad</p>
+                    <span className="text-slate-900">{ciclo?.modalidad || 'No registrado'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Fec. inicio</p>
+                    <span className="text-slate-900">
+                      {ciclo?.fechaInicio && normalizarFecha(ciclo.fechaInicio)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Fec. fin</p>
+                    <span className="text-slate-900">
+                      {ciclo?.fechaFin && normalizarFecha(ciclo.fechaFin)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

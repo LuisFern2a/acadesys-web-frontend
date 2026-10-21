@@ -562,6 +562,28 @@ export async function actualizarMiUsuario(datosUsuario) {
   const celular = datosUsuario?.celular ?? datosUsuario?.Celular;
   if (celular !== undefined) payload.Celular = String(celular);
 
+  // NUEVO: Soporte opcional para foto de perfil
+  // El backend acepta fotoBase64, tipoMime y tamanoBytes en PUT /api/usuarios/me
+  const fotoBase64 = datosUsuario?.fotoBase64;
+  const tipoMime = datosUsuario?.tipoMime;
+  const tamanoBytes = datosUsuario?.tamanoBytes;
+
+  // Solo agregamos la foto si se proporciona y tiene datos válidos
+  if (fotoBase64 !== undefined && fotoBase64 !== null && String(fotoBase64).trim() !== '') {
+    // Validación frontend básica: verificar MIME type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (tipoMime && !allowedTypes.includes(tipoMime)) {
+      throw new Error('Formato de imagen no válido. Use JPG, PNG o WebP.');
+    }
+    // Validación de tamaño (2 MB conservador)
+    if (tamanoBytes && tamanoBytes > 2 * 1024 * 1024) {
+      throw new Error('La imagen no puede superar los 2 MB.');
+    }
+    payload.fotoBase64 = fotoBase64;
+    if (tipoMime) payload.tipoMime = tipoMime;
+    if (tamanoBytes !== undefined) payload.tamanoBytes = tamanoBytes;
+  }
+
   if (Object.keys(payload).length === 0) {
     throw new Error('No se enviaron cambios para tu perfil.');
   }
