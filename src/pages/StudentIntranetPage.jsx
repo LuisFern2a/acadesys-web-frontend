@@ -213,14 +213,14 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     reader.readAsDataURL(selectedFile);
   };
 
-  const ciclo = data?.ciclo;
   const cursos = Array.isArray(data?.cursos) ? data.cursos : [];
   const notas = Array.isArray(data?.notas?.historial) ? data.notas.historial : [];
   const materiales = Array.isArray(data?.materiales) ? data.materiales : [];
   const horarios = Array.isArray(data?.horarioDetalle) ? data.horarioDetalle : [];
   const promedio = promedioCalificaciones(notas.map((nota) => nota.calificacion ?? nota.Calificacion));
   const ranking = data?.notas?.puestoRanking ?? null;
-  const escalaMaxima = escalaPorUniversidad(ciclo?.universidadObjetivo);
+  const ciclo = data?.ciclo;
+const escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
 
   // Filtro por curso: es el único filtro con datos reales (los materiales del
   // alumno ya vienen acotados a su ciclo activo y siempre son PDF).
