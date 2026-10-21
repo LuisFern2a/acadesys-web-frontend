@@ -742,7 +742,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               
               <div className="flex items-center gap-3">
                 <p className="font-medium text-slate-900">Jessenia Tarrillo</p>
-                <p className="text-xs text-slate-500">ACAD-{codigoAlumno} · Alumno</p>
+                <p className="text-xs text-slate-500">ACAD-{ data?.usuario?.codigoUsuario || user?.codigoUsuario || 'ACAD-1134' }</p>
               </div>
             </div>
 
