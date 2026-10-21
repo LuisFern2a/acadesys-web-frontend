@@ -277,6 +277,23 @@ test('actualización de usuario conserva apellido materno y contraseña exacta',
   assert.equal(Object.hasOwn(cuerpo, 'EstadoRegistro'), false);
 });
 
+test('eliminar foto usa DELETE autenticado y propaga el error real del backend', async () => {
+  api.guardarToken('token-simulado');
+  simular(
+    [200, { message: 'Foto de perfil eliminada con éxito.' }],
+    [409, { error: 'La foto de perfil no está disponible: falta aplicar la migración.' }]
+  );
+
+  const respuesta = await api.eliminarMiFoto();
+  assert.equal(respuesta.message, 'Foto de perfil eliminada con éxito.');
+  assert.equal(llamadas[0].url.endsWith('/api/usuarios/me/foto'), true);
+  assert.equal(llamadas[0].options.method, 'DELETE');
+  assert.equal(llamadas[0].options.headers.Authorization, 'Bearer token-simulado');
+  assert.equal(llamadas[0].options.body, undefined);
+
+  await assert.rejects(api.eliminarMiFoto(), /migración/);
+});
+
 // === NUEVAS PRUEBAS DE INTEGRACIÓN BACKEND/FRONTEND ===
 
 test('helper esCalificacionEntera acepta enteros y cadenas de dígitos', () => {

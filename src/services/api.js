@@ -427,6 +427,19 @@ export async function obtenerMiUsuario() {
   return await response.json();
 }
 
+// Elimina la foto de perfil del usuario autenticado. El backend resuelve el
+// usuario desde la sesión; nunca se envía un IdUsuario desde el cliente.
+export async function eliminarMiFoto() {
+  const response = await fetchWithAuth(`/api/usuarios/me/foto`, { method: "DELETE" });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(
+      errData.error || errData.message || errData.mensaje || `Error HTTP: ${response.status}`
+    );
+  }
+  return response.status === 204 ? null : await response.json().catch(() => null);
+}
+
 export async function crearUsuario(datosUsuario) {
   if (Array.isArray(datosUsuario.perfiles) && datosUsuario.perfiles.length > 1) {
     throw new Error('La API de usuarios admite un único perfil por operación.');
@@ -571,7 +584,7 @@ export async function actualizarMiUsuario(datosUsuario) {
   // Solo agregamos la foto si se proporciona y tiene datos válidos
   if (fotoBase64 !== undefined && fotoBase64 !== null && String(fotoBase64).trim() !== '') {
     // Validación frontend básica: verificar MIME type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (tipoMime && !allowedTypes.includes(tipoMime)) {
       throw new Error('Formato de imagen no válido. Use JPG, PNG o WebP.');
     }

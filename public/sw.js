@@ -1,4 +1,8 @@
-const CACHE_NAME = 'acadesys-cache-v4';
+const CACHE_NAME = 'acadesys-cache-v5';
+
+// En desarrollo (Vite) el service worker no debe interceptar NADA: la
+// estrategia cache-first servía módulos antiguos y ocultaba los cambios.
+const ES_DESARROLLO = ['localhost', '127.0.0.1', '::1'].includes(self.location.hostname);
 
 const PRECACHE_ASSETS = [
   '/',
@@ -40,6 +44,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
+  // Desarrollo: dejar que Vite sirva siempre el código actual.
+  if (ES_DESARROLLO) return;
   if (request.method !== 'GET') return;
   if (!request.url.startsWith(self.location.origin)) return;
 

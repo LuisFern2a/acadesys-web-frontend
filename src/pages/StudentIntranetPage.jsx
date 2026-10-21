@@ -10,10 +10,12 @@ import {
   Loader2,
   FileText,
   RefreshCcw,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
-import { API_URL, actualizarMiUsuario, obtenerMiIntranetAlumno } from '../services/api';
+import { API_URL, actualizarMiUsuario, eliminarMiFoto, obtenerMiIntranetAlumno, obtenerMiUsuario } from '../services/api';
 import { promedioCalificaciones, escalaPorUniversidad } from '../utils/calificaciones';
+import { normalizarCodigoAlumno, resolverUrlFoto, valorTexto } from '../utils/perfil';
 
 const VIEWS = {
   home: 'student-home',
@@ -32,19 +34,27 @@ const normalizarFecha = (valor) => {
   return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : valor;
 };
 
-const getFotoPerfilUrl = (fotoUrl) => {
-  if (!fotoUrl) return null;
-  if (
-    fotoUrl.startsWith('http://') ||
-    fotoUrl.startsWith('https://') ||
-    fotoUrl.startsWith('data:') ||
-    fotoUrl.startsWith('blob:')
-  )
-    return fotoUrl;
-  // URL relativa: combinar con API_URL (quitar /api del final si existe)
-  const base = API_URL.replace(/\/api$/, '') || 'https://acadesys-web-frontend';
-  return `${base}${fotoUrl}`;
-};
+// Avatar del alumno: el contenedor se renderiza SIEMPRE. Si no hay imagen o
+// la imagen falla, muestra las iniciales sobre el fondo azul de la marca.
+function AvatarAlumno({ src, iniciales }) {
+  const [error, setError] = useState(false);
+  const mostrarImagen = Boolean(src) && !error;
+
+  return (
+    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-blue-700 text-white flex items-center justify-center overflow-hidden shrink-0 text-2xl font-semibold">
+      {mostrarImagen ? (
+        <img
+          src={src}
+          alt="Foto de perfil"
+          className="w-full h-full object-cover"
+          onError={() => setError(true)}
+        />
+      ) : (
+        <span>{iniciales}</span>
+      )}
+    </div>
+  );
+}
 
 // Tipo de archivo derivado EXCLUSIVAMENTE del dato real (tipoMime o extensión
 // del nombre/URL). No se inventan tipos.
@@ -102,6 +112,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [perfilUsuario, setPerfilUsuario] = useState(null);
 
   const cargar = useCallback(async (force = false) => {
     setLoading(true);
@@ -120,13 +131,41 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     cargar();
   }, [cargar]);
 
+  // Datos complementarios del usuario autenticado: teléfono y foto persistida.
+  // /api/alumno/me no devuelve esos campos; /api/usuarios/me sí es el endpoint
+  // canónico del perfil y está autorizado para el alumno. Un fallo aquí no
+  // invalida el expediente académico ya cargado.
+  const consultarPerfilUsuario = useCallback(async () => {
+    try {
+      const respuesta = await obtenerMiUsuario();
+      const registro = respuesta?.data ?? respuesta;
+      if (registro && typeof registro === 'object' && !Array.isArray(registro)) {
+        return registro;
+      }
+    } catch {
+      // Silencioso a propósito: la foto/teléfono son datos complementarios.
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    if (view !== VIEWS.perfil) return undefined;
+    let activo = true;
+    consultarPerfilUsuario().then((registro) => {
+      if (activo && registro) setPerfilUsuario(registro);
+    });
+    return () => {
+      activo = false;
+    };
+  }, [view, consultarPerfilUsuario]);
+
   // Manejo de cambio de archivo para foto de perfil
   const handleFotoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     // Validación de tipo de archivo
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       e.target.value = '';
       alert('Formato de imagen no válido. Use JPG, PNG o WebP.');
@@ -155,62 +194,96 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     reader.onload = (e) => {
       setPreviewUrl(e.target?.result || null);
     };
+    reader.onerror = () => {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      e.target.value = '';
+      alert('No se pudo leer la imagen seleccionada.');
+    };
     reader.readAsDataURL(file);
   };
 
-  // Subir foto al backend
+  // Subir foto al backend.
+  // El contrato implementado en PUT /api/usuarios/me recibe base64 SIN el
+  // prefijo "data:...;base64,". Se conserva la foto anterior si algo falla.
   const handleFotoUpload = async () => {
-    if (!selectedFile) return;
-
+    if (!selectedFile || cargandoPerfil) return;
     setCargandoPerfil(true);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result?.toString().split(',')[1];
-      if (!base64) {
-        setCargandoPerfil(false);
-        alert('Error al leer el archivo.');
-        return;
+    const leerArchivoComoDataUrl = () =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (evento) => resolve(String(evento.target?.result || ''));
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+        reader.readAsDataURL(selectedFile);
+      });
+
+    try {
+      const dataUrl = await leerArchivoComoDataUrl();
+      const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+      if (!base64) throw new Error('El archivo no contiene una imagen válida.');
+
+      const resultado = await actualizarMiUsuario({
+        fotoBase64: base64,
+        tipoMime: selectedFile.type || 'image/jpeg',
+        tamanoBytes: selectedFile.size,
+      });
+
+      const fotoGuardada = resultado?.usuario?.fotoUrl || resultado?.usuario?.FotoUrl || null;
+      if (resultado?.usuario) {
+        setPerfilUsuario((actual) => ({
+          ...(actual || {}),
+          ...resultado.usuario,
+          ...(fotoGuardada ? { fotoUrl: fotoGuardada, FotoUrl: fotoGuardada } : {}),
+        }));
       }
 
-      const tipoMime = selectedFile.type || 'image/jpeg';
-      const tamanoBytes = selectedFile.size;
+      // Refrescar expediente y perfil desde el servidor (fuente de verdad).
+      await cargar();
+      const perfilActualizado = await consultarPerfilUsuario();
+      if (perfilActualizado) setPerfilUsuario(perfilActualizado);
 
-      try {
-        const result = await actualizarMiUsuario({ fotoBase64: base64, tipoMime, tamanoBytes });
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      const input = document.getElementById('foto-perfil-input');
+      if (input) input.value = '';
 
-        // Actualizar fotoUrl con la respuesta del backend
-        if (data) {
-          setData({
-            ...data,
-            usuario: {
-              ...data.usuario,
-              fotoUrl: result?.usuario?.fotoUrl || data.usuario.fotoUrl
-            }
-          });
-        }
+      alert('Foto de perfil actualizada correctamente.');
+    } catch (err) {
+      alert('No fue posible subir la foto: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setCargandoPerfil(false);
+    }
+  };
 
-        // Recargar datos del servidor para reflejar el cambio
-        await cargar();
-        setCargandoPerfil(false);
-        setSelectedFile(null);
-        setPreviewUrl(null);
+  // Elimina la foto persistida. Solo se ofrece cuando existe una foto guardada.
+  const handleEliminarFoto = async () => {
+    if (cargandoPerfil) return;
+    if (!window.confirm('¿Eliminar tu foto de perfil? Se mostrarán tus iniciales.')) return;
 
-        alert('Foto de perfil actualizada correctamente.');
-      } catch (err) {
-        const mensaje = err.message || 'Error desconocido';
-        alert('No fue posible subir la foto: ' + mensaje);
+    setCargandoPerfil(true);
+    try {
+      await eliminarMiFoto();
+      setPerfilUsuario((actual) => (actual ? { ...actual, fotoUrl: null, FotoUrl: null } : actual));
+      setData((actual) => (actual?.usuario ? { ...actual, usuario: { ...actual.usuario, fotoUrl: null } } : actual));
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      const perfilActualizado = await consultarPerfilUsuario();
+      if (perfilActualizado) setPerfilUsuario(perfilActualizado);
+      alert('Foto de perfil eliminada.');
+    } catch (err) {
+      alert('No fue posible eliminar la foto: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setCargandoPerfil(false);
+    }
+  };
 
-        // Mantener foto anterior si falla
-        if (data?.usuario?.fotoUrl) {
-          // Foto existente se mantiene
-        }
-
-        setCargandoPerfil(false);
-      }
-    };
-
-    reader.readAsDataURL(selectedFile);
+  // Cancela la selección local sin tocar la foto ya guardada en el servidor.
+  const cancelarFoto = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    const input = document.getElementById('foto-perfil-input');
+    if (input) input.value = '';
   };
 
   const cursos = Array.isArray(data?.cursos) ? data.cursos : [];
@@ -220,9 +293,49 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const promedio = promedioCalificaciones(notas.map((nota) => nota.calificacion ?? nota.Calificacion));
   const ranking = data?.notas?.puestoRanking ?? null;
   const ciclo = data?.ciclo;
-const rawCodigo = data?.usuario?.codigoUsuario || user?.codigoUsuario || '';
-const cleanCodigo = rawCodigo.replace(/^ACAD-/, '').replace(/^ACAD-/, '');
-const codigoAlumno = cleanCodigo.startsWith('ACAD-') ? cleanCodigo : `ACAD-${cleanCodigo}`;
+  // Código normalizado UNA sola vez. El JSX lo pinta tal cual, sin volver a
+  // concatenar "ACAD-" (eso producía el prefijo duplicado).
+  const codigoAlumno = normalizarCodigoAlumno(
+    data?.usuario?.codigoUsuario ||
+      perfilUsuario?.CodigoUsuario ||
+      perfilUsuario?.codigoUsuario ||
+      user?.codigoUsuario
+  );
+  const nombreAlumno =
+    data?.usuario?.nombreCompleto ||
+    perfilUsuario?.NombreCompleto ||
+    perfilUsuario?.nombreCompleto ||
+    user?.nombre ||
+    'Alumno';
+  const inicialesAlumno = nombreAlumno.trim().slice(0, 2).toUpperCase() || 'AL';
+
+  // Prioridad de imagen: preview local → foto persistida → iniciales.
+  // La foto persistida puede venir de /api/alumno/me o de /api/usuarios/me.
+  const fotoPersistida =
+    data?.usuario?.fotoUrl ||
+    perfilUsuario?.fotoUrl ||
+    perfilUsuario?.FotoUrl ||
+    null;
+  const fotoAlumnoSrc = previewUrl || resolverUrlFoto(fotoPersistida, API_URL);
+
+  // Datos personales: se completan con /api/usuarios/me (el expediente del
+  // alumno no incluye teléfono ni todos los campos de contacto).
+  const nombresAlumno = data?.usuario?.nombres || perfilUsuario?.Nombres || perfilUsuario?.nombres;
+  const apellidoPaternoAlumno =
+    data?.usuario?.apellidoPaterno || perfilUsuario?.ApellidoPaterno || perfilUsuario?.apellidoPaterno;
+  const apellidoMaternoAlumno =
+    data?.usuario?.apellidoMaterno || perfilUsuario?.ApellidoMaterno || perfilUsuario?.apellidoMaterno;
+  const dniAlumno = data?.usuario?.dni || perfilUsuario?.DNI || perfilUsuario?.dni;
+  const correoAlumno =
+    data?.usuario?.correo ||
+    perfilUsuario?.CorreoElectronico ||
+    perfilUsuario?.correo ||
+    perfilUsuario?.Correo;
+  const telefonoAlumno =
+    data?.usuario?.celular ||
+    data?.usuario?.telefono ||
+    perfilUsuario?.Celular ||
+    perfilUsuario?.celular;
 
 // Escala máxima para el componente de notas
 const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
@@ -332,7 +445,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
         <p className="text-blue-700 text-[11px] font-bold uppercase tracking-[0.16em]">Portal del Estudiante</p>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-1">{tituloView}</h1>
         <p className="text-sm text-slate-500 mt-2">
-          {data?.usuario?.nombreCompleto || user?.nombre || 'Alumno'} · {user?.codigoUsuario || data?.usuario?.codigoUsuario || 'Sin código'}
+          {nombreAlumno} · {codigoAlumno || 'Sin código'}
         </p>
       </div>
       <button
@@ -680,69 +793,73 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
 
             {/* TARJETA DE IDENTIDAD CON FOTO */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
-              <div className="relative flex flex-col md:flex-row items-center gap-3 w-full">
-                {/* Foto de perfil o iniciales */}
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Foto de perfil (preview)"
-                    className="w-24 md:w-20 h-24 md:h-20 rounded-full object-cover border-2 border-white"
-                  />
-                ) : data?.usuario?.fotoUrl ? (
-                  <img
-                    src={getFotoPerfilUrl(data.usuario.fotoUrl, API_URL)}
-                    alt="Foto de perfil"
-                    className="w-24 md:w-20 h-24 md:h-20 rounded-full object-cover border-2 border-white"
-                  />
-                ) : (
-                  <div
-                    className="w-24 md:w-20 h-24 md:h-20 rounded-full flex items-center justify-center text-2xl font-semibold text-white"
-                  >
-                    {(data?.usuario?.nombreCompleto || user?.nombre || 'AL').slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                
-                {/* Botón Cambiar foto - visible solo si hay sesión y no está cargando */}
-                {user && !cargandoPerfil && (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={
-                        selectedFile && !cargandoPerfil ? handleFotoUpload : () => document.getElementById('foto-perfil-input').click()
-                      }
-                      disabled={selectedFile && cargandoPerfil}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      {selectedFile && !cargandoPerfil ? (
-                        <>
-                          Guardar foto
-                        </>
-                      ) : (
-                        <>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+                <AvatarAlumno
+                  key={fotoAlumnoSrc || 'sin-foto'}
+                  src={fotoAlumnoSrc}
+                  iniciales={inicialesAlumno}
+                />
+
+                {/* Identidad y acciones junto al avatar */}
+                <div className="min-w-0">
+                  <p className="text-base font-semibold text-slate-900 truncate">{nombreAlumno}</p>
+                  <p className="mt-1 text-xs text-slate-500">{codigoAlumno || 'No registrado'} · Alumno</p>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {selectedFile ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleFotoUpload}
+                          disabled={cargandoPerfil}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 text-xs font-bold text-white hover:bg-blue-600 transition-colors disabled:opacity-60"
+                        >
+                          {cargandoPerfil ? 'Guardando…' : 'Guardar foto'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelarFoto}
+                          disabled={cargandoPerfil}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('foto-perfil-input').click()}
+                          disabled={cargandoPerfil}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                        >
                           <RefreshCcw className="w-3 h-3" aria-hidden="true" />
-                          Cambiar foto
-                        </>
-                      )}
-                      {selectedFile && cargandoPerfil && (
-                        <span className="ml-2 text-xs text-slate-500">Subiendo...</span>
-                      )}
-                    </button>
+                          {fotoPersistida ? 'Cambiar foto' : 'Agregar foto'}
+                        </button>
+                        {fotoPersistida && (
+                          <button
+                            type="button"
+                            onClick={handleEliminarFoto}
+                            disabled={cargandoPerfil}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 bg-white text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-60"
+                          >
+                            <Trash2 className="w-3 h-3" aria-hidden="true" />
+                            Eliminar foto
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
-                )}
-                
+                </div>
+
                 {/* Input file oculto */}
                 <input
                   id="foto-perfil-input"
                   type="file"
                   className="hidden"
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={e => handleFotoChange(e)}
+                  onChange={handleFotoChange}
                 />
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <p className="font-medium text-slate-900">Jessenia Tarrillo</p>
-                <p className="text-xs text-slate-500">ACAD-{codigoAlumno} · Alumno</p>
               </div>
             </div>
 
@@ -755,57 +872,57 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Nombres</p>
-                    <span className="text-slate-900">{data?.usuario?.nombres || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(nombresAlumno)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Apellido paterno</p>
-                    <span className="text-slate-900">{data?.usuario?.apellidoPaterno || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(apellidoPaternoAlumno)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Apellido materno</p>
-                    <span className="text-slate-900">{data?.usuario?.apellidoMaterno || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(apellidoMaternoAlumno)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">DNI</p>
-                    <span className="text-slate-900">{data?.usuario?.dni || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(dniAlumno)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Correo</p>
-                    <span className="text-slate-900">{data?.usuario?.correo || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(correoAlumno)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Teléfono</p>
-                    <span className="text-slate-900">{data?.usuario?.telefono || data?.usuario?.celular || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(telefonoAlumno)}</span>
                   </div>
                 </div>
               </div>
 
               {/* TARJETA: Información Académica */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
                 <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Información académica</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Universidad objetivo</p>
-                    <span className="text-slate-900">{ciclo?.universidadObjetivo || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(ciclo?.universidadObjetivo)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Ciclo actual</p>
-                    <span className="text-slate-900">{ciclo?.nombre || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(ciclo?.nombre)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Modalidad</p>
-                    <span className="text-slate-900">{ciclo?.modalidad || 'No registrado'}</span>
+                    <span className="text-slate-900">{valorTexto(ciclo?.modalidad)}</span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Fec. inicio</p>
                     <span className="text-slate-900">
-                      {ciclo?.fechaInicio && normalizarFecha(ciclo.fechaInicio)}
+                      {valorTexto(ciclo?.fechaInicio ? normalizarFecha(ciclo.fechaInicio) : '')}
                     </span>
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Fec. fin</p>
                     <span className="text-slate-900">
-                      {ciclo?.fechaFin && normalizarFecha(ciclo.fechaFin)}
+                      {valorTexto(ciclo?.fechaFin ? normalizarFecha(ciclo.fechaFin) : '')}
                     </span>
                   </div>
                 </div>

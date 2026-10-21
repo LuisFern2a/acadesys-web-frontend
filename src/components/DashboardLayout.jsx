@@ -22,7 +22,7 @@ import {
   BadgeAlert
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
-import { obtenerPerfiles, obtenerMenusPorPerfil, obtenerComunicados } from '../services/api';
+import { obtenerMenusPorPerfil, obtenerComunicados } from '../services/api';
 import { normalizarRol, grupoDeRol, rolDeUsuario } from '../utils/roles';
 import simboloAcadeSys from '../assets/acadesys-symbol.png';
 
@@ -34,27 +34,6 @@ import simboloAcadeSys from '../assets/acadesys-symbol.png';
 const LOGO_INSTITUCIONAL = '/acadesys-logo-new.png';
 
 const normalizeRole = (user) => normalizarRol(rolDeUsuario(user));
-
-function resolverPerfilNavegacion(data, idPerfil, rol) {
-  const lista = Array.isArray(data) ? data : data?.data ?? data?.perfiles;
-  if (!Array.isArray(lista) || lista.some((p) => !p || !Number.isSafeInteger(Number(p.IdPerfil)) ||
-      Number(p.IdPerfil) <= 0 || typeof p.Nombre !== 'string')) {
-    throw new Error('El catálogo de perfiles no tiene un formato válido.');
-  }
-  const activos = lista.filter((p) => Number(p.EstadoRegistro) === 1);
-  if (idPerfil != null) {
-    const perfil = activos.find((p) => String(p.IdPerfil) === String(idPerfil));
-    if (!perfil) throw new Error('No se encontró el perfil activo de la sesión.');
-    return perfil;
-  }
-  // Compatibilidad con sesiones existentes que no conservan idPerfil. Nunca se adivina un ID.
-  const nombre = normalizarRol(rol);
-  const alias = (n) => ({ estudiante: 'alumno', admin: 'administrador', rrhh: 'recursos humanos' }[n] || n);
-  const exactos = activos.filter((p) => normalizarRol(p.Nombre) === nombre);
-  const candidatos = exactos.length ? exactos : activos.filter((p) => alias(normalizarRol(p.Nombre)) === alias(nombre));
-  if (candidatos.length !== 1) throw new Error('No se pudo identificar de forma única el perfil de la sesión.');
-  return candidatos[0];
-}
 
 function resolverVistaMenu(ruta, grupoRol) {
   // Lista cerrada de vistas que App.jsx ya renderiza. No evalúa rutas, HTML ni importaciones.
@@ -134,14 +113,29 @@ export default function DashboardLayout({
   const claveSesion = `${user?.idUsuario ?? user?.IdUsuario ?? user?.id ?? ''}:${idPerfilSesion ?? ''}:${rolSesion}`;
 
   useEffect(() => {
+    // Este layout es compartido por TODOS los portales. La navegación del alumno
+    // (y la del resto de roles no administrativos) está definida de forma
+    // estática en itemsNavegacion + rolesPermitidos, así que aquí NUNCA se
+    // consulta el catálogo administrativo GET /api/perfiles: era la causa del
+    // 403 real del alumno. Solo un administrador consulta los menús de su
+    // propio perfil, usando el idPerfil que ya trae la sesión.
+    if (grupoRol !== 'administrador') {
+      return undefined;
+    }
+
+    const idPerfilMenu = Number(idPerfilSesion);
+    if (!Number.isSafeInteger(idPerfilMenu) || idPerfilMenu <= 0) {
+      // Sesión antigua sin idPerfil: se conserva la navegación estática.
+      return undefined;
+    }
+
     let activo = true;
     let solicitud = 0;
     async function cargar() {
       const numero = ++solicitud;
       setConfiguracionMenu({ clave: claveSesion, menus: null, cargando: true, error: '' });
       try {
-        const perfil = resolverPerfilNavegacion(await obtenerPerfiles(), idPerfilSesion, rolSesion);
-        const data = await obtenerMenusPorPerfil(perfil.IdPerfil);
+        const data = await obtenerMenusPorPerfil(idPerfilMenu);
         if (activo && numero === solicitud) setConfiguracionMenu({ clave: claveSesion, menus: data.menus, cargando: false, error: '' });
       } catch (error) {
         if (activo && numero === solicitud) setConfiguracionMenu({ clave: claveSesion, menus: null, cargando: false, error: error.message || 'No se pudo consultar la navegación.' });
@@ -155,7 +149,7 @@ export default function DashboardLayout({
       window.removeEventListener('acadesys-menus-actualizados', cargar);
       window.removeEventListener('focus', cargar);
     };
-  }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu]);
+  }, [claveSesion, idPerfilSesion, rolSesion, revisionMenu, grupoRol]);
 
   useEffect(() => {
     let activo = true;
@@ -396,7 +390,7 @@ export default function DashboardLayout({
     },
   ];
 
-  const configuracionActual = configuracionMenu?.clave === claveSesion ? configuracionMenu : null;
+  const configuracionActual = grupoRol === 'administrador' && configuracionMenu?.clave === claveSesion ? configuracionMenu : null;
   const navegacion = integrarMenusNavegacion(itemsNavegacion, grupoRol, configuracionActual?.menus);
   const menuItemsFiltrados = navegacion.items;
   const idsNavegacion = new Set(menuItemsFiltrados.flatMap((item) => item.submenus || [item]).map((item) => item.id));
