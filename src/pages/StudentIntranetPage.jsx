@@ -220,6 +220,11 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   const promedio = promedioCalificaciones(notas.map((nota) => nota.calificacion ?? nota.Calificacion));
   const ranking = data?.notas?.puestoRanking ?? null;
   const ciclo = data?.ciclo;
+const rawCodigo = data?.usuario?.codigoUsuario || user?.codigoUsuario || '';
+const cleanCodigo = rawCodigo.replace(/^ACAD-/, '').replace(/^ACAD-/, '');
+const codigoAlumno = cleanCodigo.startsWith('ACAD-') ? cleanCodigo : `ACAD-${cleanCodigo}`;
+
+// Escala máxima para el componente de notas
 const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
 
   // Filtro por curso: es el único filtro con datos reales (los materiales del
@@ -675,23 +680,23 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
 
             {/* TARJETA DE IDENTIDAD CON FOTO */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
-              <div className="relative">
+              <div className="relative flex flex-col md:flex-row items-center gap-3 w-full">
                 {/* Foto de perfil o iniciales */}
                 {previewUrl ? (
                   <img
                     src={previewUrl}
                     alt="Foto de perfil (preview)"
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white"
+                    className="w-24 md:w-20 h-24 md:h-20 rounded-full object-cover border-2 border-white"
                   />
                 ) : data?.usuario?.fotoUrl ? (
                   <img
                     src={getFotoPerfilUrl(data.usuario.fotoUrl, API_URL)}
                     alt="Foto de perfil"
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white"
+                    className="w-24 md:w-20 h-24 md:h-20 rounded-full object-cover border-2 border-white"
                   />
                 ) : (
                   <div
-                    className="w-14 h-14 rounded-xl bg-blue-700 flex items-center justify-center text-xl font-bold text-white"
+                    className="w-24 md:w-20 h-24 md:h-20 rounded-full flex items-center justify-center text-2xl font-semibold text-white"
                   >
                     {(data?.usuario?.nombreCompleto || user?.nombre || 'AL').slice(0, 2).toUpperCase()}
                   </div>
@@ -699,7 +704,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                 
                 {/* Botón Cambiar foto - visible solo si hay sesión y no está cargando */}
                 {user && !cargandoPerfil && (
-                  <div className="absolute bottom-1 right-1">
+                  <div>
                     <button
                       type="button"
                       onClick={
@@ -736,8 +741,8 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               </div>
               
               <div className="flex items-center gap-3">
-                <p className="font-medium text-slate-900">{data?.usuario?.nombreCompleto || user?.nombre}</p>
-                <p className="text-xs text-slate-500">ACAD-{ (data?.usuario?.codigoUsuario || user?.codigoUsuario || '').replace(/^ACAD-/, '')}</p>
+                <p className="font-medium text-slate-900">Jessenia Tarrillo</p>
+                <p className="text-xs text-slate-500">ACAD-{codigoAlumno} · Alumno</p>
               </div>
             </div>
 
@@ -776,7 +781,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               </div>
 
               {/* TARJETA: Información Académica */}
-              <div>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
                 <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Información académica</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
