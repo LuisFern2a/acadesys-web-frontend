@@ -737,7 +737,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
               
               <div className="flex items-center gap-3">
                 <p className="font-medium text-slate-900">{data?.usuario?.nombreCompleto || user?.nombre}</p>
-                <p className="text-xs text-slate-500">ACAD-{data?.usuario?.codigoUsuario || user?.codigoUsuario || ''}</p>
+                <p className="text-xs text-slate-500">ACAD-{ (data?.usuario?.codigoUsuario || user?.codigoUsuario || '').replace(/^ACAD-/, '')}</p>
               </div>
             </div>
 
