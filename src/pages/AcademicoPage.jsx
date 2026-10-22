@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import useModalDialog from '../hooks/useModalDialog';
 import {
@@ -1306,3 +1305,5 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     </div>
   );
 }
+
+

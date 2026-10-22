@@ -177,3 +177,4 @@ export function planificarGuardadoNotas(estudiantes = [], { escalaMaxima = null 
 
   return plan;
 }
+

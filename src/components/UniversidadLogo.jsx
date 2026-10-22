@@ -41,3 +41,5 @@ export default function UniversidadLogo({ ciclo, className = '' }) {
     </div>
   );
 }
+
+

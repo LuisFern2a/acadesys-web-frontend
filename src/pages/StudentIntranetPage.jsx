@@ -16,6 +16,7 @@ import {
 import { API_URL, actualizarMiUsuario, eliminarMiFoto, obtenerMiIntranetAlumno, obtenerMiUsuario } from '../services/api';
 import { promedioCalificaciones, escalaPorUniversidad } from '../utils/calificaciones';
 import { normalizarCodigoAlumno, resolverUrlFoto, valorTexto } from '../utils/perfil';
+import PanelReinscripcionAlumno from '../components/PanelReinscripcionAlumno';
 
 const VIEWS = {
   home: 'student-home',
@@ -490,6 +491,18 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
 
             {cycleSummary}
 
+            <PanelReinscripcionAlumno
+              user={user}
+              estudiante={{
+                nombres: data?.usuario?.nombres || perfilUsuario?.Nombres || perfilUsuario?.nombres || user?.nombres,
+                apellidoPaterno: data?.usuario?.apellidoPaterno || perfilUsuario?.ApellidoPaterno || perfilUsuario?.apellidoPaterno || user?.apellidoPaterno,
+                apellidoMaterno: data?.usuario?.apellidoMaterno || perfilUsuario?.ApellidoMaterno || perfilUsuario?.apellidoMaterno || user?.apellidoMaterno,
+                correo: data?.usuario?.correo || perfilUsuario?.CorreoElectronico || perfilUsuario?.correo || user?.correo,
+              }}
+              cicloActual={ciclo}
+              onUpdated={() => cargar(true)}
+            />
+
             <div>
               <SectionHeader icon={CalendarDays} title="Accesos rápidos" subtitle="Lo esencial para tu preparación." />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -934,5 +947,7 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     </div>
   );
 }
+
+
 
 

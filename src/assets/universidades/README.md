@@ -75,3 +75,5 @@ muestra sin marca de agua):
   HORARIO/CURSOS.
 - Si la universidad no tiene asset, no se renderiza ninguna imagen (fallback
   limpio, sin imágenes rotas).
+
+

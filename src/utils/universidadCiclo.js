@@ -218,3 +218,5 @@ export function obtenerMarcaUniversidad(clave) {
     posicion: marca?.posicion || POSICION_POR_DEFECTO
   };
 }
+
+

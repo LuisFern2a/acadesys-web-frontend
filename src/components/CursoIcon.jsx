@@ -35,3 +35,5 @@ export default function CursoIcon({ nombre, className = '' }) {
     />
   );
 }
+
+

@@ -53,3 +53,5 @@ test('resolverUrlFoto conserva URLs absolutas y devuelve null sin foto', () => {
   assert.equal(resolverUrlFoto(null, 'https://api.test/api'), null);
   assert.equal(resolverUrlFoto('', 'https://api.test/api'), null);
 });
+
+

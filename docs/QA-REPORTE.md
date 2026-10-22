@@ -301,3 +301,4 @@ Revisar la configuración de la URL base de la API en el frontend y reemplazar l
 
 ### Responsable sugerido
 Integrante 4 / Integrante 1
+

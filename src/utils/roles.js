@@ -68,3 +68,5 @@ export const esStaff = (user) => esAdmin(user) || esDocente(user) || esTutor(use
 
 // Clave estable para comparar dos roles cuando no se conoce el grupo.
 export const claveRol = (texto) => grupoDeRol(texto) || normalizarRol(texto);
+
+

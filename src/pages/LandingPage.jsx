@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import useModalDialog from '../hooks/useModalDialog';
 import Swal from 'sweetalert2';
@@ -34,7 +33,7 @@ import heroAcademico from '../assets/hero.png';
 import {
   obtenerCiclosPublicos,
   obtenerCursosCiclo,
-  verificarMatriculaExistente,
+  verificarDisponibilidadMatricula,
   procesarCheckoutMatricula,
   iniciarSesion,
   limpiarSesion
@@ -477,20 +476,16 @@ export default function LandingPage({ onLoginSuccess }) {
     setError(null);
 
     try {
-      const resultado = await verificarMatriculaExistente(correo, idCiclo);
+      // Esto verifica formato + disponibilidad del ciclo; no afirma que la
+      // persona controle el buzón ni consulta si la cuenta existe.
+      const resultado = await verificarDisponibilidadMatricula(correo, idCiclo);
       if (!vigente()) return false;
-
-      if (!resultado.existe) {
-        setVerificacionMatricula({ ...resultado, correoVerificado: correo, autorizado: true });
-        return true;
-      }
-
-      if (!resultado.esAlumno) {
-        setVerificacionMatricula({ ...resultado, correoVerificado: correo, autorizado: false });
+      if (resultado.disponible !== true) {
+        setVerificacionMatricula(null);
         await Swal.fire({
           icon: 'warning',
-          title: 'Correo ya registrado',
-          text: resultado.message || 'Este correo ya está registrado y no corresponde a una cuenta de estudiante.',
+          title: 'Ciclo no disponible',
+          text: resultado.mensaje || 'Este ciclo ya no admite matrículas. Selecciona otro ciclo publicado.',
           confirmButtonText: 'Entendido',
           confirmButtonColor: '#0D9488',
           background: '#ffffff',
@@ -498,52 +493,20 @@ export default function LandingPage({ onLoginSuccess }) {
         });
         return false;
       }
-
-      if (resultado.yaInscritoEnCiclo || resultado.puedeReinscribirse === false) {
-        setVerificacionMatricula({ ...resultado, correoVerificado: correo, autorizado: false });
-        await Swal.fire({
-          icon: 'info',
-          title: 'Matrícula existente',
-          text: resultado.message || 'Ya estás matriculado en este ciclo.',
-          confirmButtonText: 'Entendido',
-          confirmButtonColor: '#0D9488',
-          background: '#ffffff',
-          color: '#0f172a'
-        });
-        return false;
-      }
-
-      const nombreCicloActual = resultado.ciclos?.[0]?.nombre || resultado.cicloActual?.nombre;
-      const mensajeConfirmacion = nombreCicloActual
-        ? `Usted ya está registrado en ${nombreCicloActual}. ¿Desea registrarse en este nuevo ciclo con la misma cuenta?`
-        : 'Usted ya está registrado en el sistema. ¿Desea registrarse en este nuevo ciclo con la misma cuenta?';
-
-      const confirmacion = await Swal.fire({
-        icon: 'question',
-        title: 'Estudiante encontrado',
-        text: mensajeConfirmacion,
-        showCancelButton: true,
-        confirmButtonText: 'Sí, continuar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#0D9488',
-        background: '#ffffff',
-        color: '#0f172a'
-      });
-      if (!vigente()) return false;
 
       setVerificacionMatricula({
-        ...resultado,
-        correoVerificado: correo,
-        autorizado: confirmacion.isConfirmed
+        correoConsultado: correo,
+        idCiclo: Number(idCiclo),
+        disponible: true,
       });
-      return confirmacion.isConfirmed;
+      return true;
     } catch (err) {
       if (!vigente()) return false;
       setVerificacionMatricula(null);
       await Swal.fire({
         icon: 'error',
-        title: 'No se pudo verificar el correo',
-        text: err.message || 'Ocurrió un error al verificar la matrícula.',
+        title: 'No se pudo comprobar el ciclo',
+        text: err.message || 'Ocurrió un error al comprobar la disponibilidad.',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#0D9488',
         background: '#ffffff',
@@ -567,12 +530,14 @@ export default function LandingPage({ onLoginSuccess }) {
     procesandoPagoRef.current = true;
 
     const correoNormalizado = checkoutData.correo.trim().toLowerCase();
-    let autorizado =
-      verificacionMatricula?.correoVerificado === correoNormalizado &&
-      verificacionMatricula?.autorizado === true;
+    const idCicloSeleccionado = Number(cicloSeleccionado?.idCiclo ?? cicloSeleccionado?.id);
+    let cicloDisponible =
+      verificacionMatricula?.correoConsultado === correoNormalizado &&
+      Number(verificacionMatricula?.idCiclo) === idCicloSeleccionado &&
+      verificacionMatricula?.disponible === true;
 
-    if (!autorizado) autorizado = await verificarCorreoParaCheckout(correoNormalizado);
-    if (!autorizado) { procesandoPagoRef.current = false; return; }
+    if (!cicloDisponible) cicloDisponible = await verificarCorreoParaCheckout(correoNormalizado);
+    if (!cicloDisponible) { procesandoPagoRef.current = false; return; }
 
     setProcesandoPago(true);
 
@@ -595,13 +560,34 @@ export default function LandingPage({ onLoginSuccess }) {
         correo: correoNormalizado,
       });
 
+      if (resultado?.verificacionRequerida === true) {
+        await Swal.fire({
+          icon: resultado.correo?.estado === 'enviado' ? 'success' : 'warning',
+          title: 'Confirma tu correo',
+          text: resultado.mensaje || 'Te enviamos un enlace de confirmación. Todavía no se ha creado una matrícula ni se ha realizado un cobro.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#0D9488',
+          background: '#ffffff',
+          color: '#0f172a',
+        });
+        setVerificacionMatricula(null);
+        setCicloSeleccionado(null);
+        setCheckoutData({ nombres: '', apellidos: '', correo: '' });
+        return;
+      }
+
+      const correoEnviado = resultado.correo?.estado === 'enviado';
       await Swal.fire({
-        icon: 'info',
-        title: resultado.esReinscripcion ? 'Reinscripción registrada' : 'Matrícula registrada',
-        text: resultado.esReinscripcion
-          ? 'La matrícula quedó registrada y el pago figura pendiente. Este flujo es una demostración: no se realizó un cobro real. Revisa tu correo para recuperar el acceso.'
-          : 'La matrícula quedó registrada y el pago figura pendiente. Este flujo es una demostración: no se realizó un cobro real. Revisa tu correo para obtener tus accesos.',
-        confirmButtonText: 'Ir al inicio',
+        icon: correoEnviado ? 'info' : 'warning',
+        title: correoEnviado
+          ? (resultado.esReinscripcion ? 'Reinscripción registrada' : 'Matrícula registrada')
+          : 'Matrícula registrada; correo pendiente',
+        text: correoEnviado
+          ? (resultado.esReinscripcion
+            ? 'La matrícula quedó registrada y el pago figura pendiente. Es una demostración: no se realizó un cobro real. Se envió un correo para recuperar el acceso.'
+            : 'La matrícula quedó registrada y el pago figura pendiente. Es una demostración: no se realizó un cobro real. Se envió un correo con las instrucciones de acceso.')
+          : 'La matrícula quedó registrada y el pago sigue pendiente, pero no se pudo confirmar el envío del correo. No vuelvas a enviar el formulario; contacta a la academia para recuperar el acceso.',
+        confirmButtonText: 'Entendido',
         confirmButtonColor: '#0D9488',
         background: '#ffffff',
         color: '#0f172a'
@@ -612,10 +598,22 @@ export default function LandingPage({ onLoginSuccess }) {
       window.location.href = '/';
     } catch (err) {
       Swal.close();
-      // Mostrar mensaje comprensible para errores 502 (backend sin configuración
-      // de GOOGLE_SCRIPT_URL u otros errores de servidor).
-      if (err.status === 502) {
-        setError('No se pudo completar el registro ni enviar el correo de acceso. Vuelve a intentarlo en unos minutos.');
+      if (err.data?.code === 'REINSCRIPCION_REQUIERE_SESION') {
+        setVerificacionMatricula(null);
+        const decision = await Swal.fire({
+          icon: 'info',
+          title: 'Inicia sesión para reinscribirte',
+          text: 'Si ya tienes una cuenta de alumno, inicia sesión. Después podrás elegir otro ciclo desde tu panel. No se ha creado una nueva matrícula con este intento.',
+          showCancelButton: true,
+          confirmButtonText: 'Iniciar sesión',
+          cancelButtonText: 'Ahora no',
+          confirmButtonColor: '#0D9488',
+          background: '#ffffff',
+          color: '#0f172a'
+        });
+        if (decision.isConfirmed) openModal('login', 4);
+      } else if (err.data?.code === 'CORREO_NO_CONFIGURADO') {
+        setError('No se registró la matrícula porque el servicio de correo no está configurado. Inténtalo más tarde o contacta a la academia.');
       } else {
         setError(err.message || 'Error al procesar la matrícula.');
       }
@@ -1638,3 +1636,5 @@ export default function LandingPage({ onLoginSuccess }) {
     </div>
   );
 }
+
+
