@@ -147,7 +147,7 @@ export default function OpcionesMenuPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-700 rounded-xl text-white">
+            <div className="p-2 bg-teal-600 rounded-xl text-white">
               <MenuIcon className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
@@ -168,13 +168,13 @@ export default function OpcionesMenuPage() {
             title="Recargar catálogo"
             aria-label="Recargar catálogo"
           >
-            <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin text-blue-700' : ''}`} aria-hidden="true" />
+            <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin text-teal-700' : ''}`} aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={abrirModal}
             disabled={cargando || guardando || Boolean(errorMenus)}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" aria-hidden="true" /> Nueva Opción
           </button>
@@ -216,7 +216,7 @@ export default function OpcionesMenuPage() {
               {cargando ? (
                 <tr>
                   <td colSpan="6" className="py-12 text-center text-slate-500">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-700" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-700" />
                     <span className="text-xs">Cargando catálogo de navegación...</span>
                   </td>
                 </tr>
@@ -240,15 +240,15 @@ export default function OpcionesMenuPage() {
                     <tr key={id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-500">#{id}</td>
                       <td className="py-4 px-6 font-semibold text-slate-900 text-xs">{nombre}</td>
-                      <td className="py-4 px-6 text-blue-700 font-mono text-xs">
-                        <span className="inline-flex items-center gap-1.5 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                      <td className="py-4 px-6 text-teal-700 font-mono text-xs">
+                        <span className="inline-flex items-center gap-1.5 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100">
                           <LinkIcon className="w-3.5 h-3.5" /> {ruta}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-xs text-slate-600 max-w-sm">{descripcion}</td>
                       <td className="py-4 px-6 text-xs text-slate-500">
                         {idPadre ? (
-                          <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                          <span className="inline-flex items-center gap-1 text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
                             <Layers className="w-3 h-3" /> Submenú de #{idPadre} · {menusPorId.get(idPadre)?.Nombre}
                           </span>
                         ) : (
@@ -299,7 +299,7 @@ export default function OpcionesMenuPage() {
                   disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, nombre: e.target.value })} 
                   placeholder="Ej: Calificaciones" 
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 
@@ -312,7 +312,7 @@ export default function OpcionesMenuPage() {
                   disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, ruta: e.target.value })} 
                   placeholder="/calificaciones" 
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 
@@ -325,7 +325,7 @@ export default function OpcionesMenuPage() {
                     disabled={guardando || Boolean(menuCreado)}
                     onChange={e => setFormData({ ...formData, descripcion: e.target.value })} 
                     placeholder="Ej: Registro de notas" 
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
                 <div>
@@ -336,7 +336,7 @@ export default function OpcionesMenuPage() {
                     value={formData.orden} 
                     disabled={guardando}
                     onChange={e => setFormData({ ...formData, orden: Number(e.target.value) })} 
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900"
                   />
                 </div>
               </div>
@@ -347,7 +347,7 @@ export default function OpcionesMenuPage() {
                   value={formData.idPadre}
                   disabled={guardando || Boolean(menuCreado)}
                   onChange={e => setFormData({ ...formData, idPadre: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900 bg-white cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900 bg-white cursor-pointer"
                 >
                   <option value="">Ninguno (Menú Principal)</option>
                   {menus.map((m) => {
@@ -368,7 +368,7 @@ export default function OpcionesMenuPage() {
                   value={formData.idPerfil}
                   disabled={guardando || cargando || Boolean(errorPerfiles) || !perfiles.some((p) => Number(p.EstadoRegistro) === 1)}
                   onChange={e => setFormData({ ...formData, idPerfil: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-700 text-xs text-slate-900 bg-white cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500 text-xs text-slate-900 bg-white cursor-pointer"
                 >
                   <option value="">{perfiles.some((p) => Number(p.EstadoRegistro) === 1) ? 'Seleccionar Perfil...' : 'No hay perfiles activos disponibles'}</option>
                   {perfiles.filter((p) => Number(p.EstadoRegistro) === 1).map((p) => {
@@ -395,7 +395,7 @@ export default function OpcionesMenuPage() {
                 <button 
                   type="submit" 
                   disabled={guardando || cargando || (Boolean(menuCreado) && (!menuCreado.id || !formData.idPerfil))}
-                  className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {guardando ? 'Guardando...' : menuCreado ? 'Reintentar asignación' : 'Guardar Opción'}

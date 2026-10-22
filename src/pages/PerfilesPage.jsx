@@ -171,9 +171,9 @@ export default function PerfilesPage() {
   const resolverBadgeColor = (nombre = '') => {
     // Color de etiqueta por perfil exacto (solo presentación, no autorización).
     const grupo = grupoDeRol(nombre);
-    if (grupo === GRUPO_ADMIN) return 'bg-blue-700 text-white border-blue-700';
-    if (grupo === GRUPO_DOCENTE) return 'bg-blue-50 text-blue-700 border-blue-100';
-    if (grupo === GRUPO_PADRE) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (grupo === GRUPO_ADMIN) return 'bg-teal-600 text-white border-teal-600';
+    if (grupo === GRUPO_DOCENTE) return 'bg-teal-50 text-teal-700 border-teal-100';
+    if (grupo === GRUPO_PADRE) return 'bg-teal-100 text-teal-800 border-teal-200';
     if (grupo === GRUPO_ALUMNO) return 'bg-slate-100 text-slate-700 border-slate-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
@@ -191,7 +191,7 @@ export default function PerfilesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-700 rounded-xl text-white">
+            <div className="p-2 bg-teal-600 rounded-xl text-white">
               <Shield className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
@@ -212,13 +212,13 @@ export default function PerfilesPage() {
             title="Sincronizar perfiles"
             aria-label="Sincronizar perfiles"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-700' : ''}`} aria-hidden="true" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-700' : ''}`} aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={abrirModalCrear}
             disabled={loading || saving}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" aria-hidden="true" /> Nuevo Perfil
           </button>
@@ -243,7 +243,7 @@ export default function PerfilesPage() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-700 animate-spin mb-3" aria-hidden="true" />
+            <Loader2 className="w-8 h-8 text-teal-700 animate-spin mb-3" aria-hidden="true" />
             <p className="text-slate-500 font-medium text-xs">Cargando catálogo de perfiles...</p>
           </div>
         ) : error ? (
@@ -253,7 +253,7 @@ export default function PerfilesPage() {
             <button
               type="button"
               onClick={cargarPerfiles}
-              className="mt-4 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer"
+              className="mt-4 px-4 py-2 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold hover:bg-teal-100 transition-colors cursor-pointer"
             >
               Reintentar
             </button>
@@ -318,7 +318,7 @@ export default function PerfilesPage() {
                             disabled={loading || saving}
                             title="Editar perfil"
                             aria-label={`Editar ${nombre}`}
-                            className="p-1.5 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg hover:text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer"
                           >
                             <Pencil className="w-4 h-4" aria-hidden="true" />
                           </button>
@@ -390,7 +390,7 @@ export default function PerfilesPage() {
                   placeholder="Ej: Coordinador Académico"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 transition-colors"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-teal-500 transition-colors"
                 />
               </div>
 
@@ -403,7 +403,7 @@ export default function PerfilesPage() {
                   placeholder="Describe las atribuciones y módulos permitidos para este rol..."
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 transition-colors resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-teal-500 transition-colors resize-none"
                 />
               </div>
 
@@ -419,7 +419,7 @@ export default function PerfilesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
                   {saving ? 'Guardando...' : editandoId ? 'Guardar Cambios' : 'Registrar Perfil'}

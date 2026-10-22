@@ -334,7 +334,7 @@ export default function AdminMaterialesPage() {
 
       <div className="min-h-full bg-slate-50 flex items-center justify-center">
 
-        <Loader2 className="w-8 h-8 animate-spin text-blue-700" aria-hidden="true" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-700" aria-hidden="true" />
 
       </div>
 
@@ -352,7 +352,7 @@ export default function AdminMaterialesPage() {
 
           <div>
 
-            <p className="text-blue-700 text-[11px] font-bold uppercase tracking-[0.16em]">Administración</p>
+            <p className="text-teal-700 text-[11px] font-bold uppercase tracking-[0.16em]">Administración</p>
 
             <h1 className="text-2xl sm:text-3xl font-bold mt-1">Materiales Académicos</h1>
 
@@ -413,7 +413,7 @@ export default function AdminMaterialesPage() {
 
             <div className="flex items-center gap-2 text-slate-900 font-bold">
 
-              <Plus className="w-4 h-4 text-blue-700" aria-hidden="true" />
+              <Plus className="w-4 h-4 text-teal-700" aria-hidden="true" />
 
               Nuevo material PDF
 
@@ -430,7 +430,7 @@ export default function AdminMaterialesPage() {
 
                 onChange={(e) => cambiarCiclo(e.target.value)}
 
-                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-blue-600"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-teal-500"
 
               >
 
@@ -455,7 +455,7 @@ export default function AdminMaterialesPage() {
 
                 onChange={(e) => setIdCurso(e.target.value)}
 
-                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-blue-600"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 outline-none focus:border-teal-500"
 
               >
 
@@ -481,7 +481,7 @@ export default function AdminMaterialesPage() {
 
                 placeholder="Ej. Semana 4 - Álgebra"
 
-                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-teal-500"
 
               />
 
@@ -501,7 +501,7 @@ export default function AdminMaterialesPage() {
 
                 placeholder="Material de refuerzo..."
 
-                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 resize-none"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-teal-500 resize-none"
 
               />
 
@@ -539,7 +539,7 @@ export default function AdminMaterialesPage() {
 
               disabled={loading || guardando || cargandoSeleccion || !idCiclo || !idCurso}
 
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-700 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 text-sm font-bold text-white"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-400 text-sm font-bold text-white"
 
             >
 
@@ -563,7 +563,7 @@ export default function AdminMaterialesPage() {
 
               </div>
 
-              <BookOpen className="w-5 h-5 text-blue-700" aria-hidden="true" />
+              <BookOpen className="w-5 h-5 text-teal-700" aria-hidden="true" />
 
             </div>
 
@@ -589,7 +589,7 @@ export default function AdminMaterialesPage() {
 
                     <div className="min-w-0">
 
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-blue-700">{material.curso || 'Curso'}</p>
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-teal-700">{material.curso || 'Curso'}</p>
 
                       <h3 className="text-sm font-bold text-slate-900 mt-1 truncate">{material.titulo}</h3>
 

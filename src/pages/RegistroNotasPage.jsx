@@ -53,10 +53,6 @@ const normalizarTipoEvaluacion = (valor) => String(valor ?? '').normalize('NFD')
 
 export default function RegistroNotasPage() {
 
-  // Identidad institucional AcadeSys: el acento de la pantalla usa siempre el
-  // azul de la marca (el color de tema de la academia podía llegar naranja).
-  const acentoAcadesys = '#2563EB';
-
 
 
   const [ciclos, setCiclos] = useState([]);
@@ -439,7 +435,7 @@ export default function RegistroNotasPage() {
         title: 'No se puede borrar una nota registrada',
         text: 'La API no permite eliminar calificaciones ya guardadas. Vuelve a escribir la nota anterior o usa otro valor antes de guardar.',
         icon: 'warning',
-        confirmButtonColor: '#2563eb',
+        confirmButtonColor: '#0D9488',
         background: '#ffffff',
         color: '#0f172a'
       });
@@ -470,7 +466,7 @@ export default function RegistroNotasPage() {
 
         icon: 'info',
 
-        confirmButtonColor: '#2563eb',
+        confirmButtonColor: '#0D9488',
 
         background: '#ffffff',
 
@@ -512,7 +508,7 @@ export default function RegistroNotasPage() {
 
         icon: 'error',
 
-        confirmButtonColor: '#2563eb',
+        confirmButtonColor: '#0D9488',
 
         background: '#ffffff',
 
@@ -600,7 +596,7 @@ export default function RegistroNotasPage() {
 
         icon: sincronizado ? 'success' : 'warning',
 
-        confirmButtonColor: '#2563eb',
+        confirmButtonColor: '#0D9488',
 
         background: '#ffffff',
 
@@ -634,7 +630,7 @@ export default function RegistroNotasPage() {
 
         icon: 'error',
 
-        confirmButtonColor: '#2563eb',
+        confirmButtonColor: '#0D9488',
 
         background: '#ffffff',
 
@@ -717,7 +713,7 @@ export default function RegistroNotasPage() {
 
         <div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-teal-50 border border-teal-100 text-teal-700 text-xs font-semibold mb-2">
 
             <Sparkles className="w-3.5 h-3.5" />
 
@@ -767,9 +763,7 @@ export default function RegistroNotasPage() {
 
           onClick={handleGuardar}
 
-          className="flex items-center justify-center gap-2 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-
-          style={{ backgroundColor: acentoAcadesys }}
+          className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 
         >
 
@@ -787,7 +781,7 @@ export default function RegistroNotasPage() {
 
         <div className="flex items-center gap-3">
 
-          <School className="w-5 h-5 text-blue-700 shrink-0" />
+          <School className="w-5 h-5 text-teal-700 shrink-0" />
 
           <div className="w-full">
 
@@ -805,7 +799,7 @@ export default function RegistroNotasPage() {
 
               disabled={cargando || guardando}
 
-              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-600 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-teal-500 transition disabled:opacity-50"
 
             >
 
@@ -831,7 +825,7 @@ export default function RegistroNotasPage() {
 
         <div className="flex items-center gap-3">
 
-          <ShieldCheck className="w-5 h-5 text-blue-700 shrink-0" />
+          <ShieldCheck className="w-5 h-5 text-teal-700 shrink-0" />
 
           <div className="w-full">
 
@@ -849,7 +843,7 @@ export default function RegistroNotasPage() {
 
               disabled={cargando || guardando || !idCiclo}
 
-              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-600 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none cursor-pointer focus:border-teal-500 transition disabled:opacity-50"
 
             >
 
@@ -882,7 +876,7 @@ export default function RegistroNotasPage() {
               disabled={cargando || guardando || !idCiclo}
               maxLength={50}
               placeholder="Ej. General, Parcial 1, Simulacro octubre"
-              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-blue-600 transition disabled:opacity-50"
+              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-teal-500 transition disabled:opacity-50"
             />
           </div>
         </div>
@@ -915,7 +909,7 @@ export default function RegistroNotasPage() {
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
 
-          <Users className="w-5 h-5 text-blue-700" />
+          <Users className="w-5 h-5 text-teal-700" />
 
           <div>
 
@@ -939,7 +933,7 @@ export default function RegistroNotasPage() {
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-4">
 
-          <TrendingUp className="w-5 h-5 text-blue-700" />
+          <TrendingUp className="w-5 h-5 text-teal-700" />
 
           <div>
 
@@ -999,7 +993,7 @@ export default function RegistroNotasPage() {
 
           <div className="flex items-center gap-2">
 
-            <ShieldCheck className="w-4 h-4 text-blue-700" />
+            <ShieldCheck className="w-4 h-4 text-teal-700" />
 
             <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
 
@@ -1109,7 +1103,7 @@ export default function RegistroNotasPage() {
 
                         </span>
 
-                        <span className="text-[11px] font-mono text-blue-700">
+                        <span className="text-[11px] font-mono text-teal-700">
 
                           {estudiante.codigo || 'Sin código'}
 
@@ -1159,7 +1153,7 @@ export default function RegistroNotasPage() {
 
                           placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
 
-                          className="w-24 text-center py-2 px-2 border rounded-lg text-sm font-bold font-mono outline-none transition bg-white border-slate-300 text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-100 disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                          className="w-24 text-center py-2 px-2 border rounded-lg text-sm font-bold font-mono outline-none transition bg-white border-slate-300 text-slate-900 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
 
                         />
 

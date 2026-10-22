@@ -41,3 +41,37 @@ archivo debe coincidir con la clave (en minúsculas) definida en
   recolorean. Por eso se muestran **sin** el recuadro azul del icono de toga.
 - Mientras una universidad no tenga logo (o la imagen falle), la tarjeta muestra
   el `GraduationCap` como *fallback* seguro.
+
+## Logos agregados para el catálogo demo (2026-10)
+
+Estos logos se descargaron de Wikimedia Commons y se guardan como assets
+locales (la aplicación NO hace peticiones a Wikimedia en runtime).
+
+| Clave   | Archivo    | Archivo de origen en Commons                                | Licencia                |
+| ------- | ---------- | ----------------------------------------------------------- | ----------------------- |
+| `unalm` | `unalm.png` | `File:Unalm logo.png` (autoría: UNALM)                        | Dominio público         |
+| `ulima` | `ulima.svg` | `File:Universidad de Lima logo.svg` (autoría: Supertoni123)   | CC0 1.0                 |
+| `upc`   | `upc.png`   | `File:UPC logo transparente.png` (autoría: UPC)               | Dominio público         |
+| `utp`   | `utp.png`   | `File:UTP-logo.svg` (autoría: Lamder), rasterizado a 960 px  | Dominio público         |
+| `usmp`  | `usmp.png`  | `File:Universidad San Martin.svg` (autoría: CD Universidad de San Martín de Porres S.A.), rasterizado a 250 px | Dominio público |
+
+Universidades **sin asset** (no se inventa ningún escudo; la tarjeta se
+muestra sin marca de agua):
+
+| Clave  | Motivo                                                                                                                                                     |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `upch` | En Commons los únicos ficheros con "UPCH" en el nombre pertenecen a **otra institución**: `File:EscudoUPCH.jpg` es el escudo de una universidad de Tabasco (México) y `File:Escudo UPCH.png` es de "Universidad Popular". No se usan para no atribuir un escudo ajeno a la UPCH peruana. |
+
+## Uso como marca de agua
+
+- La marca de agua de la tarjeta de ciclo la decide la **UNIVERSIDAD**
+  (`src/utils/universidadCiclo.js`), nunca el nombre del ciclo.
+- Se renderiza como `<img>` decorativo dentro de la tarjeta
+  (`src/components/MarcaUniversidad.jsx`): `alt=""`, `aria-hidden="true"`,
+  `pointer-events-none`, opacidad entre 4 % y 8 % y tamaño `w-28`–`w-44`.
+- Cada universidad tiene su propia configuración (`opacidad`, `ancho` y
+  `posicion`) en `UNIVERSIDADES[clave].marca`; por ejemplo, el asset horizontal
+  de UNFV va más bajo y pegado al borde para no cruzar la columna
+  HORARIO/CURSOS.
+- Si la universidad no tiene asset, no se renderiza ninguna imagen (fallback
+  limpio, sin imágenes rotas).

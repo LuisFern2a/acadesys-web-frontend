@@ -68,6 +68,11 @@ body,
   font-family: var(--font-acadesys);
 }
 
+:root {
+  color-scheme: light;
+  accent-color: #0d9488;
+}
+
 /* ============================================================
    HERO — "FORMA ORGÁNICA SUAVE" (fotografía principal de la Landing)
    ------------------------------------------------------------
@@ -83,8 +88,8 @@ body,
    Los radios son elípticos (horizontal / vertical, separados por "/")
    para que la curva acompañe de forma natural al tamaño de la caja.
 
-   La MISMA clase se usa en la capa azul situada detrás, de modo que
-   ambas formas son idénticas y la azul sólo queda desplazada.
+   La MISMA clase se usa en la capa teal situada detrás, de modo que
+   ambas formas son idénticas y la teal sólo queda desplazada.
    ============================================================ */
 .forma-organica-hero {
   border-radius: 4.75rem 1.5rem 5.5rem 2.25rem / 3.25rem 1.25rem 4.25rem 2.5rem;

@@ -46,9 +46,34 @@ export function promedioCalificaciones(valores) {
   return notas.length ? notas.reduce((suma, nota) => suma + nota, 0) / notas.length : null;
 }
 
+// Escala de puntaje por universidad objetivo.
+//
+// Debe COINCIDIR con la tabla compartida del backend (utils/escalas.js):
+//   - las universidades con escala configurada se respetan tal cual;
+//   - las universidades sin escala propia usan la escala interna
+//     preuniversitaria de AcadeSys (vigesimal, 20 puntos);
+//   - el valor por defecto es SIEMPRE 20, nunca 2000, para que el portal del
+//     alumno y el Tutor IA muestren la misma escala que valida el backend.
+const ESCALAS_POR_UNIVERSIDAD = {
+  UNMSM: 2000,
+  UNI: 2000,
+  PUCP: 1000,
+  UNFV: 1000,
+  UNAC: 100,
+  UNT: 300,
+  UNALM: 20,
+  UPCH: 20,
+  ULIMA: 20,
+  UPC: 20,
+  USMP: 20,
+  UTP: 20,
+  PREUNIVERSITARIO: 20
+};
+
+const ESCALA_POR_DEFECTO = 20;
+
 export function escalaPorUniversidad(universidad) {
-  const escalas = { UNMSM: 2000, UNI: 2000, PUCP: 1000, UNFV: 1000, UNAC: 100, UNT: 300, PREUNIVERSITARIO: 20 };
-  return escalas[String(universidad || '').trim().toUpperCase()] ?? 2000;
+  return ESCALAS_POR_UNIVERSIDAD[String(universidad || '').trim().toUpperCase()] ?? ESCALA_POR_DEFECTO;
 }
 
 // Estados de una evaluación: 1 vigente (editable), 2 acta cerrada (no editable),

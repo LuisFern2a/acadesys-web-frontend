@@ -82,13 +82,13 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
       titulo: 'Estudiantes Registrados',
       valor: cargando ? '...' : error ? '—' : resumen.estudiantes.toString(),
       icono: Users,
-      tono: 'text-blue-600'
+      tono: 'text-teal-600'
     },
     {
       titulo: 'Ciclos Activos',
       valor: cargando ? '...' : error ? '—' : resumen.ciclosActivos.toString(),
       icono: School,
-      tono: 'text-blue-600'
+      tono: 'text-teal-600'
     },
     {
       titulo: 'Promedio Institucional',
@@ -152,13 +152,13 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <School className="w-5 h-5 text-blue-700" aria-hidden="true" />
+              <School className="w-5 h-5 text-teal-700" aria-hidden="true" />
               <h2 className="font-bold text-slate-900">Ciclos del Sistema</h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('academico-ciclos')}
-              className="text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 rounded"
+              className="text-xs font-semibold text-teal-700 hover:text-teal-900 transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 rounded"
             >
               <span>Gestionar Ciclos</span>
               <span aria-hidden="true">→</span>
@@ -189,14 +189,14 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl border border-slate-200">
             <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-blue-700" aria-hidden="true" />
+              <Award className="w-4 h-4 text-teal-700" aria-hidden="true" />
               Acciones Rápidas
             </h3>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('calificaciones')}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-teal-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
               >
                 Revisar Boletas y Ranking
               </button>
@@ -204,7 +204,7 @@ export default function DashboardOverviewPage({ setActiveTab, user }) {
                 <button
                   type="button"
                   onClick={() => setActiveTab('academico')}
-                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-teal-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 flex justify-between items-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
                 >
                   Asignar Carga Docente
                   <ChevronRight className="w-4 h-4" aria-hidden="true" />

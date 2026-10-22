@@ -15,7 +15,7 @@ en las pestañas **Cursos Académicos** y **Horarios**.
   es sólo por trazabilidad.
 - Estilo: `fill="none"`, `stroke="currentColor"`, `stroke-width="2"`,
   `stroke-linecap/linejoin="round"`, `viewBox="0 0 24 24"`. Monocromáticos: toman
-  el color del contenedor (`text-blue-700` de AcadeSys) mediante `currentColor`.
+  el color del contenedor (`text-teal-700` de AcadeSys) mediante `currentColor`.
 - Sin dependencias nuevas: los archivos se importan localmente con Vite (`?raw`).
   **No hay llamadas a CDNs en runtime.**
 

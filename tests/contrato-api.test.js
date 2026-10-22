@@ -49,11 +49,13 @@ test('promedio excluye vacíos, nulos y no numéricos, pero conserva cero', () =
 });
 
 test('escalas por universidad y fallback coinciden con el contrato de notas', () => {
-  for (const [universidad, escala] of Object.entries({ UNMSM: 2000, UNI: 2000, PUCP: 1000, UNFV: 1000, UNAC: 100, UNT: 300, Preuniversitario: 20 })) {
+  for (const [universidad, escala] of Object.entries({ UNMSM: 2000, UNI: 2000, PUCP: 1000, UNFV: 1000, UNAC: 100, UNT: 300, UNALM: 20, UPCH: 20, ULIMA: 20, UPC: 20, USMP: 20, UTP: 20, Preuniversitario: 20 })) {
     assert.equal(escalaPorUniversidad(universidad), escala);
   }
   assert.equal(escalaPorUniversidad(' preuniversitario '), 20);
-  assert.equal(escalaPorUniversidad('desconocida'), 2000);
+  // El valor por defecto es la escala interna preuniversitaria (20), la misma
+  // que usa el backend: notas, dashboard y Tutor IA no pueden discrepar.
+  assert.equal(escalaPorUniversidad('desconocida'), 20);
 });
 
 test('listas directas, envueltas y anidadas se normalizan sin map sobre objetos', () => {

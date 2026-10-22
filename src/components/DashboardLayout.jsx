@@ -22,16 +22,9 @@ import {
   BadgeAlert
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
+import AcadeSysBrand from './AcadeSysBrand';
 import { obtenerMenusPorPerfil, obtenerComunicados } from '../services/api';
 import { normalizarRol, grupoDeRol, rolDeUsuario } from '../utils/roles';
-import simboloAcadeSys from '../assets/acadesys-symbol.png';
-
-
-// Logo institucional: vive en `public/` y se sirve tal cual. El PNG (2172x724,
-// ~3:1) ya trae el símbolo (A azul + birrete) y el texto "AcadeSys", con fondo
-// transparente pensado para el azul oscuro del sidebar; por eso se muestra sin
-// recortes, sin fondo y sin borde (object-contain).
-const LOGO_INSTITUCIONAL = '/acadesys-logo-new.png';
 
 const normalizeRole = (user) => normalizarRol(rolDeUsuario(user));
 
@@ -178,12 +171,6 @@ export default function DashboardLayout({
       window.removeEventListener('acadesys-comunicados-actualizados', cargarNoLeidos);
     };
   }, [activeTab, claveSesion]);
-  // Identidad institucional AcadeSys: todos los acentos de la interfaz (menú
-  // activo, punto de academia, campana y avatar) usan el azul de la marca. El
-  // color de tema de la academia podía llegar naranja y rompía la identidad,
-  // por lo que ya no se usa como color decorativo.
-  const acentoAcadesys = '#2563EB';
-
   const nombreDisplay =
     user?.nombre ||
     user?.NombreCompleto ||
@@ -434,29 +421,14 @@ export default function DashboardLayout({
         {/* CABECERA */}
         <div className={`h-16 flex items-center border-b border-white/10 shrink-0 ${collapsed ? 'justify-center gap-1 px-1.5' : 'justify-between px-4'}`}>
 
-          <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-            {collapsed ? (
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-white ring-1 ring-black/5 flex items-center justify-center overflow-hidden">
-                <img
-                  src={simboloAcadeSys}
-                  alt="AcadeSys"
-                  className="w-full h-full object-contain"
-                />
-              </span>
-            ) : (
-              <img
-                src={LOGO_INSTITUCIONAL}
-                alt="AcadeSys"
-                className="shrink-0 h-9 w-auto max-w-full object-contain"
-              />
-            )}
-          </div>
+          <AcadeSysBrand compacto={collapsed} className="overflow-hidden" />
 
           <button
             type="button"
             onClick={() => setCollapsed((prev) => !prev)}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
             {collapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -498,11 +470,12 @@ export default function DashboardLayout({
                     type="button"
                     onClick={() => toggleAccordion(item.id)}
                     aria-expanded={!collapsed && estaAbierto}
-                    title={collapsed ? item.label : undefined}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                    title={item.label}
+                    aria-label={item.label}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
                       esSubmenuActivo
-                        ? 'text-white bg-white/10 border border-white/10'
-                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                        ? 'text-white bg-teal-600/15 border border-teal-500/30'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-3 truncate">
@@ -539,10 +512,11 @@ export default function DashboardLayout({
                             type="button"
                             key={sub.id}
                             onClick={() => cambiarTab(sub.id)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                            title={sub.label}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
                               isSubActive
-                                ? 'bg-blue-700 text-white font-semibold'
-                                : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                ? 'bg-teal-600 hover:bg-teal-700 text-white font-semibold'
+                                : 'text-slate-300 hover:text-white hover:bg-slate-800'
                             }`}
                           >
                             <SubIcon className="w-3.5 h-3.5 shrink-0" />
@@ -565,10 +539,12 @@ export default function DashboardLayout({
                 type="button"
                 key={item.id}
                 onClick={() => cambiarTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                title={item.label}
+                aria-label={item.label}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
                   isActive
-                    ? 'bg-blue-700 text-white'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -626,14 +602,13 @@ export default function DashboardLayout({
               onClick={() => cambiarTab('comunicados')}
               title="Avisos y Comunicados"
               aria-label={noLeidos > 0 ? `Avisos y comunicados: ${noLeidos} sin leer` : 'Avisos y comunicados'}
-              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
             >
               <Bell className="w-4 h-4" aria-hidden="true" />
 
               {noLeidos > 0 && (
                 <span
-                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                  style={{ backgroundColor: acentoAcadesys }}
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"
                   aria-hidden="true"
                 />
               )}
@@ -645,12 +620,11 @@ export default function DashboardLayout({
               onClick={() =>
                 setModalPerfilAbierto(true)
               }
-              className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:bg-slate-50 p-1.5 rounded-lg transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              className="flex items-center gap-3 pl-3 border-l border-slate-200 hover:bg-slate-50 p-1.5 rounded-lg transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
             >
 
               <div
-                className="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs uppercase"
-                style={{ backgroundColor: acentoAcadesys }}
+                className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs uppercase"
               >
                 {user?.foto ? (
                   <img
@@ -694,7 +668,7 @@ export default function DashboardLayout({
               <button
                 type="button"
                 onClick={() => setRevisionMenu((n) => n + 1)}
-                className="ml-2 font-semibold text-blue-700 hover:text-blue-800"
+                className="ml-2 font-semibold text-teal-700 hover:text-teal-800"
               >
                 Reintentar
               </button>

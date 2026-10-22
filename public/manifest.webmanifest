@@ -1,10 +1,10 @@
 {
-  "name": "AcadeSys - Intranet Escolar",
+  "name": "AcadeSys - Academia Preuniversitaria",
   "short_name": "AcadeSys",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e3a8a",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
   "icons": [
     {
       "src": "/acadesys-favicon.png",

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   RefreshCw,
   Send,
-  Sparkles,
   Target,
   TrendingUp,
   UserRound,
@@ -78,8 +77,8 @@ export default function TutorIAPage() {
   }, []);
 
   // Identidad institucional AcadeSys: el acento de esta pantalla usa siempre el
-  // azul de la marca (el color de tema de la academia podía llegar naranja).
-  const acentoAcadesys = '#2563EB';
+  // teal de la marca (el color de tema de la academia podía llegar naranja).
+  const acentoAcadesys = '#0D9488';
   const nombreAcademia = sesion.nombreAcademia || 'AcadeSys Pre-U';
 
   const cargarExpediente = useCallback(async () => {
@@ -202,7 +201,7 @@ export default function TutorIAPage() {
     return (
       <div className="min-h-full bg-slate-50 text-slate-900 flex items-center justify-center p-6">
         <div className="flex items-center gap-3 text-sm text-slate-500">
-          <RefreshCw className="h-5 w-5 animate-spin text-blue-700" aria-hidden="true" />
+          <RefreshCw className="h-5 w-5 animate-spin text-teal-700" aria-hidden="true" />
           Cargando tu expediente académico...
         </div>
       </div>
@@ -218,7 +217,7 @@ export default function TutorIAPage() {
             <div className="flex-1">
               <h1 className="text-lg font-bold text-slate-900">No se pudo cargar tu expediente</h1>
               <p className="mt-2 text-sm text-rose-700">{errorExpediente || 'Intenta nuevamente.'}</p>
-              <button type="button" onClick={cargarExpediente} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600 transition-colors">
+              <button type="button" onClick={cargarExpediente} className="mt-4 rounded-lg bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700 transition-colors">
                 Reintentar
               </button>
             </div>
@@ -240,33 +239,33 @@ export default function TutorIAPage() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tutor Pedagógico IA</h1>
-              <span className="flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                <Sparkles className="h-3 w-3" aria-hidden="true" /> Gemini Pre-U
+              <span className="flex items-center gap-1 rounded-md border border-teal-100 bg-teal-50 px-2.5 py-0.5 text-xs font-bold text-teal-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-600" aria-hidden="true" /> Gemini Pre-U
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500 sm:text-sm">
               Alumno: <strong className="text-slate-900">{nombreAlumno}</strong>
-              {alumno.codigoUsuario ? <> · Código: <span className="font-mono text-blue-700">{alumno.codigoUsuario}</span></> : null}
+              {alumno.codigoUsuario ? <> · Código: <span className="font-mono text-teal-700">{alumno.codigoUsuario}</span></> : null}
             </p>
           </div>
         </div>
         <button type="button" onClick={generarPlanPedagogico} disabled={analizandoPlan} className="flex items-center justify-center gap-2 self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 md:self-auto">
-          <RefreshCw className={`h-4 w-4 text-blue-700 ${analizandoPlan ? 'animate-spin' : ''}`} aria-hidden="true" />
+          <RefreshCw className={`h-4 w-4 text-teal-700 ${analizandoPlan ? 'animate-spin' : ''}`} aria-hidden="true" />
           Recalcular diagnóstico
         </button>
       </header>
 
       <section className="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={<TrendingUp className="h-6 w-6" />} label="Promedio registrado" value={promedioGeneral === null ? 'Sin datos' : promedioGeneral.toLocaleString('es-PE')} detail={promedioGeneral === null ? 'Aún no hay evaluaciones' : `Escala máxima: ${escalaMaxima}`} color="indigo" />
-        <MetricCard icon={<Award className="h-6 w-6" />} label="Cuadro de mérito" value={puestoRanking == null ? 'Sin datos' : `Puesto #${puestoRanking}`} detail={puestoRanking == null ? 'No disponible' : (ciclo?.nombre || 'Ciclo actual')} color="indigo" />
+        <MetricCard icon={<TrendingUp className="h-6 w-6" />} label="Promedio registrado" value={promedioGeneral === null ? 'Sin datos' : promedioGeneral.toLocaleString('es-PE')} detail={promedioGeneral === null ? 'Aún no hay evaluaciones' : `Escala máxima: ${escalaMaxima}`} color="brand" />
+        <MetricCard icon={<Award className="h-6 w-6" />} label="Cuadro de mérito" value={puestoRanking == null ? 'Sin datos' : `Puesto #${puestoRanking}`} detail={puestoRanking == null ? 'No disponible' : (ciclo?.nombre || 'Ciclo actual')} color="brand" />
         <MetricCard icon={tieneEvaluaciones ? <CheckCircle2 className="h-6 w-6" /> : <AlertCircle className="h-6 w-6" />} label="Evaluaciones" value={String(historial.length)} detail={tieneEvaluaciones ? 'Datos del expediente' : 'No hay notas registradas'} color={tieneEvaluaciones ? 'emerald' : 'slate'} />
-        <MetricCard icon={<UserRound className="h-6 w-6" />} label="Ciclo activo" value={ciclo?.nombre || 'Sin matrícula activa'} detail={ciclo?.universidadObjetivo || 'Objetivo no registrado'} color="indigo" />
+        <MetricCard icon={<UserRound className="h-6 w-6" />} label="Ciclo activo" value={ciclo?.nombre || 'Sin matrícula activa'} detail={ciclo?.universidadObjetivo || 'Objetivo no registrado'} color="brand" />
       </section>
 
       <main className="grid grid-cols-1 gap-8 xl:grid-cols-5">
         <aside className="space-y-6 xl:col-span-2">
           <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-teal-700">
               <Target className="h-4 w-4" aria-hidden="true" /> Objetivo preuniversitario
             </div>
             <div>
@@ -282,12 +281,12 @@ export default function TutorIAPage() {
 
           <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-blue-700" aria-hidden="true" />
+              <Target className="h-4 w-4 text-teal-700" aria-hidden="true" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Plan de estudio recomendado</h2>
             </div>
             {analizandoPlan ? (
               <div className="py-8 text-center text-xs text-slate-500">
-                <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-blue-700" aria-hidden="true" />
+                <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-teal-700" aria-hidden="true" />
                 Analizando los datos disponibles...
               </div>
             ) : planEstudio ? (
@@ -305,7 +304,7 @@ export default function TutorIAPage() {
 
           <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-blue-700" aria-hidden="true" />
+              <BookOpen className="h-4 w-4 text-teal-700" aria-hidden="true" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Rendimiento por curso</h2>
             </div>
             {!tieneEvaluaciones ? (
@@ -320,7 +319,7 @@ export default function TutorIAPage() {
                       <p className="truncate text-xs font-semibold text-slate-900">{curso.curso}</p>
                       <p className="mt-1 text-[10px] text-slate-500">{curso.evaluaciones} evaluación(es)</p>
                     </div>
-                    <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-2 py-1 font-mono text-sm font-bold text-blue-700">
+                    <span className="shrink-0 rounded-md border border-teal-100 bg-teal-50 px-2 py-1 font-mono text-sm font-bold text-teal-700">
                       {curso.promedio.toLocaleString('es-PE')}
                     </span>
                   </div>
@@ -357,7 +356,7 @@ export default function TutorIAPage() {
                 </div>
               );
             })}
-            {cargandoRespuesta && <div className="flex items-center gap-2 text-xs text-slate-500"><RefreshCw className="h-4 w-4 animate-spin text-blue-700" aria-hidden="true" /> El tutor está preparando una respuesta...</div>}
+            {cargandoRespuesta && <div className="flex items-center gap-2 text-xs text-slate-500"><RefreshCw className="h-4 w-4 animate-spin text-teal-700" aria-hidden="true" /> El tutor está preparando una respuesta...</div>}
             <div ref={chatFinRef} />
           </div>
 
@@ -369,7 +368,7 @@ export default function TutorIAPage() {
                   event.preventDefault();
                   event.currentTarget.form?.requestSubmit();
                 }
-              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600" />
+              }} rows={2} maxLength={2000} placeholder="Pregunta sobre un tema, ejercicio o estrategia de estudio..." className="max-h-32 min-h-[48px] flex-1 resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500" />
               <button type="submit" disabled={!inputMensaje.trim() || cargandoRespuesta} aria-label="Enviar pregunta" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: acentoAcadesys }}>
                 <Send className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -384,14 +383,14 @@ export default function TutorIAPage() {
 
 function MetricCard({ icon, label, value, detail, color }) {
   const colors = {
-    indigo: 'text-blue-600',
+    brand: 'text-teal-600',
     emerald: 'text-emerald-600',
     slate: 'text-slate-400',
   };
 
   return (
     <div className="flex min-w-0 items-center gap-4 rounded-xl border border-slate-200 bg-white p-5">
-      <div className={`shrink-0 ${colors[color] || colors.indigo}`}>{icon}</div>
+      <div className={`shrink-0 ${colors[color] || colors.brand}`}>{icon}</div>
       <div className="min-w-0">
         <p className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
         <p className="mt-1 line-clamp-2 text-lg font-bold text-slate-900">{value}</p>
@@ -408,7 +407,7 @@ function BulletSection({ title, items }) {
       <ul className="space-y-2">
         {items.map((item, index) => (
           <li key={`${title}-${index}`} className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" aria-hidden="true" />
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-600" aria-hidden="true" />
             <span>{typeof item === 'string' ? item : JSON.stringify(item)}</span>
           </li>
         ))}

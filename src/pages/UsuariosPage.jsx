@@ -156,9 +156,9 @@ export default function UsuariosPage({ user }) {
   const resolverBadgeRol = (rolTexto = '') => {
     // Color de etiqueta por perfil exacto (no es autorización; solo presentación).
     const grupo = grupoDeRol(rolTexto);
-    if (grupo === GRUPO_ADMIN) return 'bg-blue-700 text-white border-blue-700';
-    if (grupo === GRUPO_DOCENTE) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (grupo === GRUPO_TUTOR || grupo === GRUPO_PADRE) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (grupo === GRUPO_ADMIN) return 'bg-teal-600 text-white border-teal-600';
+    if (grupo === GRUPO_DOCENTE) return 'bg-teal-50 text-teal-700 border-teal-200';
+    if (grupo === GRUPO_TUTOR || grupo === GRUPO_PADRE) return 'bg-teal-100 text-teal-800 border-teal-200';
     if (grupo === GRUPO_ALUMNO) return 'bg-slate-100 text-slate-700 border-slate-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
@@ -381,7 +381,7 @@ export default function UsuariosPage({ user }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-700 rounded-xl text-white">
+            <div className="p-2 bg-teal-600 rounded-xl text-white">
               <Users className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
@@ -396,7 +396,7 @@ export default function UsuariosPage({ user }) {
         <button
           type="button"
           onClick={abrirModalCrear}
-          className="flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
+          className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           Nuevo Usuario
@@ -424,7 +424,7 @@ export default function UsuariosPage({ user }) {
       {/* TABLA DE USUARIOS */}
       {loadingUsuarios ? (
         <div className="p-12 text-center text-slate-500">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-700" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-teal-700" />
           <p className="text-xs">Cargando nómina de usuarios...</p>
         </div>
       ) : usuariosFiltrados.length === 0 ? (
@@ -489,7 +489,7 @@ export default function UsuariosPage({ user }) {
                           disabled={operandoId !== null || guardando}
                           onClick={() => handleEditar(u)}
                           title="Editar usuario"
-                          className="p-1.5 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg hover:text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -561,7 +561,7 @@ export default function UsuariosPage({ user }) {
                     onChange={handleChange}
                     placeholder="Ej: jperalta"
                     className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                      errores.nombreUsuario ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                      errores.nombreUsuario ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                     }`}
                   />
                   {usuarioEditando && <p className="text-[11px] text-slate-500 mt-1">La API no permite modificar el código de usuario.</p>}
@@ -587,7 +587,7 @@ export default function UsuariosPage({ user }) {
                     }}
                     placeholder="74839201"
                     className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                      errores.dni ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                      errores.dni ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                     }`}
                   />
                   {errores.dni && (
@@ -614,7 +614,7 @@ export default function UsuariosPage({ user }) {
                     }}
                     placeholder="Juan"
                     className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                      errores.nombre ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                      errores.nombre ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                     }`}
                   />
                   {errores.nombre && (
@@ -639,7 +639,7 @@ export default function UsuariosPage({ user }) {
                     }}
                     placeholder="Pérez"
                     className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                      errores.apellido ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                      errores.apellido ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                     }`}
                   />
                   {errores.apellido && (
@@ -652,7 +652,7 @@ export default function UsuariosPage({ user }) {
 
               <label className="block text-xs font-semibold text-slate-700">
                 Apellido materno (opcional)
-                <input name="apellidoMaterno" value={formData.apellidoMaterno} onChange={handleChange} maxLength={100} className="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 outline-none focus:border-blue-600" />
+                <input name="apellidoMaterno" value={formData.apellidoMaterno} onChange={handleChange} maxLength={100} className="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 outline-none focus:border-teal-500" />
                 {errores.apellidoMaterno && <span className="text-rose-600">{errores.apellidoMaterno}</span>}
               </label>
               <div>
@@ -665,7 +665,7 @@ export default function UsuariosPage({ user }) {
                   onChange={handleChange}
                   placeholder="usuario@ejemplo.com"
                   className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                    errores.correo ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                    errores.correo ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                   }`}
                 />
                 {errores.correo && (
@@ -688,7 +688,7 @@ export default function UsuariosPage({ user }) {
                   onChange={handleChange}
                   placeholder={usuarioEditando ? "••••••••••••••••" : "Mínimo 8 caracteres con letras y números"}
                   className={`w-full px-3 py-2 rounded-lg border text-xs text-slate-900 placeholder:text-slate-400 outline-none ${
-                    errores.contrasena ? 'border-rose-500' : 'border-slate-300 focus:border-blue-600'
+                    errores.contrasena ? 'border-rose-500' : 'border-slate-300 focus:border-teal-500'
                   }`}
                 />
                 {errores.contrasena && (
@@ -714,7 +714,7 @@ export default function UsuariosPage({ user }) {
                             type="checkbox"
                             checked={perfilesSeleccionados.includes(id)}
                             onChange={() => cambiarPerfil(id)}
-                            className="w-3.5 h-3.5 text-blue-700 rounded border-slate-300 focus:ring-blue-500"
+                            className="w-3.5 h-3.5 text-teal-700 rounded border-slate-300 focus:ring-teal-100"
                           />
                           <span>{nombre}</span>
                         </label>
@@ -742,7 +742,7 @@ export default function UsuariosPage({ user }) {
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {guardando ? 'Guardando...' : usuarioEditando ? 'Actualizar Usuario' : 'Registrar Usuario'}

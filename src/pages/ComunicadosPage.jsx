@@ -204,7 +204,7 @@ export default function ComunicadosPage({ user }) {
     const norm = normalizarTexto(cat);
     switch (norm) {
       case 'academico':
-        return 'bg-blue-50 text-blue-700 border-blue-100';
+        return 'bg-teal-50 text-teal-700 border-teal-100';
       case 'reunion':
         return 'bg-slate-50 text-slate-700 border-slate-200';
       case 'salud':
@@ -226,7 +226,7 @@ export default function ComunicadosPage({ user }) {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-700 rounded-xl text-white">
+          <div className="p-2.5 bg-teal-600 rounded-xl text-white">
             <Megaphone className="w-6 h-6" aria-hidden="true" />
           </div>
           <div>
@@ -244,7 +244,7 @@ export default function ComunicadosPage({ user }) {
               setErrorModal('');
               setModalAbierto(true);
             }}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
           >
             <Plus className="w-4 h-4" aria-hidden="true" /> Nuevo Comunicado
           </button>
@@ -284,7 +284,7 @@ export default function ComunicadosPage({ user }) {
             id="buscar-comunicados"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full text-sm text-slate-900 placeholder:text-slate-400 pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-600 transition-colors"
+            className="w-full text-sm text-slate-900 placeholder:text-slate-400 pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg outline-none focus:border-teal-500 transition-colors"
           />
         </div>
 
@@ -296,7 +296,7 @@ export default function ComunicadosPage({ user }) {
               onClick={() => setFiltroCategoria(cat.id)}
               className={`px-3 py-1.5 rounded-lg transition-colors shrink-0 cursor-pointer ${
                 filtroCategoria === cat.id
-                  ? 'bg-blue-700 text-white'
+                  ? 'bg-teal-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -335,8 +335,8 @@ export default function ComunicadosPage({ user }) {
       ) : comunicadosFiltrados.length === 0 ? (
 <div className="bg-white rounded-xl border border-slate-200 p-10 sm:p-12 text-center shadow-sm">
 
-    <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-      <Bell className="w-7 h-7 text-blue-700" aria-hidden="true" />
+    <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+      <Bell className="w-7 h-7 text-teal-700" aria-hidden="true" />
     </div>
 
     <p className="text-base font-bold text-slate-900">
@@ -374,7 +374,7 @@ export default function ComunicadosPage({ user }) {
                       </span>
                     )}
                    <span className="text-sm font-semibold text-slate-500">
-  Dirigido a: <strong className="text-slate-800 break-words">{separarEtiquetasPegadas(item.dirigidoA)}</strong>
+  Dirigido a: <strong className="text-slate-900 break-words">{separarEtiquetasPegadas(item.dirigidoA)}</strong>
 </span>
                   </div>
 
@@ -398,7 +398,7 @@ export default function ComunicadosPage({ user }) {
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                    <span className="w-6 h-6 rounded-full bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">
                       {(item.autor || 'DA').slice(0, 2).toUpperCase()}
                     </span>
                     <span>Emitido por: <strong className="text-slate-700">{item.autor}</strong></span>
@@ -413,7 +413,7 @@ export default function ComunicadosPage({ user }) {
                       <button
                         type="button"
                         onClick={() => handleConfirmar(item.id)}
-                        className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:bg-teal-100 bg-teal-50 border border-teal-200 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         <UserCheck className="w-4 h-4" aria-hidden="true" /> Marcar como Enterado
                       </button>
@@ -439,7 +439,7 @@ export default function ComunicadosPage({ user }) {
     >
             <div className="border-b border-slate-200 p-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-blue-700" aria-hidden="true" />
+                <Megaphone className="w-5 h-5 text-teal-700" aria-hidden="true" />
                 <h2 className="font-bold text-base text-slate-900" id="titulo-modal-comunicado">
                   Redactar Circular Institucional
                 </h2>
@@ -471,7 +471,7 @@ export default function ComunicadosPage({ user }) {
     placeholder="Ej: Simulacro Oficial / Entrega de Boletas"
     value={titulo}
     onChange={(e) => setTitulo(e.target.value)}
-    className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600"
+    className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500"
   />
 </div>
 
@@ -487,7 +487,7 @@ export default function ComunicadosPage({ user }) {
   id="comunicado-categoria"
   value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-blue-600"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-teal-500"
                   >
                     <option value="Académico">Académico</option>
                     <option value="Reunión">Reunión de Padres</option>
@@ -507,7 +507,7 @@ export default function ComunicadosPage({ user }) {
   id="comunicado-prioridad"
   value={prioridad}
                     onChange={(e) => setPrioridad(e.target.value)}
-                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-blue-600"
+                    className="w-full text-sm text-slate-900 px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white cursor-pointer focus:border-teal-500"
                   >
                     <option value="baja">Informativa (Baja)</option>
                     <option value="media">Importante (Media)</option>
@@ -529,7 +529,7 @@ export default function ComunicadosPage({ user }) {
                   value={dirigidoA}
                   onChange={(e) => setDirigidoA(e.target.value)}
                   placeholder="Ej: Todos los Niveles, 5to de Secundaria"
-                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-600"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-teal-500"
                 />
               </div>
 
@@ -547,7 +547,7 @@ export default function ComunicadosPage({ user }) {
                   placeholder="Redacta las instrucciones, fechas u orden del día..."
                   value={contenido}
                   onChange={(e) => setContenido(e.target.value)}
-                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 p-3 border border-slate-300 rounded-lg outline-none focus:border-blue-600 resize-none"
+                  className="w-full text-sm text-slate-900 placeholder:text-slate-400 p-3 border border-slate-300 rounded-lg outline-none focus:border-teal-500 resize-none"
                 />
               </div>
 
@@ -572,7 +572,7 @@ export default function ComunicadosPage({ user }) {
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="px-5 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {guardando ? 'Publicando...' : 'Publicar Comunicado'}
                 </button>

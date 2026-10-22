@@ -43,6 +43,7 @@ import {
   eliminarHorario
 } from '../services/api';
 import { esAdmin, esDocente, esTutor } from '../utils/roles';
+import { UNIVERSIDADES } from '../utils/universidadCiclo';
 import UniversidadLogo from '../components/UniversidadLogo';
 import CursoIcon from '../components/CursoIcon';
 function CampoCiclo({ label, children }) {
@@ -50,7 +51,7 @@ function CampoCiclo({ label, children }) {
     <label className="block">
       <span className="block text-xs font-semibold text-slate-700 mb-1">{label}</span>
       {React.cloneElement(children, {
-        className: `${children.props.className || ''} w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100`
+        className: `${children.props.className || ''} w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100`
       })}
     </label>
   );
@@ -627,7 +628,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-700 rounded-xl text-white">
+            <div className="p-2 bg-teal-600 rounded-xl text-white">
               <Layers className="w-7 h-7" />
             </div>
             <div>
@@ -642,7 +643,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
         <button
           type="button"
           onClick={abrirCrear}
-          className="flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
+          className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-lg font-bold transition-colors text-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           {tabActiva === 'asignaciones' && 'Nueva Carga Docente'}
@@ -665,7 +666,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           onClick={() => setTabActiva('ciclos')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'ciclos'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -677,7 +678,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           onClick={() => setTabActiva('turnos')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'turnos'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -689,7 +690,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           onClick={() => setTabActiva('asignaciones')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'asignaciones'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -701,7 +702,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           onClick={() => setTabActiva('aulas')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'aulas'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -713,7 +714,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           onClick={() => setTabActiva('cursos')}
           className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tabActiva === 'cursos'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -753,8 +754,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {ciclosFiltrados.length === 0 ? (
             <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-xl border border-slate-200">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-blue-700" />
+              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay ciclos disponibles</p>
               <p className="text-sm text-slate-600 mt-1">No existen ciclos que coincidan con la búsqueda actual.</p>
@@ -774,7 +775,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                       </span>
                       {puedeGestionar && (
                       <>
-                      <button type="button" title="Editar ciclo" onClick={() => abrirEditarCiclo(ciclo)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
+                      <button type="button" title="Editar ciclo" onClick={() => abrirEditarCiclo(ciclo)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar ciclo" onClick={() => handleEliminarCiclo(ciclo.idCiclo, ciclo.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
@@ -789,7 +790,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                     <div className="flex items-center justify-between"><span>Turno</span><strong className="text-slate-900">{ciclo.turno}</strong></div>
                     <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-900">{ciclo.horario}</strong></div>
                     <div className="flex items-center justify-between"><span>Estudiantes</span><strong className="text-slate-900">{totalAlumnos}</strong></div>
-                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-blue-700">{capacidad > 0 ? `${vacantes} / ${capacidad}` : 'Sin límite'}</strong></div>
+                    <div className="flex items-center justify-between"><span>Vacantes</span><strong className="text-teal-700">{capacidad > 0 ? `${vacantes} / ${capacidad}` : 'Sin límite'}</strong></div>
                     <div className="flex items-center justify-between"><span>Cursos</span><strong className="text-slate-900">{ciclo.cursos}</strong></div>
                   </div>
                 </div>
@@ -803,8 +804,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {turnosFiltrados.length === 0 ? (
             <div className="md:col-span-2 xl:col-span-3 py-12 text-center bg-white rounded-xl border border-slate-200">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <CalendarClock className="w-6 h-6 text-blue-700" />
+              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                <CalendarClock className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay horarios disponibles</p>
               <p className="text-sm text-slate-600 mt-1">No existen horarios que coincidan con la búsqueda actual.</p>
@@ -813,13 +814,13 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
             turnosFiltrados.map((turno) => (
               <div key={turno.idHorario} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
                 <div className="flex items-start justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
                     <CursoIcon nombre={turno.curso} className="w-5 h-5" />
                   </div>
                   <div className="flex items-center gap-1">
                     {puedeGestionar && (
                     <>
-                    <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition">
+                    <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition">
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button type="button" title="Eliminar horario" onClick={() => handleEliminarTurno(turno.idHorario, `${turno.curso} - ${turno.diaSemana}`)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
@@ -834,7 +835,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <div className="space-y-2.5 mt-4 text-sm text-slate-600">
                   <div className="flex items-center justify-between"><span>Día</span><strong className="text-slate-900">{turno.diaSemana}</strong></div>
                   <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-900">{turno.horaInicio} - {turno.horaFin}</strong></div>
-                  <div className="flex items-center justify-between"><span>Orden</span><strong className="text-blue-700">{turno.orden}</strong></div>
+                  <div className="flex items-center justify-between"><span>Orden</span><strong className="text-teal-700">{turno.orden}</strong></div>
                 </div>
               </div>
             ))
@@ -858,8 +859,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
               {asignacionesFiltradas.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center">
-                    <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                      <UserCheck className="w-6 h-6 text-blue-700" />
+                    <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                      <UserCheck className="w-6 h-6 text-teal-700" />
                     </div>
                     <p className="text-base font-bold text-slate-900">No hay cargas docentes</p>
                     <p className="text-sm text-slate-600 mt-1">No se encontraron asignaciones de docentes con el filtro aplicado.</p>
@@ -869,13 +870,13 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 asignacionesFiltradas.map((asig) => (
                   <tr key={asig.idAsignacion} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 px-6 font-semibold text-slate-900 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs border border-blue-100">
+                      <div className="w-8 h-8 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100">
                         {(asig.docente || 'DC').slice(0, 2).toUpperCase()}
                       </div>
                       {asig.docente}
                     </td>
                     <td className="py-4 px-6">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
                         {asig.curso}
                       </span>
                     </td>
@@ -904,8 +905,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {aulasFiltradas.length === 0 ? (
             <div className="col-span-3 py-12 text-center bg-white rounded-xl border border-slate-200">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <School className="w-6 h-6 text-blue-700" />
+              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                <School className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay aulas registradas</p>
               <p className="text-sm text-slate-600 mt-1">Esta sección todavía no tiene aulas disponibles para mostrar.</p>
@@ -915,13 +916,13 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
               <div key={aula.idAula} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between mb-3">
-                    <span className="p-2.5 rounded-xl bg-blue-50 text-blue-700">
+                    <span className="p-2.5 rounded-xl bg-teal-50 text-teal-700">
                       <School className="w-5 h-5" />
                     </span>
                     <div className="flex items-center gap-1">
                       {puedeGestionar && (
                       <>
-                      <button type="button" title="Editar Aula" onClick={() => abrirEditarAula(aula)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer">
+                      <button type="button" title="Editar Aula" onClick={() => abrirEditarAula(aula)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar Aula" onClick={() => handleEliminarAula(aula.idAula, aula.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
@@ -948,8 +949,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {cursosFiltrados.length === 0 ? (
             <div className="col-span-3 py-12 text-center bg-white rounded-xl border border-slate-200">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-blue-700" />
+              <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay cursos registrados</p>
               <p className="text-sm text-slate-600 mt-1">No se encontraron cursos que coincidan con la búsqueda.</p>
@@ -960,15 +961,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <div>
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                      <span className="w-11 h-11 shrink-0 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
                         <CursoIcon nombre={c.nombre} className="w-5 h-5" />
                       </span>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-blue-700 rounded-md">{c.codigo}</span>
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-teal-700 rounded-md">{c.codigo}</span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {puedeGestionar && (
                       <>
-                      <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer">
+                      <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button type="button" title="Eliminar Curso" onClick={() => handleEliminarCurso(c.idCurso, c.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
@@ -1021,12 +1022,12 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                             <button type="button" onClick={() => numero < pasoCiclo && setPasoCiclo(numero)} className="flex items-center gap-2">
                               <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                                 numero < pasoCiclo ? 'bg-emerald-500 text-white' :
-                                numero === pasoCiclo ? 'bg-blue-700 text-white' :
+                                numero === pasoCiclo ? 'bg-teal-600 text-white' :
                                 'bg-slate-100 text-slate-500'
                               }`}>
                                 {numero < pasoCiclo ? '✓' : numero}
                               </span>
-                              <span className={`text-[11px] font-semibold ${numero === pasoCiclo ? 'text-blue-700' : 'text-slate-500'}`}>{nombre}</span>
+                              <span className={`text-[11px] font-semibold ${numero === pasoCiclo ? 'text-teal-700' : 'text-slate-500'}`}>{nombre}</span>
                             </button>
                             {numero < 6 && <div className="h-px bg-slate-200 flex-1 mx-2" />}
                           </div>
@@ -1043,7 +1044,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Universidad objetivo">
                         <select value={formCiclo.universidadObjetivo} onChange={(e) => setFormCiclo({ ...formCiclo, universidadObjetivo: e.target.value })} className="campo-ciclo">
-                          {['UNMSM','UNI','PUCP','UNFV','UNAC','UNT','Preuniversitario'].map((u) => <option key={u}>{u}</option>)}
+                          {[...Object.keys(UNIVERSIDADES), 'Preuniversitario'].map((u) => <option key={u}>{u}</option>)}
                         </select>
                       </CampoCiclo>
                     </div>
@@ -1053,7 +1054,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                       <CampoCiclo label="Nombre oficial del ciclo">
                         <input value={formCiclo.nombre} maxLength={100} onChange={(e) => setFormCiclo({ ...formCiclo, nombre: e.target.value })} className="campo-ciclo" placeholder={`Ciclo ${formCiclo.universidadObjetivo} ${anioSugerido}`} />
                       </CampoCiclo>
-                      <button type="button" onClick={() => setFormCiclo({ ...formCiclo, nombre: `Ciclo ${formCiclo.universidadObjetivo} ${anioSugerido}` })} className="mt-3 text-xs font-bold text-blue-700 hover:text-blue-800">
+                      <button type="button" onClick={() => setFormCiclo({ ...formCiclo, nombre: `Ciclo ${formCiclo.universidadObjetivo} ${anioSugerido}` })} className="mt-3 text-xs font-bold text-teal-700 hover:text-teal-800">
                         Usar nombre sugerido
                       </button>
                     </div>
@@ -1078,10 +1079,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                           {cursos.map((curso) => {
                             const seleccionado = formCiclo.cursosSeleccionados.includes(curso.idCurso);
                             return (
-                              <button key={curso.idCurso} type="button" onClick={() => toggleCursoCiclo(curso.idCurso)} className={`p-3 rounded-xl border text-left ${seleccionado ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                              <button key={curso.idCurso} type="button" onClick={() => toggleCursoCiclo(curso.idCurso)} className={`p-3 rounded-xl border text-left ${seleccionado ? 'border-teal-600 bg-teal-50' : 'border-slate-200 bg-white'}`}>
                                 <div className="flex justify-between gap-3">
                                   <div><p className="text-xs font-bold text-slate-900">{curso.nombre}</p><p className="text-[11px] text-slate-500">{curso.codigo}</p></div>
-                                  <span className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${seleccionado ? 'bg-blue-700 border-blue-600 text-white' : 'border-slate-300'}`}>{seleccionado ? '✓' : ''}</span>
+                                  <span className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${seleccionado ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300'}`}>{seleccionado ? '✓' : ''}</span>
                                 </div>
                               </button>
                             );
@@ -1147,8 +1148,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                             </div>
                           ))}
                         </div>
-                        <label className="mt-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs font-semibold text-slate-700 cursor-pointer">
-                          <input type="checkbox" checked={Boolean(formCiclo.publicar)} disabled={guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-blue-700" />
+                        <label className="mt-4 flex items-center gap-3 rounded-xl border border-teal-100 bg-teal-50 p-3 text-xs font-semibold text-slate-700 cursor-pointer">
+                          <input type="checkbox" checked={Boolean(formCiclo.publicar)} disabled={guardandoCiclo} onChange={(e) => setFormCiclo((prev) => ({ ...prev, publicar: e.target.checked }))} className="accent-teal-600" />
                           <span>Publicar ciclo al guardar (visible en Notas, Asistencia y Morosidad)</span>
                         </label>
                         {!formCiclo.publicar && (
@@ -1164,9 +1165,9 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                       {pasoCiclo === 1 ? 'Cancelar' : 'Anterior'}
                     </button>
                     {pasoCiclo < 6 ? (
-                      <button type="button" onClick={siguientePasoCiclo} className="px-4 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-colors">Siguiente</button>
+                      <button type="button" onClick={siguientePasoCiclo} className="px-4 py-2 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">Siguiente</button>
                     ) : (
-                      <button type="button" disabled={guardandoCiclo} onClick={guardarCiclo} className="px-4 py-2 text-xs font-bold bg-blue-700 hover:bg-blue-600 disabled:bg-slate-300 text-white rounded-lg transition-colors">
+                      <button type="button" disabled={guardandoCiclo} onClick={guardarCiclo} className="px-4 py-2 text-xs font-bold bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white rounded-lg transition-colors">
                         {guardandoCiclo ? 'Guardando...' : editandoId ? 'Guardar Cambios' : formCiclo.publicar ? 'Crear y publicar ciclo' : 'Guardar como borrador'}
                       </button>
                     )}
@@ -1177,14 +1178,14 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Ciclo</label>
-                    <select required value={formTurno.idCiclo} onChange={(e) => setFormTurno({ ...formTurno, idCiclo: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    <select required value={formTurno.idCiclo} onChange={(e) => setFormTurno({ ...formTurno, idCiclo: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value="">Selecciona un ciclo</option>
                       {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Curso</label>
-                    <select required value={formTurno.idCurso} onChange={(e) => setFormTurno({ ...formTurno, idCurso: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    <select required value={formTurno.idCurso} onChange={(e) => setFormTurno({ ...formTurno, idCurso: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value="">Selecciona un curso</option>
                       {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
                     </select>
@@ -1195,7 +1196,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                       const diaNumero = Number(e.target.value);
                       const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
                       setFormTurno({ ...formTurno, diaNumero, diaSemana: dias[diaNumero] });
-                    }} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    }} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value={1}>Lunes</option>
                       <option value={2}>Martes</option>
                       <option value={3}>Miércoles</option>
@@ -1208,16 +1209,16 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">Hora de inicio</label>
-                      <input type="time" required value={formTurno.horaInicio} onChange={(e) => setFormTurno({ ...formTurno, horaInicio: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                      <input type="time" required value={formTurno.horaInicio} onChange={(e) => setFormTurno({ ...formTurno, horaInicio: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">Hora de fin</label>
-                      <input type="time" required value={formTurno.horaFin} onChange={(e) => setFormTurno({ ...formTurno, horaFin: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                      <input type="time" required value={formTurno.horaFin} onChange={(e) => setFormTurno({ ...formTurno, horaFin: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Orden</label>
-                    <input type="number" required min="1" max="100" value={formTurno.orden} onChange={(e) => setFormTurno({ ...formTurno, orden: Number(e.target.value) })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input type="number" required min="1" max="100" value={formTurno.orden} onChange={(e) => setFormTurno({ ...formTurno, orden: Number(e.target.value) })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                 </>
               )}
@@ -1226,31 +1227,31 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Docente</label>
-                    <select required value={formAsig.idUsuario} onChange={(e) => setFormAsig({ ...formAsig, idUsuario: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    <select required value={formAsig.idUsuario} onChange={(e) => setFormAsig({ ...formAsig, idUsuario: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value="">Selecciona un docente o tutor</option>
                       {usuarios.map((u) => <option key={u.IdUsuario ?? u.idUsuario} value={u.IdUsuario ?? u.idUsuario}>{u.NombreCompleto ?? u.Nombres ?? u.nombre ?? `Usuario ${u.IdUsuario ?? u.idUsuario}`}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Ciclo</label>
-                    <select required value={formAsig.idCiclo} onChange={(e) => setFormAsig({ ...formAsig, idCiclo: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    <select required value={formAsig.idCiclo} onChange={(e) => setFormAsig({ ...formAsig, idCiclo: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value="">Selecciona un ciclo</option>
                       {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Curso</label>
-                    <select required value={formAsig.idCurso} onChange={(e) => setFormAsig({ ...formAsig, idCurso: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100">
+                    <select required value={formAsig.idCurso} onChange={(e) => setFormAsig({ ...formAsig, idCurso: e.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
                       <option value="">Selecciona un curso</option>
                       {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
                     </select>
                   </div>
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
+                  <div className="rounded-xl border border-teal-100 bg-teal-50 p-3 text-xs leading-relaxed text-teal-800">
                     La carga docente se organiza por ciclo y curso. El sistema gestiona internamente el registro técnico de aula; no necesitas seleccionar ni administrar un aula.
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">Horas semanales</label>
-                    <input required type="number" min="1" max="30" value={formAsig.horas} onChange={(e) => setFormAsig({ ...formAsig, horas: Number(e.target.value) })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input required type="number" min="1" max="30" value={formAsig.horas} onChange={(e) => setFormAsig({ ...formAsig, horas: Number(e.target.value) })} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                 </>
               )}
@@ -1258,17 +1259,17 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre / Identificador</label>
-                    <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input type="text" required placeholder="Ej: Aula QB-01" value={formAula.nombre} onChange={(e) => setFormAula({ ...formAula, nombre: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nivel Educativo</label>
-                    <select value={formAula.nivel} onChange={(e) => setFormAula({ ...formAula, nivel: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white cursor-pointer">
+                    <select value={formAula.nivel} onChange={(e) => setFormAula({ ...formAula, nivel: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 bg-white cursor-pointer">
                       <option value="Preuniversitario">Preuniversitario</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Capacidad Máxima</label>
-                    <input type="number" min="5" max="100" value={formAula.capacidad} onChange={(e) => setFormAula({ ...formAula, capacidad: Number(e.target.value) })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input type="number" min="5" max="100" value={formAula.capacidad} onChange={(e) => setFormAula({ ...formAula, capacidad: Number(e.target.value) })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                 </>
               )}
@@ -1276,15 +1277,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Curso</label>
-                    <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Código Único</label>
-                    <input type="text" required placeholder="Ej: MAT-TRI" value={formCurso.codigo} minLength={2} onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                    <input type="text" required placeholder="Ej: MAT-TRI" value={formCurso.codigo} minLength={2} onChange={(e) => setFormCurso({ ...formCurso, codigo: e.target.value.toUpperCase() })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Descripción Breve</label>
-                    <textarea rows="2" placeholder="Identidades trigonométricas y geometría analítica" value={formCurso.descripcion} onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 resize-none" />
+                    <textarea rows="2" placeholder="Identidades trigonométricas y geometría analítica" value={formCurso.descripcion} onChange={(e) => setFormCurso({ ...formCurso, descripcion: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 resize-none" />
                   </div>
                 </>
               )}
@@ -1293,7 +1294,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                   <button type="button" onClick={() => setModalAbierto(false)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={!formularioActualValido || guardandoDatos} className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${formularioActualValido && !guardandoDatos ? 'bg-blue-700 hover:bg-blue-600 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
+                  <button type="submit" disabled={!formularioActualValido || guardandoDatos} className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition ${formularioActualValido && !guardandoDatos ? 'bg-teal-600 hover:bg-teal-700 text-white cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
                     {guardandoDatos ? 'Guardando...' : editandoId ? 'Guardar Cambios' : 'Registrar'}
                   </button>
                 </div>

@@ -72,12 +72,12 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-indigo-100">
-              <Users className="w-7 h-7 text-indigo-600" />
+            <div className="p-3 rounded-xl bg-teal-100">
+              <Users className="w-7 h-7 text-teal-600" />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">
+              <h1 className="text-2xl font-bold text-slate-900">
                 Dashboard del Tutor
               </h1>
 
@@ -91,7 +91,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
         <button
           type="button"
           onClick={() => setActiveTab('tutor-ia')}
-          className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition"
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition"
         >
           <GraduationCap className="w-4 h-4" />
           Abrir Tutor IA
@@ -103,7 +103,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
 
         {/* ALUMNOS */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-start justify-between">
 
             <div>
@@ -111,7 +111,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                 Estudiantes
               </p>
 
-              <p className="text-3xl font-bold text-slate-800 mt-2">
+              <p className="text-3xl font-bold text-slate-900 mt-2">
                 {totalEstudiantes}
               </p>
 
@@ -120,15 +120,15 @@ export default function TutorDashboardPage({ setActiveTab }) {
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-indigo-50">
-              <Users className="w-5 h-5 text-indigo-600" />
+            <div className="p-3 rounded-xl bg-teal-50">
+              <Users className="w-5 h-5 text-teal-600" />
             </div>
 
           </div>
         </div>
 
         {/* PAGADOS */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-start justify-between">
 
             <div>
@@ -136,7 +136,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                 Pagados
               </p>
 
-              <p className="text-3xl font-bold text-slate-800 mt-2">
+              <p className="text-3xl font-bold text-slate-900 mt-2">
                 {totalPagados}
               </p>
 
@@ -154,7 +154,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
         </div>
 
         {/* MOROSOS */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-start justify-between">
 
             <div>
@@ -162,7 +162,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                 Morosos
               </p>
 
-              <p className="text-3xl font-bold text-slate-800 mt-2">
+              <p className="text-3xl font-bold text-slate-900 mt-2">
                 {totalMorosos}
               </p>
 
@@ -180,7 +180,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
         </div>
 
         {/* PROMEDIO */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-start justify-between">
 
             <div>
@@ -188,7 +188,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                 Promedio general
               </p>
 
-              <p className="text-3xl font-bold text-slate-800 mt-2">
+              <p className="text-3xl font-bold text-slate-900 mt-2">
                 {promedioGeneral.toFixed(1)}
               </p>
 
@@ -197,8 +197,8 @@ export default function TutorDashboardPage({ setActiveTab }) {
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-violet-50">
-              <TrendingUp className="w-5 h-5 text-violet-600" />
+            <div className="p-3 rounded-xl bg-teal-50">
+              <TrendingUp className="w-5 h-5 text-teal-600" />
             </div>
 
           </div>
@@ -207,14 +207,14 @@ export default function TutorDashboardPage({ setActiveTab }) {
       </div>
 
       {/* TABLA */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 
         <div className="p-5 sm:p-6 border-b border-slate-200">
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 
             <div>
-              <h2 className="text-lg font-bold text-slate-800">
+              <h2 className="text-lg font-bold text-slate-900">
                 Seguimiento de Estudiantes
               </h2>
 
@@ -271,7 +271,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
 
                     <div className="flex items-center gap-3">
 
-                      <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
+                      <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">
                         {estudiante.nombre
                           .split(' ')
                           .map(parte => parte[0])
@@ -279,7 +279,7 @@ export default function TutorDashboardPage({ setActiveTab }) {
                           .join('')}
                       </div>
 
-                      <span className="font-semibold text-slate-800 text-sm">
+                      <span className="font-semibold text-slate-900 text-sm">
                         {estudiante.nombre}
                       </span>
 

@@ -35,13 +35,13 @@ const normalizarFecha = (valor) => {
 };
 
 // Avatar del alumno: el contenedor se renderiza SIEMPRE. Si no hay imagen o
-// la imagen falla, muestra las iniciales sobre el fondo azul de la marca.
+// la imagen falla, muestra las iniciales sobre el fondo teal de la marca.
 function AvatarAlumno({ src, iniciales }) {
   const [error, setError] = useState(false);
   const mostrarImagen = Boolean(src) && !error;
 
   return (
-    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-blue-700 text-white flex items-center justify-center overflow-hidden shrink-0 text-2xl font-semibold">
+    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-teal-600 text-white flex items-center justify-center overflow-hidden shrink-0 text-2xl font-semibold">
       {mostrarImagen ? (
         <img
           src={src}
@@ -82,7 +82,7 @@ function BotonDescarga({ material }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition-colors hover:border-blue-300 hover:text-blue-700"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition-colors hover:border-teal-300 hover:text-teal-700"
     >
       <Download className="h-3.5 w-3.5" aria-hidden="true" />
       Descargar
@@ -94,7 +94,7 @@ function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2.5">
-        <span className="p-2 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
+        <span className="p-2 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
           <Icon className="w-4 h-4" aria-hidden="true" />
         </span>
         <h2 className="text-base font-bold text-slate-900">{title}</h2>
@@ -337,8 +337,8 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     perfilUsuario?.Celular ||
     perfilUsuario?.celular;
 
-// Escala máxima para el componente de notas
-const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
+  // Escala máxima para el componente de notas
+  const escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo || '') : '';
 
   // Filtro por curso: es el único filtro con datos reales (los materiales del
   // alumno ya vienen acotados a su ciclo activo y siempre son PDF).
@@ -373,7 +373,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
     return (
       <div className="min-h-full flex items-center justify-center bg-slate-50 p-6">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 mx-auto animate-spin text-blue-700" aria-hidden="true" />
+          <Loader2 className="w-8 h-8 mx-auto animate-spin text-teal-700" aria-hidden="true" />
           <p className="mt-3 text-sm text-slate-500">Cargando tu portal del alumno...</p>
         </div>
       </div>
@@ -392,7 +392,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               <button
                 type="button"
                 onClick={cargar}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 text-xs font-bold text-white hover:bg-blue-600"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-xs font-bold text-white hover:bg-teal-700"
               >
                 <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
                 Reintentar
@@ -408,7 +408,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
     return (
       <div className="min-h-full bg-slate-50 p-6 md:p-8">
         <div className="max-w-3xl mx-auto p-6 rounded-xl bg-white border border-slate-200">
-          <span className="inline-flex p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
+          <span className="inline-flex p-2.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
             <GraduationCap className="w-6 h-6" aria-hidden="true" />
           </span>
           <h1 className="text-xl font-bold text-slate-900 mt-4">Todavía no tienes un ciclo activo</h1>
@@ -442,7 +442,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
   const header = (
     <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
-        <p className="text-blue-700 text-[11px] font-bold uppercase tracking-[0.16em]">Portal del Estudiante</p>
+        <p className="text-teal-700 text-[11px] font-bold uppercase tracking-[0.16em]">Portal del Estudiante</p>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-1">{tituloView}</h1>
         <p className="text-sm text-slate-500 mt-2">
           {nombreAlumno} · {codigoAlumno || 'Sin código'}
@@ -483,7 +483,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                 <div className="min-w-[220px] p-4 rounded-lg bg-slate-50 border border-slate-200">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Mi ciclo</p>
                   <p className="text-lg font-bold text-slate-900 mt-2">{ciclo.nombre}</p>
-                  <p className="text-xs text-blue-700 mt-1">{ciclo.universidadObjetivo}</p>
+                  <p className="text-xs text-teal-700 mt-1">{ciclo.universidadObjetivo}</p>
                 </div>
               </div>
             </div>
@@ -496,16 +496,16 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                 {[
                   [VIEWS.horario, Clock3, 'Mi horario', 'Revisa tu turno y horario de clases.'],
                   [VIEWS.cursos, BookOpen, 'Mis cursos', `${cursos.length} cursos asignados a tu ciclo.`],
-                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros${promedio !== null ? ` y promedio{promedio.toFixed(2)} /{escalaMaxima}` : ''}.`],
+                  [VIEWS.notas, Award, 'Calificaciones', `${notas.length} registros${promedio !== null ? ` y promedio ${promedio.toFixed(2)} / ${escalaMaxima}` : ''}.`],
                   [VIEWS.materiales, FileText, 'Materiales', `${materiales.length} archivos disponibles.`]
                 ].map(([id, Icon, title, text]) => (
                   <button
                     type="button"
                     key={id}
                     onClick={() => setActiveTab(id)}
-                    className="text-left p-5 rounded-xl bg-white border border-slate-200 hover:border-blue-300 transition-colors"
+                    className="text-left p-5 rounded-xl bg-white border border-slate-200 hover:border-teal-300 transition-colors"
                   >
-                    <span className="inline-flex p-2 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
+                    <span className="inline-flex p-2 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
                       <Icon className="w-4 h-4" aria-hidden="true" />
                     </span>
                     <p className="text-sm font-bold text-slate-900 mt-4">{title}</p>
@@ -578,14 +578,14 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
 
         {view === VIEWS.cursos && (
           <div>
-            <SectionHeader icon={BookOpen} title="Mis cursos" subtitle={`Cursos asignados a{ciclo.nombre}.`} />
+            <SectionHeader icon={BookOpen} title="Mis cursos" subtitle={`Cursos asignados a ${ciclo.nombre}.`} />
             {cursos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {cursos.map((curso) => (
                   <div key={curso.idCurso} className="p-5 rounded-xl bg-white border border-slate-200">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">{curso.codigo || 'CURSO'}</span>
-                      <span className="p-1.5 rounded-md bg-blue-50 border border-blue-100 text-blue-700">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700">{curso.codigo || 'CURSO'}</span>
+                      <span className="p-1.5 rounded-md bg-teal-50 border border-teal-100 text-teal-700">
                         <BookOpen className="w-4 h-4" aria-hidden="true" />
                       </span>
                     </div>
@@ -611,11 +611,11 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Promedio general</span>
                 <p className="text-3xl font-bold text-slate-900 mt-2">{promedio !== null ? promedio.toFixed(2) : '—'}</p>
-                <p className="text-xs text-slate-500 mt-1">{promedio !== null ? `Escala máxima{escalaMaxima}` : 'Sin evaluaciones registradas'}</p>
+                <p className="text-xs text-slate-500 mt-1">{promedio !== null ? `Escala máxima ${escalaMaxima}` : 'Sin evaluaciones registradas'}</p>
               </div>
               <div className="p-6 rounded-xl bg-white border border-slate-200">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Puesto</span>
-                <p className="text-3xl font-bold text-blue-700 mt-2">{ranking ? `#${ranking}` : '—'}</p>
+                <p className="text-3xl font-bold text-teal-700 mt-2">{ranking ? `#${ranking}` : '—'}</p>
                 <p className="text-xs text-slate-500 mt-1">Dentro de tu ciclo</p>
               </div>
               <div className="p-6 rounded-xl bg-white border border-slate-200">
@@ -669,23 +669,23 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                 {cursosMaterial.length > 1 && (
                   <div className="flex flex-wrap items-center gap-2">
                     {['Todos', ...cursosMaterial].map((curso) => {
-                      const _activo = filtroCurso === curso;
+                      const activo = filtroCurso === curso;
                       const total = curso === 'Todos' ? materiales.length : (conteoCurso[curso] || 0);
                       return (
                         <button
                           type="button"
                           key={curso}
                           onClick={() => setCursoMaterial(curso)}
-                          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors{
+                          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                             activo
-                              ? 'border-blue-200 bg-blue-50 text-blue-700'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'
+                              ? 'border-teal-200 bg-teal-50 text-teal-700'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:text-teal-700'
                           }`}
                         >
                           {curso}
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold{
-                              activo ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                              activo ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-500'
                             }`}
                           >
                             {total}
@@ -749,7 +749,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                     <div key={material.idMaterial} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
                             {material.curso || 'Material'}
                           </span>
                           <p className="mt-1 text-sm font-semibold text-slate-900">
@@ -792,7 +792,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
             {/* Sin subtitle redundante */}
 
             {/* TARJETA DE IDENTIDAD CON FOTO */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
                 <AvatarAlumno
                   key={fotoAlumnoSrc || 'sin-foto'}
@@ -812,7 +812,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                           type="button"
                           onClick={handleFotoUpload}
                           disabled={cargandoPerfil}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-700 text-xs font-bold text-white hover:bg-blue-600 transition-colors disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 text-xs font-bold text-white hover:bg-teal-700 transition-colors disabled:opacity-60"
                         >
                           {cargandoPerfil ? 'Guardando…' : 'Guardar foto'}
                         </button>
@@ -831,7 +831,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
                           type="button"
                           onClick={() => document.getElementById('foto-perfil-input').click()}
                           disabled={cargandoPerfil}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 text-xs font-bold text-white hover:bg-teal-700 transition-colors disabled:opacity-60"
                         >
                           <RefreshCcw className="w-3 h-3" aria-hidden="true" />
                           {fotoPersistida ? 'Cambiar foto' : 'Agregar foto'}
@@ -867,7 +867,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               
               {/* TARJETA: Información Personal */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3">Información personal</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -898,7 +898,7 @@ const _escalaMaxima = ciclo ? escalaPorUniversidad(ciclo?.universidadObjetivo ||
               </div>
 
               {/* TARJETA: Información Académica */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Información académica</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
