@@ -1723,4 +1723,33 @@ export async function eliminarCicloAdmin(idCiclo) {
   return data;
 }
 
+/**
+ * Envía la solicitud de recuperación de contraseña al backend.
+ * @param {string} usuarioOCorreo - Nombre de usuario, código o correo del estudiante.
+ */
+export async function solicitarRecuperacionPassword(usuarioOCorreo) {
+  const usuarioLimpio = String(usuarioOCorreo || '').trim();
 
+  if (!usuarioLimpio) {
+    throw new Error('Por favor, ingresa tu usuario o correo.');
+  }
+
+  const response = await solicitarApi('/api/auth/recuperar-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario: usuarioLimpio })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.mensaje || data.message || data.error || 'No se pudo procesar la solicitud de recuperación.'
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}

@@ -36,12 +36,11 @@ import {
   verificarDisponibilidadMatricula,
   procesarCheckoutMatricula,
   iniciarSesion,
-  limpiarSesion
+  limpiarSesion,
+  solicitarRecuperacionPassword
 } from '../services/api';
 import { grupoDeRol } from '../utils/roles';
 
-// El perfil real de la cuenta se resuelve con la normalización central
-// (comparación EXACTA por perfil, sin `includes`). Mapas cerrados y seguros.
 const MAPA_ROLES = {
   '1': 'Administrador',
   '2': 'Docente',
@@ -49,7 +48,6 @@ const MAPA_ROLES = {
   '4': 'Estudiante'
 };
 
-// Formatea 'YYYY-MM-DD' sin desfase de zona horaria. Devuelve '' si no es válida.
 const formatearFecha = (valor = '') => {
   const coincidencia = String(valor).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!coincidencia) return '';
@@ -62,15 +60,12 @@ const formatearFecha = (valor = '') => {
   return fecha.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-// Cero y uno también son precios válidos según el contrato del backend.
 const precioValido = (precio) => {
   if (precio === null || precio === undefined || precio === '') return false;
   const numero = Number(precio);
   return Number.isFinite(numero) && numero >= 0;
 };
 
-// --- Contacto oficial ---
-// Números confirmados para el widget de contacto.
 const TELEFONO_CONTACTO = '+51991587243';
 const WHATSAPP_CONTACTO = '51991587243';
 
@@ -84,16 +79,12 @@ const contactarPorWhatsApp = () => {
   window.open(`https://wa.me/${WHATSAPP_CONTACTO}`, '_blank', 'noopener,noreferrer');
 };
 
-// Icono de WhatsApp local (SVG propio, sin dependencias ni imágenes externas).
 const IconoWhatsApp = ({ className = '' }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
   </svg>
 );
 
-// Áreas académicas: agrupación SOLO de presentación (materia -> área).
-// No inventa cursos: las materias se obtienen de los ciclos públicos reales y
-// cualquier nombre no mapeado cae en "Otras materias".
 const AREAS_MATERIAS = [
   {
     area: 'Matemáticas',
@@ -215,31 +206,28 @@ export default function LandingPage({ onLoginSuccess }) {
     setAuthModal(null);
   };
 
- React.useEffect(() => {
-  async function cargarCiclos() {
-    try {
-      setLoadingCiclos(true);
-      setErrorCiclos(null);
+  React.useEffect(() => {
+    async function cargarCiclos() {
+      try {
+        setLoadingCiclos(true);
+        setErrorCiclos(null);
 
-      const data = await obtenerCiclosPublicos();
-      setCiclos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.warn('Error al cargar ciclos públicos:', err);
-      setCiclos([]);
-      setErrorCiclos(
-        err.message || 'No fue posible cargar los ciclos disponibles.'
-      );
-    } finally {
-      setLoadingCiclos(false);
+        const data = await obtenerCiclosPublicos();
+        setCiclos(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.warn('Error al cargar ciclos públicos:', err);
+        setCiclos([]);
+        setErrorCiclos(
+          err.message || 'No fue posible cargar los ciclos disponibles.'
+        );
+      } finally {
+        setLoadingCiclos(false);
+      }
     }
-  }
 
-  cargarCiclos();
-}, []);
+    cargarCiclos();
+  }, []);
 
-  // Áreas académicas: se construyen con los cursos reales de los ciclos
-  // publicados. Se cargan de forma diferida (al acercarse a la sección) para no
-  // penalizar la carga inicial y se deduplican por nombre normalizado.
   React.useEffect(() => {
     if (ciclos.length === 0 || areasSolicitadasRef.current) return undefined;
     const nodo = areasRef.current;
@@ -309,9 +297,6 @@ export default function LandingPage({ onLoginSuccess }) {
     return () => observador.disconnect();
   }, [ciclos]);
 
-  // Agrupación dinámica por universidad objetivo: se construye con los datos
-  // reales, sin listas fijas. Si aparece una universidad nueva, se crea su
-  // sección automáticamente.
   const universidadesAgrupadas = React.useMemo(() => {
     const mapa = new Map();
 
@@ -326,8 +311,6 @@ export default function LandingPage({ onLoginSuccess }) {
       mapa.get(clave).ciclos.push(ciclo);
     }
 
-    // Orden de presentacion: primero las universidades con mas oferta (para que
-    // la retícula arranque completa) y luego por orden alfabetico.
     return Array.from(mapa.values()).sort((a, b) => {
       if (a.sinDato !== b.sinDato) return a.sinDato ? 1 : -1;
       if (a.ciclos.length !== b.ciclos.length) return b.ciclos.length - a.ciclos.length;
@@ -343,9 +326,6 @@ export default function LandingPage({ onLoginSuccess }) {
     ? universidadesAgrupadas
     : universidadesAgrupadas.filter((u) => u.clave === filtroActivo);
 
-  // Lista plana de ciclos visibles: respeta el filtro por universidad y es la
-  // fuente unica del grid del catalogo (una sola retícula, sin secciones
-  // vacias por universidad).
   const ciclosVisibles = React.useMemo(
     () => universidadesVisibles.flatMap((universidad) => universidad.ciclos),
     [universidadesVisibles]
@@ -476,8 +456,6 @@ export default function LandingPage({ onLoginSuccess }) {
     setError(null);
 
     try {
-      // Esto verifica formato + disponibilidad del ciclo; no afirma que la
-      // persona controle el buzón ni consulta si la cuenta existe.
       const resultado = await verificarDisponibilidadMatricula(correo, idCiclo);
       if (!vigente()) return false;
       if (resultado.disponible !== true) {
@@ -623,6 +601,48 @@ export default function LandingPage({ onLoginSuccess }) {
     }
   };
 
+  // --- Lógica de recuperación de contraseña ---
+  const handleRecuperarPassword = async () => {
+    const usuarioIngresado = loginData.usuario.trim();
+
+    if (!usuarioIngresado) {
+      setError('Ingresa tu código de estudiante o correo en el campo superior para solicitar la recuperación.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const respuesta = await solicitarRecuperacionPassword(usuarioIngresado);
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Solicitud enviada',
+        text: respuesta.mensaje || `Hemos enviado las instrucciones a la cuenta asociada a "${usuarioIngresado}". Revisa tu bandeja de entrada o spam.`,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#0D9488',
+        background: '#ffffff',
+        color: '#0f172a'
+      });
+
+      closeModal();
+    } catch (err) {
+      // Diagnóstico de respuestas del servidor
+      if (err.status === 401) {
+        setError('El servicio de recuperación de contraseña en el servidor aún no está habilitado para acceso público.');
+      } else if (err.data?.code === 'CORREO_NO_CONFIGURADO' || err.status === 503) {
+        setError('El servicio de correo no está configurado actualmente en el servidor. Por favor, contacta a la administración.');
+      } else if (err.status === 404) {
+        setError('No se encontró ningún usuario o correo registrado con esas credenciales.');
+      } else {
+        setError(err.message || 'El servicio de recuperación no se encuentra disponible actualmente. Inténtalo más tarde.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (loginRef.current) return;
@@ -742,12 +762,6 @@ export default function LandingPage({ onLoginSuccess }) {
             </div>
 
             <div className="order-2 relative">
-              {/* Capa teal institucional: UNA sola forma con la MISMA silueta
-                  orgánica que la fotografía. Se desplaza hacia la izquierda y
-                  hacia abajo para asomar por detrás (nunca la rodea), y se mete
-                  unos píxeles por dentro en las caras superior y derecha para
-                  que su borde no se transparente a través del antialiasado de la
-                  foto y no parezca un marco. Teal real de AcadeSys (teal-600). */}
               <div
                 aria-hidden="true"
                 className="forma-organica-hero pointer-events-none absolute top-1 right-1 -bottom-4 -left-4 bg-teal-600/45 sm:-bottom-5 sm:-left-5"
@@ -775,213 +789,206 @@ export default function LandingPage({ onLoginSuccess }) {
             <p className="text-slate-600 text-sm mt-2 max-w-2xl mx-auto">Elige tu universidad objetivo y encuentra el programa de preparación adecuado.</p>
           </div>
           {loadingCiclos ? (
-  <div
-    className="w-full max-w-2xl mx-auto p-8 rounded-xl bg-white border border-slate-200 text-center shadow-sm"
-    role="status"
-    aria-live="polite"
-  >
-    <Loader2
-      className="w-7 h-7 mx-auto mb-3 text-teal-700 animate-spin"
-      aria-hidden="true"
-    />
-    <h3 className="text-base sm:text-lg font-bold text-slate-900">
-      Cargando ciclos disponibles
-    </h3>
-    <p className="text-sm text-slate-600 mt-2">
-      Estamos consultando la oferta académica.
-    </p>
-  </div>
-) : errorCiclos ? (
-  <div
-    className="w-full max-w-2xl mx-auto p-8 rounded-xl bg-white border border-rose-200 text-center shadow-sm"
-    role="alert"
-  >
-    <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center">
-      <AlertCircle
-        className="w-7 h-7 text-rose-600"
-        aria-hidden="true"
-      />
-    </div>
-
-    <h3 className="text-base sm:text-lg font-bold text-slate-900">
-      No pudimos cargar los ciclos
-    </h3>
-
-    <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-      No fue posible consultar la oferta académica en este momento.
-    </p>
-
-    <p className="text-sm text-rose-600 mt-2">
-      {errorCiclos}
-    </p>
-  </div>
-) : ciclos.length === 0 ? (
-  <div
-    className="w-full max-w-2xl mx-auto p-10 rounded-xl bg-white border border-slate-200 text-center shadow-sm"
-    role="status"
-  >
-    <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
-      <GraduationCap
-        className="w-7 h-7 text-teal-700"
-        aria-hidden="true"
-      />
-    </div>
-
-    <h3 className="text-lg font-bold text-slate-900">
-      Nuevos ciclos se aperturarán pronto
-    </h3>
-
-    <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-      Actualmente no hay ciclos disponibles para matrícula.
-      Vuelve a revisar próximamente para conocer nuevas fechas,
-      turnos y horarios.
-    </p>
-  </div>
-) : (
-  <div className="w-full">
-    {/* SELECTOR DE UNIVERSIDAD OBJETIVO (dinámico, con los datos reales) */}
-    <div className="mb-8">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 text-center mb-3">
-        Universidad objetivo
-      </p>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {[
-            { clave: 'TODOS', total: ciclos.length },
-            ...universidadesAgrupadas.map((u) => ({ clave: u.clave, total: u.ciclos.length }))
-          ].map((opcion) => {
-          const activo = filtroActivo === opcion.clave;
-          return (
-            <button
-              key={opcion.clave}
-              type="button"
-              onClick={() => setFiltroUniversidad(opcion.clave)}
-              aria-pressed={activo}
-              className={`px-4 py-2 rounded-lg border text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 ${
-                activo
-                  ? 'bg-teal-600 border-teal-600 text-white'
-                  : 'bg-white border-slate-300 text-slate-700 hover:border-teal-600 hover:text-teal-800'
-              }`}
+            <div
+              className="w-full max-w-2xl mx-auto p-8 rounded-xl bg-white border border-slate-200 text-center shadow-sm"
+              role="status"
+              aria-live="polite"
             >
-              {opcion.clave === 'TODOS' ? 'Todos' : opcion.clave}
-              <span className="ml-1.5 text-[10px] font-bold opacity-80">{opcion.total}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-
-    {/* CATALOGO UNIFICADO DE CICLOS (datos reales del backend) */}
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {ciclosVisibles.map((ciclo) => {
-        const capacidad = Number(ciclo.capacidad || 0);
-        const inscritos = Number(ciclo.totalAlumnos || 0);
-        const vacantes = Math.max(capacidad - inscritos, 0);
-        const cupoCompleto = ciclo.disponible === false || (capacidad > 0 && vacantes <= 0);
-        const claveUniversidad = obtenerUniversidadCiclo(ciclo);
-        const sigla = String(ciclo.universidadObjetivo || claveUniversidad || '').trim();
-        const nombreCompleto = claveUniversidad ? UNIVERSIDADES[claveUniversidad].nombre : '';
-
-        return (
-          <article
-            key={ciclo.idCiclo ?? ciclo.id}
-            className="relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300"
-          >
-            {/* Marca de agua institucional: depende de la UNIVERSIDAD del ciclo */}
-            <MarcaUniversidad clave={claveUniversidad} />
-
-            <div className="relative z-10 flex h-full flex-col">
-              {/* CABECERA: universidad objetivo + disponibilidad */}
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3.5 pt-5">
-                <div className="min-w-0">
-                  <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-teal-700">
-                    {sigla || 'AcadeSys'}
-                  </span>
-                  {nombreCompleto ? (
-                    <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">
-                      {nombreCompleto}
-                    </p>
-                  ) : null}
-                </div>
-                <span
-                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold ${
-                    cupoCompleto ? 'text-rose-600' : 'text-emerald-700'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${cupoCompleto ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                    aria-hidden="true"
-                  />
-                  {cupoCompleto ? 'Cupo completo' : 'Disponible'}
-                </span>
+              <Loader2
+                className="w-7 h-7 mx-auto mb-3 text-teal-700 animate-spin"
+                aria-hidden="true"
+              />
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                Cargando ciclos disponibles
+              </h3>
+              <p className="text-sm text-slate-600 mt-2">
+                Estamos consultando la oferta académica.
+              </p>
+            </div>
+          ) : errorCiclos ? (
+            <div
+              className="w-full max-w-2xl mx-auto p-8 rounded-xl bg-white border border-rose-200 text-center shadow-sm"
+              role="alert"
+            >
+              <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center">
+                <AlertCircle
+                  className="w-7 h-7 text-rose-600"
+                  aria-hidden="true"
+                />
               </div>
 
-              {/* INFORMACION DEL CICLO */}
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="text-lg font-bold leading-snug text-slate-900">
-                  {ciclo.nombre || 'Ciclo sin nombre'}
-                </h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                No pudimos cargar los ciclos
+              </h3>
 
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Turno</dt>
-                    <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.turno || 'Por confirmar'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Horario</dt>
-                    <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.horario || 'Por confirmar'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dias</dt>
-                    <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.diasClase || 'Por confirmar'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cursos</dt>
-                    <dd className="mt-1 text-sm font-medium text-slate-900">
-                      {ciclo.totalCursos} {Number(ciclo.totalCursos) === 1 ? 'curso' : 'cursos'}
-                    </dd>
-                  </div>
-                </dl>
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                No fue posible consultar la oferta académica en este momento.
+              </p>
 
-                <div className="mt-4 border-t border-slate-100 pt-3.5">
-                  <p className="text-xs text-slate-500">
-                    <strong className="font-semibold text-slate-700">{inscritos}</strong> inscritos
-                    {capacidad > 0 ? (
-                      <> · <strong className="font-semibold text-slate-700">{vacantes}</strong> vacantes</>
-                    ) : (
-                      <> · vacantes por confirmar</>
-                    )}
-                  </p>
+              <p className="text-sm text-rose-600 mt-2">
+                {errorCiclos}
+              </p>
+            </div>
+          ) : ciclos.length === 0 ? (
+            <div
+              className="w-full max-w-2xl mx-auto p-10 rounded-xl bg-white border border-slate-200 text-center shadow-sm"
+              role="status"
+            >
+              <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+                <GraduationCap
+                  className="w-7 h-7 text-teal-700"
+                  aria-hidden="true"
+                />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900">
+                Nuevos ciclos se aperturarán pronto
+              </h3>
+
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                Actualmente no hay ciclos disponibles para matrícula.
+                Vuelve a revisar próximamente para conocer nuevas fechas,
+                turnos y horarios.
+              </p>
+            </div>
+          ) : (
+            <div className="w-full">
+              <div className="mb-8">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 text-center mb-3">
+                  Universidad objetivo
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {[
+                      { clave: 'TODOS', total: ciclos.length },
+                      ...universidadesAgrupadas.map((u) => ({ clave: u.clave, total: u.ciclos.length }))
+                    ].map((opcion) => {
+                    const activo = filtroActivo === opcion.clave;
+                    return (
+                      <button
+                        key={opcion.clave}
+                        type="button"
+                        onClick={() => setFiltroUniversidad(opcion.clave)}
+                        aria-pressed={activo}
+                        className={`px-4 py-2 rounded-lg border text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 ${
+                          activo
+                            ? 'bg-teal-600 border-teal-600 text-white'
+                            : 'bg-white border-slate-300 text-slate-700 hover:border-teal-600 hover:text-teal-800'
+                        }`}
+                      >
+                        {opcion.clave === 'TODOS' ? 'Todos' : opcion.clave}
+                        <span className="ml-1.5 text-[10px] font-bold opacity-80">{opcion.total}</span>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div className="mt-auto flex flex-col gap-2.5 pt-5 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => abrirDetalleCiclo(ciclo)}
-                    className="flex-1 rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
-                    aria-label={`Ver detalle del ciclo ${ciclo.nombre || ''}`}
-                  >
-                    Ver detalle
-                  </button>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {ciclosVisibles.map((ciclo) => {
+                  const capacidad = Number(ciclo.capacidad || 0);
+                  const inscritos = Number(ciclo.totalAlumnos || 0);
+                  const vacantes = Math.max(capacidad - inscritos, 0);
+                  const cupoCompleto = ciclo.disponible === false || (capacidad > 0 && vacantes <= 0);
+                  const claveUniversidad = obtenerUniversidadCiclo(ciclo);
+                  const sigla = String(ciclo.universidadObjetivo || claveUniversidad || '').trim();
+                  const nombreCompleto = claveUniversidad ? UNIVERSIDADES[claveUniversidad].nombre : '';
 
-                  <button
-                    type="button"
-                    onClick={() => abrirCheckout(ciclo)}
-                    disabled={cupoCompleto}
-                    className="flex-1 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {cupoCompleto ? 'Cupo completo' : 'Inscribirme'}
-                  </button>
-                </div>
+                  return (
+                    <article
+                      key={ciclo.idCiclo ?? ciclo.id}
+                      className="relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300"
+                    >
+                      <MarcaUniversidad clave={claveUniversidad} />
+
+                      <div className="relative z-10 flex h-full flex-col">
+                        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3.5 pt-5">
+                          <div className="min-w-0">
+                            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-teal-700">
+                              {sigla || 'AcadeSys'}
+                            </span>
+                            {nombreCompleto ? (
+                              <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">
+                                {nombreCompleto}
+                              </p>
+                            ) : null}
+                          </div>
+                          <span
+                            className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold ${
+                              cupoCompleto ? 'text-rose-600' : 'text-emerald-700'
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${cupoCompleto ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                              aria-hidden="true"
+                            />
+                            {cupoCompleto ? 'Cupo completo' : 'Disponible'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-1 flex-col p-5">
+                          <h3 className="text-lg font-bold leading-snug text-slate-900">
+                            {ciclo.nombre || 'Ciclo sin nombre'}
+                          </h3>
+
+                          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
+                            <div>
+                              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Turno</dt>
+                              <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.turno || 'Por confirmar'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Horario</dt>
+                              <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.horario || 'Por confirmar'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dias</dt>
+                              <dd className="mt-1 text-sm font-medium text-slate-900">{ciclo.diasClase || 'Por confirmar'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cursos</dt>
+                              <dd className="mt-1 text-sm font-medium text-slate-900">
+                                {ciclo.totalCursos} {Number(ciclo.totalCursos) === 1 ? 'curso' : 'cursos'}
+                              </dd>
+                            </div>
+                          </dl>
+
+                          <div className="mt-4 border-t border-slate-100 pt-3.5">
+                            <p className="text-xs text-slate-500">
+                              <strong className="font-semibold text-slate-700">{inscritos}</strong> inscritos
+                              {capacidad > 0 ? (
+                                <> · <strong className="font-semibold text-slate-700">{vacantes}</strong> vacantes</>
+                              ) : (
+                                <> · vacantes por confirmar</>
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="mt-auto flex flex-col gap-2.5 pt-5 sm:flex-row">
+                            <button
+                              type="button"
+                              onClick={() => abrirDetalleCiclo(ciclo)}
+                              className="flex-1 rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
+                              aria-label={`Ver detalle del ciclo ${ciclo.nombre || ''}`}
+                            >
+                              Ver detalle
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => abrirCheckout(ciclo)}
+                              disabled={cupoCompleto}
+                              className="flex-1 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {cupoCompleto ? 'Cupo completo' : 'Inscribirme'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
-          </article>
-        );
-      })}
-    </div>
-
-  </div>
-)}
-
+          )}
         </section>
 
         {/* TODO LO QUE INCLUYE TU PREPARACIÓN */}
@@ -1042,7 +1049,7 @@ export default function LandingPage({ onLoginSuccess }) {
           </div>
         </section>
 
-        {/* ÁREAS DE PREPARACIÓN (construida con los cursos reales de los ciclos publicados) */}
+        {/* ÁREAS DE PREPARACIÓN */}
         {ciclos.length > 0 && !(areasCargadas && areasAcademicas.length === 0) && (
           <section id="areas" ref={areasRef} className="scroll-mt-24 text-left">
             <div className="text-center mb-10">
@@ -1164,7 +1171,7 @@ export default function LandingPage({ onLoginSuccess }) {
           </div>
         </div>
 
-        {/* CTA FINAL (banda navy) */}
+        {/* CTA FINAL */}
         <section className="bg-[#0F172A] text-white">
           <div className="max-w-7xl mx-auto px-5 sm:px-6 py-14 sm:py-16 text-center">
             <h2 className="font-bold text-2xl sm:text-3xl text-white">¿Listo para comenzar tu preparación?</h2>
@@ -1224,12 +1231,6 @@ export default function LandingPage({ onLoginSuccess }) {
         </div>
       </footer>
 
-      {/* WIDGET FLOTANTE DE CONTACTO (z-30: sobre el contenido, debajo de los modales z-40/z-50)
-          Solo se muestra a partir de 1680 px: el contenedor de contenido mide
-          max-w-7xl (1280 px) y el widget necesita ~190 px de margen para no
-          tapar la ultima tarjeta del catalogo ni sus botones. Por debajo, el
-          contacto sigue disponible con el boton "Contáctanos" del hero y con
-          los botones Llamar/WhatsApp del footer. */}
       <div className="fixed z-30 right-6 bottom-6 hidden min-[1680px]:flex flex-col items-end gap-2.5">
         <div className="flex items-center gap-2.5">
           <span className="inline-flex items-center rounded-lg bg-[#0F172A] border border-slate-700 px-3.5 py-2 text-xs font-semibold text-white shadow-md">
@@ -1256,7 +1257,7 @@ export default function LandingPage({ onLoginSuccess }) {
         </button>
       </div>
 
-      {/* ACCESO / INICIO DE SESIÓN (pantalla completa) */}
+      {/* ACCESO / INICIO DE SESIÓN */}
       {authModal === 'login' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#0F172A]/80 p-4 sm:p-6"
@@ -1265,7 +1266,6 @@ export default function LandingPage({ onLoginSuccess }) {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          {/* Panel de inicio de sesión */}
           <div className="relative w-full max-w-[420px] rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl">
             <button
               type="button"
@@ -1296,7 +1296,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <div className="mb-5 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">No fue posible iniciar sesión</p>
+                  <p className="font-bold">Atención</p>
                   <p className="mt-1 text-rose-600">{error}</p>
                 </div>
               </div>
@@ -1304,11 +1304,11 @@ export default function LandingPage({ onLoginSuccess }) {
             <form onSubmit={handleLoginSubmit} className="space-y-5">
               <div>
                 <label
-  htmlFor="login-usuario"
-  className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2"
->
-  Usuario / correo
-</label>
+                  htmlFor="login-usuario"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2"
+                >
+                  Usuario / correo
+                </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -1324,12 +1324,21 @@ export default function LandingPage({ onLoginSuccess }) {
                 </div>
               </div>
               <div>
-                <label
-  htmlFor="login-password"
-  className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2"
->
-  Contraseña
-</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    htmlFor="login-password"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-600"
+                  >
+                    Contraseña
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleRecuperarPassword}
+                    className="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors focus:outline-none"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -1462,23 +1471,13 @@ export default function LandingPage({ onLoginSuccess }) {
                   ))}
                 </div>
               ) : (
-                <div
-  className="rounded-xl bg-slate-50 border border-slate-200 p-6 text-center"
-  role="status"
->
-  <BookOpen
-    className="w-7 h-7 mx-auto mb-3 text-teal-700"
-    aria-hidden="true"
-  />
-
-  <p className="text-sm font-semibold text-slate-900">
-    Aún no hay cursos disponibles para mostrar
-  </p>
-
-  <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-    La programación académica de este ciclo todavía no está disponible en la consulta pública.
-  </p>
-</div>
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-6 text-center" role="status">
+                  <BookOpen className="w-7 h-7 mx-auto mb-3 text-teal-700" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-slate-900">Aún no hay cursos disponibles para mostrar</p>
+                  <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                    La programación académica de este ciclo todavía no está disponible en la consulta pública.
+                  </p>
+                </div>
               )}
             </div>
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1636,5 +1635,3 @@ export default function LandingPage({ onLoginSuccess }) {
     </div>
   );
 }
-
-
