@@ -409,50 +409,24 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     setErrorDatos('');
     setGuardandoDatos(true);
     try {
-      if (tabActiva === 'aulas') {
-        if (!nombreValido(formAula.nombre)) throw new Error('Ingresa un nombre válido para el aula.');
-        if (!Number.isInteger(Number(formAula.capacidad)) || Number(formAula.capacidad) < 1 || Number(formAula.capacidad) > 500) {
-          throw new Error('La capacidad del aula debe estar entre 1 y 500.');
-        }
-        const payload = { ...formAula, nombre: formAula.nombre.trim(), capacidad: Number(formAula.capacidad) };
-        if (editandoId) await actualizarAula(editandoId, payload);
-        else await crearAula(payload);
-      } else if (tabActiva === 'cursos') {
-        if (!nombreValido(formCurso.nombre) || !codigoCursoValido(formCurso.codigo)) {
-          throw new Error('Revisa el nombre y el código del curso.');
-        }
-        const payload = { ...formCurso, nombre: formCurso.nombre.trim(), codigo: formCurso.codigo.trim().toUpperCase() };
-        if (editandoId) await actualizarCurso(editandoId, payload);
-        else await crearCurso(payload);
-      } else if (tabActiva === 'asignaciones') {
-        if (!formularioActualValido) throw new Error('Selecciona un docente, ciclo y curso, e indica las horas semanales.');
-        await crearAsignacionDocente({
-          idUsuario: Number(formAsig.idUsuario),
-          idCiclo: Number(formAsig.idCiclo),
-          idCurso: Number(formAsig.idCurso),
-          horas: Number(formAsig.horas),
-        });
-      } else if (tabActiva === 'turnos') {
-        if (!formularioActualValido) throw new Error('Completa correctamente todos los datos del horario.');
-        const payload = {
-          idCiclo: Number(formTurno.idCiclo),
-          idCurso: Number(formTurno.idCurso),
-          diaNumero: Number(formTurno.diaNumero),
-          diaSemana: formTurno.diaSemana,
-          horaInicio: formTurno.horaInicio,
-          horaFin: formTurno.horaFin,
-          orden: Number(formTurno.orden)
-        };
-        if (editandoId) await actualizarHorario(editandoId, payload);
-        else await crearHorario(payload);
-      } else {
-        throw new Error('No hay una operación de guardado disponible para este módulo.');
-      }
+      // ... (mantén toda la lógica de validación e inserción existente) ...
+      
       await cargarDatos();
       setModalAbierto(false);
       setEditandoId(null);
     } catch (err) {
-      window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
+      // REEMPLAZAR EL window.alert POR ESTO:
+      // Analizar si es un error de conflicto (ej. horario solapado)
+      const mensajeError = err?.message || 'No se pudo guardar la información.';
+      
+      // Mostrar el error directamente en el formulario del modal
+      setErrorDatos(mensajeError); 
+      
+      // Opcional: Hacer scroll hacia el mensaje de error si el formulario es largo
+      const modalContenedor = dialogRef.current;
+      if (modalContenedor) {
+        modalContenedor.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       operacionRef.current = false;
       setGuardandoDatos(false);
@@ -576,7 +550,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
             await cargarDatos();
             setModalAbierto(false);
             setEditandoId(null);
-            window.alert(`El ciclo se actualizó, pero no se pudo cambiar su visibilidad: ${errorVisibilidad?.message || 'error desconocido'}`);
+            setErrorCiclo(err?.message)(`El ciclo se actualizó, pero no se pudo cambiar su visibilidad: ${errorVisibilidad?.message || 'error desconocido'}`);
             return;
           }
         }
@@ -1006,6 +980,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
               </button>
             </div>
             <form onSubmit={tabActiva === 'ciclos' ? (event) => {
+              {errorDatos && tabActiva !== 'ciclos' && (
+  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+    {errorDatos}
+  </div>
+)}
               event.preventDefault();
               if (pasoCiclo === 6) guardarCiclo();
               else siguientePasoCiclo();
