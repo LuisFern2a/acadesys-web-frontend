@@ -37,7 +37,8 @@ import {
   procesarCheckoutMatricula,
   iniciarSesion,
   limpiarSesion,
-  solicitarRecuperacionPassword
+  solicitarRecuperacionPassword,
+  restablecerPassword
 } from '../services/api';
 import { grupoDeRol } from '../utils/roles';
 
@@ -175,6 +176,7 @@ export default function LandingPage({ onLoginSuccess }) {
   const procesandoPagoRef = React.useRef(false);
   const loginRef = React.useRef(false);
   const detalleSeqRef = React.useRef(0);
+  const resetPasswordModalRef = React.useRef(false);
   const cerrarDetalle = () => { detalleSeqRef.current += 1; setCicloDetalle(null); };
   const authDialogRef = useModalDialog(authModal === 'login', () => { if (!loading) setAuthModal(null); }, loading);
   const checkoutDialogRef = useModalDialog(Boolean(cicloSeleccionado), () => {
@@ -184,6 +186,94 @@ export default function LandingPage({ onLoginSuccess }) {
     }
   }, procesandoPago || verificandoCorreo);
   const detalleDialogRef = useModalDialog(Boolean(cicloDetalle), cerrarDetalle);
+
+  // Si el alumno abre el enlace enviado por correo, muestra el formulario de
+  // restablecimiento sin exigir que tenga una sesión iniciada.
+  React.useEffect(() => {
+    const prefijoHash = '#restablecer-password?';
+    const hashActual = window.location.hash || '';
+
+    if (!hashActual.startsWith(prefijoHash) || resetPasswordModalRef.current) {
+      return;
+    }
+
+    const token = new URLSearchParams(hashActual.slice(prefijoHash.length)).get('token');
+    if (!token) return;
+
+    resetPasswordModalRef.current = true;
+
+    // Retira el token de la barra de direcciones después de capturarlo.
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${window.location.search}`
+    );
+
+    const abrirModalRestablecimiento = async () => {
+      const resultado = await Swal.fire({
+        title: 'Crear nueva contraseña',
+        html: `
+          <div style="text-align:left">
+            <label for="acadesys-nueva-clave" style="display:block;margin:8px 0 4px;font-size:14px">Nueva contraseña</label>
+            <input id="acadesys-nueva-clave" type="password" class="swal2-input" autocomplete="new-password" placeholder="Mínimo 8 caracteres" style="width:calc(100% - 2em);margin:0 0 12px">
+            <label for="acadesys-confirmar-clave" style="display:block;margin:8px 0 4px;font-size:14px">Confirmar contraseña</label>
+            <input id="acadesys-confirmar-clave" type="password" class="swal2-input" autocomplete="new-password" placeholder="Repite la contraseña" style="width:calc(100% - 2em);margin:0">
+            <p style="font-size:12px;color:#64748b;margin-top:10px">Usa entre 8 y 72 bytes en UTF-8.</p>
+          </div>`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Guardar contraseña',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0D9488',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        didOpen: () => document.getElementById('acadesys-nueva-clave')?.focus(),
+        preConfirm: async () => {
+          const popup = Swal.getPopup();
+          const nuevaClave = popup?.querySelector('#acadesys-nueva-clave')?.value ?? '';
+          const confirmacion = popup?.querySelector('#acadesys-confirmar-clave')?.value ?? '';
+
+          if (!nuevaClave) {
+            Swal.showValidationMessage('Escribe tu nueva contraseña.');
+            return false;
+          }
+
+          const bytes = new TextEncoder().encode(nuevaClave).length;
+          if (bytes < 8 || bytes > 72) {
+            Swal.showValidationMessage('La contraseña debe tener entre 8 y 72 bytes en UTF-8.');
+            return false;
+          }
+
+          if (nuevaClave !== confirmacion) {
+            Swal.showValidationMessage('Las contraseñas no coinciden.');
+            return false;
+          }
+
+          try {
+            return await restablecerPassword(token, nuevaClave);
+          } catch (error) {
+            Swal.showValidationMessage(
+              error?.message || 'No se pudo actualizar la contraseña. Solicita un nuevo enlace.'
+            );
+            return false;
+          }
+        }
+      });
+
+      if (resultado.isConfirmed) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Contraseña actualizada',
+          text: resultado.value?.mensaje || 'Ya puedes iniciar sesión con tu nueva contraseña.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#0D9488'
+        });
+      }
+    };
+
+    void abrirModalRestablecimiento();
+  }, []);
+
 
   const resetFormStates = () => {
     setError(null);

@@ -1753,3 +1753,39 @@ export async function solicitarRecuperacionPassword(usuarioOCorreo) {
 
   return data;
 }
+
+
+/**
+ * Confirma una nueva contraseña usando el token temporal enviado por correo.
+ * Este endpoint es público y no debe usar fetchWithAuth ni un JWT de sesión.
+ */
+export async function restablecerPassword(token, nuevaClave) {
+  const tokenLimpio = String(token || '').trim();
+
+  if (!tokenLimpio) {
+    throw new Error('El enlace de recuperación no es válido.');
+  }
+
+  if (typeof nuevaClave !== 'string' || !nuevaClave) {
+    throw new Error('Ingresa una nueva contraseña.');
+  }
+
+  const response = await solicitarApi('/api/auth/restablecer-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: tokenLimpio, nuevaClave })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.error || data.mensaje || data.message || 'No se pudo cambiar la contraseña.'
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
