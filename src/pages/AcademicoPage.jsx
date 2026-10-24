@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import useModalDialog from '../hooks/useModalDialog';
 import {
   Layers,
@@ -40,12 +40,61 @@ import {
   obtenerHorarios,
   crearHorario,
   actualizarHorario,
-  eliminarHorario
+  eliminarHorario,
+  obtenerCursosCiclo
 } from '../services/api';
 import { esAdmin, esDocente, esTutor } from '../utils/roles';
-import { UNIVERSIDADES } from '../utils/universidadCiclo';
+import { UNIVERSIDADES, nombreUniversidadPorClave } from '../utils/universidadCiclo';
+import { cursosDeUniversidad, seleccionCompatible } from '../utils/ofertaCiclo';
+import {
+  claveUniversidadCurso,
+  etiquetaDesdeClave,
+  universidadesDelCatalogo,
+  catalogoCursosVisible
+} from '../utils/catalogoCursos';
+import {
+  universidadesDeHorarios,
+  ciclosConHorarios,
+  claveUniversidadHorario,
+  cicloCompatible,
+  horariosVisibles
+} from '../utils/horariosAcademicos';
 import UniversidadLogo from '../components/UniversidadLogo';
 import CursoIcon from '../components/CursoIcon';
+
+// ============================================================================
+// Catálogo de cursos (pestaña «Cursos Académicos»): la universidad de cada
+// curso sale EXCLUSIVAMENTE del campo estructurado `Curso.UniversidadObjetivo`
+// (helper `catalogoCursos.js`); el prefijo del código (SM-, FV-, UNI-...) es
+// solo descriptivo y NUNCA se usa para deducirla.
+//
+// `ETIQUETAS_UNIVERSIDAD` reutiliza el helper centralizado `universidadCiclo.js`
+// con una sola copia de las siglas canónicas: clave normalizada → sigla. El
+// nombre completo del footer se resuelve con `nombreUniversidadPorClave`.
+// ============================================================================
+const ETIQUETAS_UNIVERSIDAD = {
+  ...Object.fromEntries(Object.keys(UNIVERSIDADES).map((clave) => [clave.toLowerCase(), clave])),
+  preuniversitario: 'Preuniversitario'
+};
+
+// Nombre completo (o etiqueta) de una universidad a partir de su clave
+// normalizada. Sin mappings duplicados: delega en el helper centralizado y
+// cae a la sigla canónica si es necesario.
+const resolverNombreUniversidadCurso = (clave) => {
+  if (!clave) return '';
+  return nombreUniversidadPorClave(clave) || ETIQUETAS_UNIVERSIDAD[clave] || clave.toUpperCase();
+};
+
+// Buscador genérico compartido por las cinco pestañas (mismo estado y misma
+// lógica de filtrado); el placeholder se adapta al contenido de cada una.
+const PLACEHOLDER_BUSQUEDA = {
+  asignaciones: 'Buscar por docente, curso o ciclo...',
+  aulas: 'Buscar aula por nombre o programa...',
+  ciclos: 'Buscar ciclo por nombre, turno u horario...',
+  cursos: 'Buscar curso, código o universidad...',
+  turnos: 'Buscar por ciclo, curso, día u hora...'
+};
+
 function CampoCiclo({ label, children }) {
   return (
     <label className="block">
@@ -126,6 +175,26 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
   const [errorDatos, setErrorDatos] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('todos');
+  // Filtro por universidad de la pestaña «Cursos Académicos»: clave
+  // normalizada de UniversidadObjetivo ('todos' muestra el catálogo global
+  // de 71 cursos; nunca se ocultan permanentemente otros cursos).
+  const [filtroUniversidad, setFiltroUniversidad] = useState('todos');
+  // Filtros de la pestaña «Horarios» (estado PROPIO, separado del de Cursos
+  // Académicos: filtrar en una pestaña no altera la otra).
+  const [filtroUniversidadTurnos, setFiltroUniversidadTurnos] = useState('todas');
+  const [filtroCicloTurnos, setFiltroCicloTurnos] = useState('todos');
+  useEffect(() => {
+    // Al cambiar de pestaña, cada pestaña vuelve a sus valores por defecto.
+    setFiltroUniversidad('todos');
+    setFiltroUniversidadTurnos('todas');
+    setFiltroCicloTurnos('todos');
+  }, [tabActiva]);
+  // Oferta del ciclo seleccionado en el modal de Horarios (relación
+  // CicloCurso vía GET /api/ciclos/:id/cursos; nunca el catálogo global).
+  const cursosCicloTurnosRef = useRef(0);
+  const [cursosCicloTurnos, setCursosCicloTurnos] = useState([]);
+  const [cargandoCursosCicloTurnos, setCargandoCursosCicloTurnos] = useState(false);
+  const [errorCursosCicloTurnos, setErrorCursosCicloTurnos] = useState('');
   // Modal y modo edición
   const [modalAbierto, setModalAbierto] = useState(false);
   const operacionRef = useRef(false);
@@ -138,13 +207,27 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
   const [pasoCiclo, setPasoCiclo] = useState(1);
   const [errorCiclo, setErrorCiclo] = useState('');
   const [guardandoCiclo, setGuardandoCiclo] = useState(false);
+  const [avisoOferta, setAvisoOferta] = useState('');
   const [guardandoDatos, setGuardandoDatos] = useState(false);
   const dialogRef = useModalDialog(modalAbierto, () => setModalAbierto(false), guardandoCiclo || guardandoDatos);
   const [avisoHorario, setAvisoHorario] = useState('');
   const [publicadoOriginal, setPublicadoOriginal] = useState(null);
+  // Mapa idCiclo → ciclo normalizado para resolver la universidad real de
+  // cada horario (Ciclo.UniversidadObjetivo; nunca prefijos de código).
+  const mapaCiclosHorarios = useMemo(() => {
+    const mapa = new Map();
+    (Array.isArray(ciclos) ? ciclos : []).forEach((ciclo) => {
+      const id = Number(ciclo.idCiclo);
+      if (Number.isSafeInteger(id) && id > 0) mapa.set(id, ciclo);
+    });
+    return mapa;
+  }, [ciclos]);
   // Formularios
   const [formAula, setFormAula] = useState({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
-  const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '' });
+  // UniversidadObjetivo vacía al crear: se exige una elección explícita para
+  // que nunca queden cursos «sin universidad» (el único valor implícito del
+  // backend es Preuniversitario y no debe aplicarse por accidente).
+  const [formCurso, setFormCurso] = useState({ nombre: '', codigo: '', descripcion: '', universidadObjetivo: '' });
   const [formAsig, setFormAsig] = useState({ idUsuario: '', idCiclo: '', idCurso: '', horas: 4 });
   const [formCiclo, setFormCiclo] = useState({
     universidadObjetivo: 'UNMSM',
@@ -162,6 +245,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     cursosSeleccionados: []
   });
   const [formTurno, setFormTurno] = useState({
+    universidad: '',
     idCiclo: '',
     idCurso: '',
     diaNumero: 1,
@@ -212,6 +296,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       nombre: c.nombre ?? c.Nombre ?? '',
       codigo: c.codigo ?? c.Codigo ?? '',
       descripcion: c.descripcion ?? c.Descripcion ?? '',
+      // Campo estructurado del catálogo (GET /api/cursos): única relación
+      // Universidad ↔ Curso del modelo. El wizard lo usa para mostrar en el
+      // paso Oferta solo los cursos de la universidad elegida en el paso 1.
+      universidadObjetivo: c.universidadObjetivo ?? c.UniversidadObjetivo ?? '',
     }));
     const listaCiclos = (Array.isArray(ciclosRaw) ? ciclosRaw : []).map((c) => ({
       ...c,
@@ -264,7 +352,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     edicionSeqRef.current += 1;
     setEditandoId(null);
     setFormAula({ nombre: '', nivel: 'Preuniversitario', capacidad: 35 });
-    setFormCurso({ nombre: '', codigo: '', descripcion: '' });
+    setFormCurso({ nombre: '', codigo: '', descripcion: '', universidadObjetivo: '' });
     setFormAsig({
       idUsuario: String(usuarios[0]?.IdUsuario ?? usuarios[0]?.idUsuario ?? ''),
       idCiclo: String(ciclos[0]?.idCiclo ?? ''),
@@ -289,17 +377,73 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     setPasoCiclo(1);
     setErrorCiclo('');
     setAvisoHorario('');
+    setAvisoOferta('');
     setPublicadoOriginal(null);
     setFormTurno({
-      idCiclo: String(ciclos[0]?.idCiclo ?? ''),
-      idCurso: String(cursos[0]?.idCurso ?? ''),
+      universidad: '',
+      idCiclo: '',
+      idCurso: '',
       diaNumero: 1,
       diaSemana: 'Lunes',
       horaInicio: '08:00',
       horaFin: '09:00',
       orden: 1
     });
+    setCursosCicloTurnos([]);
+    setErrorCursosCicloTurnos('');
+    setCargandoCursosCicloTurnos(false);
+    cursosCicloTurnosRef.current += 1;
     setModalAbierto(true);
+  };
+  // Oferta de cursos del ciclo seleccionado en el modal de Horarios: la
+  // relación REAL es CicloCurso(IdCiclo, IdCurso), obtenida del backend
+  // (GET /api/ciclos/:id/cursos). Nunca el catálogo global: un horario solo
+  // puede usar cursos vinculados a su ciclo y coherentes con su universidad
+  // (el backend lo revalida en POST/PUT /api/horarios).
+  const cargarOfertaTurnos = async (idCiclo) => {
+    const secuencia = ++cursosCicloTurnosRef.current;
+    if (!idCiclo) {
+      setCursosCicloTurnos([]);
+      setErrorCursosCicloTurnos('');
+      setCargandoCursosCicloTurnos(false);
+      return;
+    }
+    setCargandoCursosCicloTurnos(true);
+    setErrorCursosCicloTurnos('');
+    try {
+      const lista = await obtenerCursosCiclo(idCiclo);
+      if (secuencia !== cursosCicloTurnosRef.current) return;
+      setCursosCicloTurnos(Array.isArray(lista) ? lista : []);
+      setCargandoCursosCicloTurnos(false);
+    } catch (error) {
+      if (secuencia !== cursosCicloTurnosRef.current) return;
+      setErrorCursosCicloTurnos(error?.message || 'No se pudo cargar la oferta de cursos del ciclo.');
+      setCursosCicloTurnos([]);
+      setCargandoCursosCicloTurnos(false);
+    }
+  };
+  // Cambio de universidad en el modal de Horarios: si el ciclo que estaba
+  // seleccionado pertenece a OTRA universidad se resetea el ciclo (y el
+  // curso), evitando combinaciones imposibles (p. ej. UNI + Semestral San
+  // Marcos). Solo se recarga la oferta cuando cambia el ciclo.
+  const cambiarUniversidadTurnoModal = (universidad) => {
+    const idCicloAnterior = formTurno.idCiclo;
+    const compatible = cicloCompatible(mapaCiclosHorarios, idCicloAnterior, universidad);
+    const nuevoIdCiclo = compatible ? idCicloAnterior : '';
+    setFormTurno((prev) => ({
+      ...prev,
+      universidad,
+      idCiclo: nuevoIdCiclo,
+      idCurso: compatible ? prev.idCurso : ''
+    }));
+    if (Number(nuevoIdCiclo) !== Number(idCicloAnterior)) cargarOfertaTurnos(nuevoIdCiclo);
+  };
+  // Cambio de ciclo en el modal: el curso se limpia (solo se conservan
+  // día/hora/orden) porque la oferta cambia con el ciclo, y se recarga.
+  const cambiarCicloTurnoModal = (idCiclo) => {
+    const cicloAnterior = formTurno.idCiclo;
+    setFormTurno((prev) => ({ ...prev, idCiclo, idCurso: '' }));
+    if (Number(idCiclo) !== Number(cicloAnterior)) cargarOfertaTurnos(idCiclo);
   };
   const abrirEditarAula = (aula) => {
     if (operacionRef.current) return;
@@ -312,24 +456,70 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     });
     setModalAbierto(true);
   };
+  // Al editar, la universidad objetivo de un curso queda FIJA si ya tiene
+  // una asignada: el backend (PUT /api/cursos/:id) acepta cambiarla sin
+  // validar sus vínculos CicloCurso, y un cambio silencioso dejaría ofertas
+  // de ciclos incompatibles. El bloqueo se indica con un mensaje claro; si el
+  // curso no tiene universidad (dato histórico sin asignar) sí se permite
+  // completarla, porque no contradice ninguna relación previa coherente.
+  // Un valor FUERA del catálogo del sistema tampoco se bloquea, pero se
+  // muestra tal cual con su opción defensiva para permitir normalizarlo de
+  // forma explícita (nunca automática).
+  const OPCIONES_UNIVERSIDAD_CURSO = [...Object.keys(UNIVERSIDADES), 'Preuniversitario'];
+  const cursoEnEdicion = (editandoId && tabActiva === 'cursos')
+    ? cursos.find((curso) => curso.idCurso === editandoId)
+    : null;
+  const universidadOriginalCurso = cursoEnEdicion ? claveUniversidadCurso(cursoEnEdicion) : '';
+  const universidadOriginalConocida = OPCIONES_UNIVERSIDAD_CURSO.some(
+    (opcion) => opcion.toLowerCase() === universidadOriginalCurso
+  );
+  const bloquearUniversidadCurso = Boolean(editandoId) && universidadOriginalCurso !== '' && universidadOriginalConocida;
+  const universidadFueraDeCatalogo = Boolean(editandoId) && universidadOriginalCurso !== '' && !universidadOriginalConocida;
   const abrirEditarCurso = (curso) => {
     if (operacionRef.current) return;
     edicionSeqRef.current += 1;
     setEditandoId(curso.idCurso ?? curso.IdCurso);
-    setFormCurso({ nombre: curso.nombre ?? curso.Nombre, codigo: curso.codigo ?? curso.Codigo, descripcion: curso.descripcion ?? curso.Descripcion ?? '' });
+    // El valor inicial del select debe coincidir con una opción real: se usa
+    // la etiqueta canónica si el valor almacenado solo difiere en espacios o
+    // mayúsculas/minúsculas; si es desconocido se conserva el crudo (la UI lo
+    // muestra con su opción defensiva para normalizarlo explícitamente).
+    const claveCurso = claveUniversidadCurso(curso);
+    const rawUniversidad = String(curso.universidadObjetivo ?? curso.UniversidadObjetivo ?? '').trim();
+    setFormCurso({
+      nombre: curso.nombre ?? curso.Nombre,
+      codigo: curso.codigo ?? curso.Codigo,
+      descripcion: curso.descripcion ?? curso.Descripcion ?? '',
+      universidadObjetivo: (claveCurso && ETIQUETAS_UNIVERSIDAD[claveCurso]) || rawUniversidad
+    });
     setModalAbierto(true);
   };
   const abrirEditarCiclo = async (ciclo) => {
     if (operacionRef.current) return;
     const secuencia = ++edicionSeqRef.current;
     setErrorCiclo('');
+    setAvisoOferta('');
     let cursosSeleccionados = [];
     try {
       const detalle = await obtenerDetalleCicloAdmin(ciclo.idCiclo);
       if (secuencia !== edicionSeqRef.current) return;
-      cursosSeleccionados = (detalle.cursos || [])
+      const idsDetalle = (detalle.cursos || [])
         .map((curso) => Number(curso.IdCurso ?? curso.idCurso))
         .filter((id) => Number.isInteger(id) && id > 0);
+      // La universidad objetivo delimita la oferta: los vínculos históricos
+      // con cursos de OTRA universidad se invalidan en el formulario (no en la
+      // BD, que no se toca hasta guardar). Solo se recorta si el catálogo ya
+      // está cargado; evita descartarlo todo ante un fallo puntual de /cursos.
+      const catalogoUniversidad = cursos.length > 0
+        ? cursosDeUniversidad(cursos, ciclo.universidadObjetivo || 'UNMSM')
+        : [];
+      cursosSeleccionados = cursos.length > 0
+        ? seleccionCompatible(idsDetalle, catalogoUniversidad)
+        : idsDetalle;
+      if (cursos.length > 0 && cursosSeleccionados.length < idsDetalle.length) {
+        setAvisoOferta(
+          `${idsDetalle.length - cursosSeleccionados.length} curso(s) guardado(s) en este ciclo no corresponden a ${ciclo.universidadObjetivo || 'UNMSM'} y quedaron fuera de la oferta. Al guardar se retirarán sus relaciones.`
+        );
+      }
     } catch (error) {
       if (secuencia !== edicionSeqRef.current) return;
       setErrorDatos(error.message || 'No se pudo cargar la oferta de cursos de este ciclo. No se abrió la edición para evitar perder relaciones.');
@@ -364,16 +554,25 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
   const abrirEditarTurno = (turno) => {
     if (operacionRef.current) return;
     edicionSeqRef.current += 1;
-    setEditandoId(turno.idHorario);
+    setEditandoId(turno.idHorario ?? turno.IdHorario);
+    // La universidad del horario sale del ciclo (Ciclo.UniversidadObjetivo
+    // vía mapa/idCiclo o campo universidadCiclo del backend; nunca el código
+    // del curso) y se muestra canónica para que coincida con la opción.
+    const claveTurno = claveUniversidadHorario(turno, mapaCiclosHorarios);
     setFormTurno({
-      idCiclo: String(turno.idCiclo ?? ''),
-      idCurso: String(turno.idCurso ?? ''),
-      diaNumero: Number(turno.diaNumero ?? 1),
-      diaSemana: turno.diaSemana ?? 'Lunes',
-      horaInicio: String(turno.horaInicio ?? '').slice(0, 5),
-      horaFin: String(turno.horaFin ?? '').slice(0, 5),
-      orden: Number(turno.orden ?? 1)
+      universidad: ETIQUETAS_UNIVERSIDAD[claveTurno] || (claveTurno ? claveTurno.toUpperCase() : ''),
+      idCiclo: String(turno.idCiclo ?? turno.IdCiclo ?? ''),
+      idCurso: String(turno.idCurso ?? turno.IdCurso ?? ''),
+      diaNumero: Number(turno.diaNumero ?? turno.DiaNumero ?? 1),
+      diaSemana: turno.diaSemana ?? turno.DiaSemana ?? 'Lunes',
+      horaInicio: String(turno.horaInicio ?? turno.HoraInicio ?? '').slice(0, 5),
+      horaFin: String(turno.horaFin ?? turno.HoraFin ?? '').slice(0, 5),
+      orden: Number(turno.orden ?? turno.Orden ?? 1)
     });
+    // La oferta del ciclo se carga del backend (CicloCurso); el curso
+    // guardado queda visible aunque ya no forme parte de la oferta, marcado
+    // como «fuera de la oferta» para normalizarlo explícitamente.
+    cargarOfertaTurnos(turno.idCiclo ?? turno.IdCiclo);
     setModalAbierto(true);
   };
   const NOMBRE_MINIMO = 3;
@@ -386,7 +585,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     return limpio.length >= 2 && /^[A-Z0-9-]+$/.test(limpio);
   };
   const formularioActualValido = (() => {
-    if (tabActiva === 'cursos') return nombreValido(formCurso.nombre) && codigoCursoValido(formCurso.codigo);
+    if (tabActiva === 'cursos') {
+      return nombreValido(formCurso.nombre) &&
+        codigoCursoValido(formCurso.codigo) &&
+        Boolean(formCurso.universidadObjetivo);
+    }
     if (tabActiva === 'aulas') return nombreValido(formAula.nombre);
     if (tabActiva === 'asignaciones') return Boolean(formAsig.idUsuario && formAsig.idCiclo && formAsig.idCurso && Number(formAsig.horas) >= 1);
     if (tabActiva === 'turnos') return Boolean(
@@ -421,6 +624,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       } else if (tabActiva === 'cursos') {
         if (!nombreValido(formCurso.nombre) || !codigoCursoValido(formCurso.codigo)) {
           throw new Error('Revisa el nombre y el código del curso.');
+        }
+        // Universidad objetivo OBLIGATORIA: el backend no debe aplicar su
+        // valor implícito (Preuniversitario) por omisión silenciosa.
+        if (!formCurso.universidadObjetivo) {
+          throw new Error('Selecciona la universidad objetivo del curso.');
         }
         const payload = { ...formCurso, nombre: formCurso.nombre.trim(), codigo: formCurso.codigo.trim().toUpperCase() };
         if (editandoId) await actualizarCurso(editandoId, payload);
@@ -481,6 +689,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
   const handleEliminarTurno = (id, descripcion) => eliminarRegistro(id, `¿Desactivar el horario "${descripcion}"?`, eliminarHorario);
   const pasosCiclo = ['Universidad', 'Nombre', 'Fechas y capacidad', 'Oferta', 'Horarios', 'Revisión'];
   const anioSugerido = new Date().getFullYear();
+  // Paso 4 (Oferta): únicamente el catálogo de la universidad objetivo elegida
+  // en el paso 1. La relación es el campo estructurado Curso.UniversidadObjetivo
+  // (el prefijo del código es solo descriptivo; NUNCA se filtra por SM-/FV-...).
+  const cursosUniversidad = cursosDeUniversidad(cursos, formCiclo.universidadObjetivo);
   const validarPasoCiclo = (paso) => {
     if (paso === 1) {
       if (!formCiclo.universidadObjetivo) {
@@ -497,7 +709,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 500) return 'La capacidad del ciclo debe estar entre 1 y 500 alumnos.';
       if (formCiclo.precio === '' || !Number.isFinite(Number(formCiclo.precio)) || Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
     }
-    if (paso === 4 && cursos.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
+    if (paso === 4 && cursosUniversidad.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
       return 'Selecciona al menos un curso para continuar.';
     }
     if (paso === 5) {
@@ -514,6 +726,9 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     { texto: 'Oferta académica con cursos', ok: formCiclo.cursosSeleccionados.length > 0 },
     { texto: 'Turno, horario y días de clase definidos', ok: !validarPasoCiclo(5) }
   ];
+  // Paso 6 (Revisión): resumen coherente con la universidad objetivo.
+  const idsOfertaResumen = new Set(formCiclo.cursosSeleccionados);
+  const cursosResumen = cursosUniversidad.filter((curso) => idsOfertaResumen.has(curso.idCurso));
   const puedePublicarCiclo = checklistPublicacion.every((requisito) => requisito.ok);
   const siguientePasoCiclo = () => {
     const error = validarPasoCiclo(pasoCiclo);
@@ -523,6 +738,27 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     }
     setErrorCiclo('');
     setPasoCiclo((prev) => Math.min(prev + 1, 6));
+  };
+  // Cambio de universidad objetivo (paso 1). La oferta del paso 4 y la
+  // selección dependen de la universidad, así que:
+  //   - se recalcula el catálogo visible (solo cursos de ESA universidad);
+  //   - se retiran los cursos seleccionados que no le corresponden;
+  //   - el resto del formulario (nombre, fechas, capacidad, precio, horario)
+  //     permanece intacto porque no depende de la universidad.
+  const cambiarUniversidadCiclo = (universidad) => {
+    const catalogo = cursosDeUniversidad(cursos, universidad);
+    const conservados = seleccionCompatible(formCiclo.cursosSeleccionados, catalogo);
+    const retirados = formCiclo.cursosSeleccionados.length - conservados.length;
+    setAvisoOferta(
+      retirados > 0
+        ? `Se deseleccionaron ${retirados} curso(s) de la universidad anterior: la oferta solo puede incluir cursos de ${universidad}.`
+        : ''
+    );
+    setFormCiclo((prev) => ({
+      ...prev,
+      universidadObjetivo: universidad,
+      cursosSeleccionados: conservados,
+    }));
   };
   const toggleCursoCiclo = (idCurso) => {
     setFormCiclo((prev) => ({
@@ -601,10 +837,18 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     const coincideNivel = filtroNivel === 'todos' || a.nivel === filtroNivel;
     return coincideTexto && coincideNivel;
   });
-  const cursosFiltrados = cursos.filter(c =>
-    (c.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (c.codigo || '').toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // Pestaña «Cursos Académicos»: FILTRO POR UNIVERSIDAD (derivado de los
+  // datos reales, fuente de verdad Curso.UniversidadObjetivo — nunca el
+  // prefijo del código) COMBINADO con la búsqueda textual, más el orden
+  // agrupado por universidad. Los chips y la lista usan el mismo orden.
+  const universidadesCatalogo = universidadesDelCatalogo(cursos, ETIQUETAS_UNIVERSIDAD);
+  const cursosFiltrados = catalogoCursosVisible(cursos, {
+    universidad: filtroUniversidad,
+    texto: busqueda,
+    etiquetasUniversidad: ETIQUETAS_UNIVERSIDAD,
+    resolverNombreUniversidad: resolverNombreUniversidadCurso
+  });
+  const universidadFiltrada = universidadesCatalogo.find((grupo) => grupo.clave === filtroUniversidad);
   const asignacionesFiltradas = asignaciones.filter(a =>
     (a.docente || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (a.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -615,13 +859,64 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     (ciclo.turno || '').toLowerCase().includes(busqueda.toLowerCase()) ||
     (ciclo.horario || '').toLowerCase().includes(busqueda.toLowerCase())
   );
-  const turnosFiltrados = turnos.filter((turno) =>
-    (turno.ciclo || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.curso || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.diaSemana || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.horaInicio || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-    (turno.horaFin || '').toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // Pestaña «Horarios»: FILTRO POR UNIVERSIDAD (Ciclo.UniversidadObjetivo,
+  // derivado de los datos reales) + FILTRO POR CICLO + búsqueda, con el orden
+  // Universidad → Ciclo → Día → Orden → Hora. Los chips y el selector usan el
+  // mismo orden y sus contadores salen de los datos, nunca hardcodeados.
+  const universidadesHorarios = universidadesDeHorarios(turnos, mapaCiclosHorarios, ETIQUETAS_UNIVERSIDAD);
+  const ciclosHorarios = ciclosConHorarios(turnos, mapaCiclosHorarios, ETIQUETAS_UNIVERSIDAD);
+  const ciclosHorariosFiltrados = filtroUniversidadTurnos === 'todas'
+    ? ciclosHorarios
+    : ciclosHorarios.filter((ciclo) => ciclo.clave === filtroUniversidadTurnos);
+  const turnosFiltrados = horariosVisibles(turnos, {
+    universidad: filtroUniversidadTurnos,
+    idCiclo: filtroCicloTurnos,
+    texto: busqueda,
+    ciclosPorId: mapaCiclosHorarios,
+    etiquetasUniversidad: ETIQUETAS_UNIVERSIDAD,
+    ordenGrupos: universidadesHorarios
+  });
+  const hayFiltrosHorarios = filtroUniversidadTurnos !== 'todas'
+    || filtroCicloTurnos !== 'todos'
+    || busqueda.trim() !== '';
+  const cicloTurnoFiltroActivo = Number(filtroCicloTurnos) > 0
+    ? ciclosHorarios.find((ciclo) => ciclo.idCiclo === Number(filtroCicloTurnos))
+    : null;
+  // Cambio de universidad en los filtros de Horarios: si el ciclo filtrado
+  // pertenece a OTRA universidad, se resetea SOLO el filtro de ciclo a
+  // «Todos los ciclos» (nunca queda una combinación imposible).
+  const cambiarUniversidadTurnosFiltro = (clave) => {
+    setFiltroUniversidadTurnos(clave);
+    if (!cicloCompatible(mapaCiclosHorarios, filtroCicloTurnos, clave)) {
+      setFiltroCicloTurnos('todos');
+    }
+  };
+  const etiquetaUniversidadTurnosFiltro = filtroUniversidadTurnos !== 'todas'
+    ? (universidadesHorarios.find((grupo) => grupo.clave === filtroUniversidadTurnos)?.etiqueta || filtroUniversidadTurnos.toUpperCase())
+    : '';
+  const totalCiclosFiltroTurnos = filtroUniversidadTurnos !== 'todas'
+    ? (universidadesHorarios.find((grupo) => grupo.clave === filtroUniversidadTurnos)?.total || 0)
+    : turnos.length;
+  // Modal de Horarios: ciclos REALES de la universidad elegida (se permite
+  // crear el primer horario de un ciclo aún sin horarios). El curso se elige
+  // SOLO de la oferta del ciclo (CicloCurso vía obtenerCursosCiclo).
+  const ciclosModalTurnos = formTurno.universidad
+    ? ciclos
+        .filter((ciclo) => claveUniversidadCurso(ciclo) === formTurno.universidad.toLowerCase())
+        .slice()
+        .sort((a, b) => String(a.nombre ?? '').localeCompare(String(b.nombre ?? ''), 'es', { sensitivity: 'base' }))
+    : [];
+  const cursoTurnoFueraDeOferta = tabActiva === 'turnos'
+    && formTurno.idCurso
+    && !cargandoCursosCicloTurnos
+    && !cursosCicloTurnos.some((curso) => Number(curso.idCurso) === Number(formTurno.idCurso));
+  const nombreCursoTurnoGuardado = (() => {
+    const idCurso = Number(formTurno.idCurso);
+    const enOferta = cursosCicloTurnos.find((curso) => Number(curso.idCurso) === idCurso);
+    if (enOferta) return enOferta.nombre;
+    const enCatalogo = cursos.find((curso) => Number(curso.idCurso) === idCurso);
+    return enCatalogo ? `${enCatalogo.nombre} (${enCatalogo.codigo})` : `Curso #${formTurno.idCurso}`;
+  })();
   return (
     <div className="p-6 md:p-8 bg-slate-50 min-h-full">
       {/* HEADER */}
@@ -728,7 +1023,7 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           <Search className="w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Buscar por ciclo, curso, docente o código..."
+            placeholder={PLACEHOLDER_BUSQUEDA[tabActiva] || 'Buscar por ciclo, curso, docente o código...'}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 text-xs"
@@ -749,6 +1044,122 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
           </div>
         )}
       </div>
+      {/* FILTRO POR UNIVERSIDAD (Cursos Académicos): chips derivados de los
+          datos reales (Curso.UniversidadObjetivo) con sus cantidades reales.
+          Las universidades nuevas aparecen solas cuando tengan cursos. */}
+      {tabActiva === 'cursos' && (
+        <div className="mb-6 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200">
+          <div className="flex items-start gap-2 flex-wrap" role="group" aria-label="Filtrar cursos por universidad objetivo">
+            <span className="flex items-center gap-1.5 py-1.5 pr-1 text-xs font-semibold text-slate-600 shrink-0">
+              <Filter className="w-4 h-4 text-slate-500" />
+              Universidad:
+            </span>
+            <button
+              type="button"
+              aria-pressed={filtroUniversidad === 'todos'}
+              onClick={() => setFiltroUniversidad('todos')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                filtroUniversidad === 'todos'
+                  ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700'
+              }`}
+            >
+              Todos ({cursos.length})
+            </button>
+            {universidadesCatalogo.map((grupo) => (
+              <button
+                type="button"
+                key={grupo.clave || 'sin-asignar'}
+                aria-pressed={filtroUniversidad === grupo.clave}
+                title={
+                  grupo.clave
+                    ? `Universidad: ${resolverNombreUniversidadCurso(grupo.clave)}`
+                    : 'Cursos sin universidad asignada'
+                }
+                onClick={() => setFiltroUniversidad(grupo.clave)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                  filtroUniversidad === grupo.clave
+                    ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700'
+                }`}
+              >
+                {grupo.etiqueta || 'Sin asignar'} ({grupo.total})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* FILTROS DE HORARIOS: universidad (Ciclo.UniversidadObjetivo, chip
+          dinámico con contadores reales) + ciclo (selector dependiente; el
+          cambio de universidad resetea el ciclo incompatible). */}
+      {tabActiva === 'turnos' && (
+        <div className="mb-6 flex flex-col lg:flex-row gap-3">
+          <div className="flex-1 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 min-w-0">
+            <div className="flex items-start gap-2 flex-wrap" role="group" aria-label="Filtrar horarios por universidad del ciclo">
+              <span className="flex items-center gap-1.5 py-1.5 pr-1 text-xs font-semibold text-slate-600 shrink-0">
+                <Filter className="w-4 h-4 text-slate-500" />
+                Universidad:
+              </span>
+              <button
+                type="button"
+                aria-pressed={filtroUniversidadTurnos === 'todas'}
+                title="Horarios de todas las universidades"
+                onClick={() => cambiarUniversidadTurnosFiltro('todas')}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                  filtroUniversidadTurnos === 'todas'
+                    ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700'
+                }`}
+              >
+                Todas ({turnos.length})
+              </button>
+              {universidadesHorarios.map((grupo) => (
+                <button
+                  type="button"
+                  key={grupo.clave || 'sin-universidad'}
+                  aria-pressed={filtroUniversidadTurnos === grupo.clave}
+                  title={grupo.clave ? `Universidad: ${resolverNombreUniversidadCurso(grupo.clave)}` : 'Horarios sin universidad identificable'}
+                  onClick={() => cambiarUniversidadTurnosFiltro(grupo.clave)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                    filtroUniversidadTurnos === grupo.clave
+                      ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700'
+                  }`}
+                >
+                  {grupo.etiqueta || 'Sin asignar'} ({grupo.total})
+                </button>
+              ))}
+              {hayFiltrosHorarios && (
+                <span className="ml-auto py-1.5 text-[11px] font-semibold text-slate-500 shrink-0">
+                  {turnosFiltrados.length} mostrados
+                </span>
+              )}
+            </div>
+          </div>
+          {ciclosHorariosFiltrados.length > 0 && (
+            <div className="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 text-xs shrink-0 max-w-full">
+              <span className="font-semibold text-slate-600">Ciclo:</span>
+              <select
+                value={filtroCicloTurnos}
+                onChange={(e) => setFiltroCicloTurnos(e.target.value)}
+                aria-label="Filtrar horarios por ciclo"
+                className="bg-transparent font-medium text-slate-700 outline-none cursor-pointer min-w-0 max-w-[16rem]"
+              >
+                <option value="todos">
+                  {filtroUniversidadTurnos === 'todas'
+                    ? `Todos los ciclos (${totalCiclosFiltroTurnos})`
+                    : `Todos los ciclos de ${etiquetaUniversidadTurnosFiltro} (${totalCiclosFiltroTurnos})`}
+                </option>
+                {ciclosHorariosFiltrados.map((ciclo) => (
+                  <option key={ciclo.idCiclo} value={ciclo.idCiclo}>
+                    {ciclo.nombre} ({ciclo.total})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
       {/* CICLOS */}
       {tabActiva === 'ciclos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -808,37 +1219,57 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <CalendarClock className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay horarios disponibles</p>
-              <p className="text-sm text-slate-600 mt-1">No existen horarios que coincidan con la búsqueda actual.</p>
+              <p className="text-sm text-slate-600 mt-1">
+                {hayFiltrosHorarios
+                  ? (busqueda.trim()
+                    ? 'No existen horarios que coincidan con la búsqueda y los filtros actuales.'
+                    : cicloTurnoFiltroActivo
+                      ? `No hay horarios para ${cicloTurnoFiltroActivo.nombre}.`
+                      : 'No hay horarios para esta universidad.')
+                  : 'Todavía no hay horarios registrados.'}
+              </p>
             </div>
           ) : (
-            turnosFiltrados.map((turno) => (
-              <div key={turno.idHorario} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
-                <div className="flex items-start justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
-                    <CursoIcon nombre={turno.curso} className="w-5 h-5" />
+            turnosFiltrados.map((turno) => {
+              // Identificación discreta de la universidad del ciclo:
+              // SIEMPRE Ciclo.UniversidadObjetivo (nunca el código del curso).
+              const claveTurno = claveUniversidadHorario(turno, mapaCiclosHorarios);
+              const siglaTurno = claveTurno ? etiquetaDesdeClave(claveTurno, ETIQUETAS_UNIVERSIDAD) : '';
+              const nombreUniversidadTurno = claveTurno ? resolverNombreUniversidadCurso(claveTurno) : '';
+              return (
+                <div key={turno.idHorario ?? turno.IdHorario} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition">
+                  <div className="flex items-start justify-between">
+                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                      <CursoIcon nombre={turno.curso} className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {puedeGestionar && (
+                      <>
+                      <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" title="Eliminar horario" onClick={() => handleEliminarTurno(turno.idHorario, `${turno.curso} - ${turno.diaSemana}`)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {puedeGestionar && (
-                    <>
-                    <button type="button" title="Editar horario" onClick={() => abrirEditarTurno(turno)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button type="button" title="Eliminar horario" onClick={() => handleEliminarTurno(turno.idHorario, `${turno.curso} - ${turno.diaSemana}`)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    </>
-                    )}
+                  <h3 className="text-lg font-bold text-slate-900 mt-4">{turno.curso}</h3>
+                  <p
+                    className="text-sm text-slate-600 mt-1 truncate"
+                    title={claveTurno ? `Universidad: ${nombreUniversidadTurno} · Ciclo: ${turno.ciclo}` : turno.ciclo}
+                  >
+                    {siglaTurno ? `${siglaTurno} · ` : ''}{turno.ciclo}
+                  </p>
+                  <div className="space-y-2.5 mt-4 text-sm text-slate-600">
+                    <div className="flex items-center justify-between"><span>Día</span><strong className="text-slate-900">{turno.diaSemana}</strong></div>
+                    <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-900">{turno.horaInicio} - {turno.horaFin}</strong></div>
+                    <div className="flex items-center justify-between"><span>Orden</span><strong className="text-teal-700">{turno.orden}</strong></div>
                   </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mt-4">{turno.curso}</h3>
-                <p className="text-sm text-slate-600 mt-1">{turno.ciclo}</p>
-                <div className="space-y-2.5 mt-4 text-sm text-slate-600">
-                  <div className="flex items-center justify-between"><span>Día</span><strong className="text-slate-900">{turno.diaSemana}</strong></div>
-                  <div className="flex items-center justify-between"><span>Horario</span><strong className="text-slate-900">{turno.horaInicio} - {turno.horaFin}</strong></div>
-                  <div className="flex items-center justify-between"><span>Orden</span><strong className="text-teal-700">{turno.orden}</strong></div>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
@@ -953,40 +1384,69 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                 <BookOpen className="w-6 h-6 text-teal-700" />
               </div>
               <p className="text-base font-bold text-slate-900">No hay cursos registrados</p>
-              <p className="text-sm text-slate-600 mt-1">No se encontraron cursos que coincidan con la búsqueda.</p>
+              <p className="text-sm text-slate-600 mt-1">
+                {busqueda.trim()
+                  ? 'No se encontraron cursos que coincidan con la búsqueda.'
+                  : universidadFiltrada
+                    ? 'No hay cursos académicos registrados para esta universidad.'
+                    : 'Todavía no hay cursos académicos registrados.'}
+              </p>
+              {universidadFiltrada && !busqueda.trim() && puedeGestionar && (
+                <p className="text-xs text-slate-500 mt-2">Usa «Nuevo Curso» para registrar el primero.</p>
+              )}
             </div>
           ) : (
-            cursosFiltrados.map((c) => (
-              <div key={c.idCurso} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-11 h-11 shrink-0 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
-                        <CursoIcon nombre={c.nombre} className="w-5 h-5" />
-                      </span>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-teal-700 rounded-md">{c.codigo}</span>
+            cursosFiltrados.map((c) => {
+              // Identificación por universidad: SIEMPRE del campo
+              // UniversidadObjetivo (nunca del prefijo del código).
+              const claveUniversidad = claveUniversidadCurso(c);
+              const siglaUniversidad = etiquetaDesdeClave(claveUniversidad, ETIQUETAS_UNIVERSIDAD);
+              const nombreUniversidadCurso = claveUniversidad
+                ? resolverNombreUniversidadCurso(claveUniversidad)
+                : 'Sin universidad asignada';
+              const etiquetaCodigoCurso = [siglaUniversidad, c.codigo].filter(Boolean).join(' · ');
+              return (
+                <div key={c.idCurso} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-11 h-11 shrink-0 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                          <CursoIcon nombre={c.nombre} className="w-5 h-5" />
+                        </span>
+                        <span
+                          className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-teal-700 rounded-md truncate"
+                          title={`${nombreUniversidadCurso}${c.codigo ? ` · Código: ${c.codigo}` : ''}`}
+                        >
+                          {etiquetaCodigoCurso}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {puedeGestionar && (
+                        <>
+                        <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button type="button" title="Eliminar Curso" onClick={() => handleEliminarCurso(c.idCurso, c.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {puedeGestionar && (
-                      <>
-                      <button type="button" title="Editar Curso" onClick={() => abrirEditarCurso(c)} className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button type="button" title="Eliminar Curso" onClick={() => handleEliminarCurso(c.idCurso, c.nombre)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      </>
-                      )}
-                    </div>
+                    <h3 className="font-bold text-slate-900 text-base">{c.nombre}</h3>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base">{c.nombre}</h3>
-                  <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{c.descripcion}</p>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <span
+                      className="text-xs text-slate-500 font-medium text-right"
+                      title={`Universidad objetivo del curso${siglaUniversidad ? ` (${siglaUniversidad})` : ''}`}
+                    >
+                      {nombreUniversidadCurso}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-                  <span className="text-xs text-slate-500 font-medium">Oferta académica</span>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
@@ -1043,10 +1503,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                   {pasoCiclo === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CampoCiclo label="Universidad objetivo">
-                        <select value={formCiclo.universidadObjetivo} onChange={(e) => setFormCiclo({ ...formCiclo, universidadObjetivo: e.target.value })} className="campo-ciclo">
+                        <select value={formCiclo.universidadObjetivo} onChange={(e) => cambiarUniversidadCiclo(e.target.value)} className="campo-ciclo">
                           {[...Object.keys(UNIVERSIDADES), 'Preuniversitario'].map((u) => <option key={u}>{u}</option>)}
                         </select>
                       </CampoCiclo>
+                      <p className="md:col-span-2 text-[11px] text-slate-500">Al cambiar la universidad objetivo se retiran de la oferta los cursos seleccionados que no le correspondan. Nombre, fechas y horario no se alteran.</p>
                     </div>
                   )}
                   {pasoCiclo === 2 && (
@@ -1069,25 +1530,38 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                   )}
                   {pasoCiclo === 4 && (
                     <div>
-                      <p className="text-xs text-slate-500 mb-3">Selecciona los cursos que formarán parte de la oferta académica.</p>
-                      {cursos.length === 0 ? (
+                      <div className="flex items-baseline justify-between gap-3 mb-1">
+                        <p className="text-xs text-slate-500">Selecciona los cursos que formarán parte de la oferta académica.</p>
+                        <span className="text-[11px] font-bold text-teal-700 shrink-0">Oferta académica · {formCiclo.universidadObjetivo}</span>
+                      </div>
+                      {avisoOferta && (
+                        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 text-xs text-amber-800">
+                          {avisoOferta}
+                        </div>
+                      )}
+                      {cursosUniversidad.length === 0 ? (
                         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800">
-                          No hay cursos disponibles.
+                          No hay cursos configurados para esta universidad. Puedes crearlos en la pestaña «Cursos Académicos» asignándole la universidad objetivo correspondiente.
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                          {cursos.map((curso) => {
-                            const seleccionado = formCiclo.cursosSeleccionados.includes(curso.idCurso);
-                            return (
-                              <button key={curso.idCurso} type="button" onClick={() => toggleCursoCiclo(curso.idCurso)} className={`p-3 rounded-xl border text-left ${seleccionado ? 'border-teal-600 bg-teal-50' : 'border-slate-200 bg-white'}`}>
-                                <div className="flex justify-between gap-3">
-                                  <div><p className="text-xs font-bold text-slate-900">{curso.nombre}</p><p className="text-[11px] text-slate-500">{curso.codigo}</p></div>
-                                  <span className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${seleccionado ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300'}`}>{seleccionado ? '✓' : ''}</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <>
+                          <p className="text-[11px] font-semibold text-slate-500 mb-2">
+                            {formCiclo.cursosSeleccionados.length} de {cursosUniversidad.length} cursos de {formCiclo.universidadObjetivo} seleccionados
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                            {cursosUniversidad.map((curso) => {
+                              const seleccionado = formCiclo.cursosSeleccionados.includes(curso.idCurso);
+                              return (
+                                <button key={curso.idCurso} type="button" onClick={() => toggleCursoCiclo(curso.idCurso)} className={`p-3 rounded-xl border text-left ${seleccionado ? 'border-teal-600 bg-teal-50' : 'border-slate-200 bg-white'}`}>
+                                  <div className="flex justify-between gap-3">
+                                    <div><p className="text-xs font-bold text-slate-900">{curso.nombre}</p><p className="text-[11px] text-slate-500">{curso.codigo}</p></div>
+                                    <span className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${seleccionado ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300'}`}>{seleccionado ? '✓' : ''}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
@@ -1121,6 +1595,10 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                         <div className="space-y-2 text-xs text-slate-600">
                           <p><b>Ciclo:</b> {formCiclo.nombre}</p>
                           <p><b>Universidad:</b> {formCiclo.universidadObjetivo}</p>
+                          <p>
+                            <b>Cursos ({cursosResumen.length}):</b>{' '}
+                            {cursosResumen.length > 0 ? cursosResumen.map((curso) => `${curso.nombre} (${curso.codigo})`).join(', ') : 'Sin cursos seleccionados'}
+                          </p>
                           <p><b>Fechas:</b> {formCiclo.fechaInicio} → {formCiclo.fechaFin}</p>
                           <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horaInicio} - {formCiclo.horaFin}</p>
                           <p><b>Capacidad:</b> {formCiclo.capacidad}</p>
@@ -1177,18 +1655,65 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
               {tabActiva === 'turnos' && (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Ciclo</label>
-                    <select required value={formTurno.idCiclo} onChange={(e) => setFormTurno({ ...formTurno, idCiclo: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                      <option value="">Selecciona un ciclo</option>
-                      {ciclos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}</option>)}
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Universidad del ciclo</label>
+                    {/* Mismo catálogo canónico del wizard. La universidad no
+                        se detecta por prefijos: la entrega el ciclo. */}
+                    <select
+                      required
+                      value={formTurno.universidad}
+                      onChange={(e) => cambiarUniversidadTurnoModal(e.target.value)}
+                      className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 cursor-pointer"
+                    >
+                      <option value="" disabled>Selecciona la universidad del ciclo...</option>
+                      {OPCIONES_UNIVERSIDAD_CURSO.map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Curso</label>
-                    <select required value={formTurno.idCurso} onChange={(e) => setFormTurno({ ...formTurno, idCurso: e.target.value })} className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
-                      <option value="">Selecciona un curso</option>
-                      {cursos.map((c) => <option key={c.idCurso} value={c.idCurso}>{c.nombre}{c.codigo ? ` (${c.codigo})` : ''}</option>)}
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Ciclo</label>
+                    <select
+                      required
+                      value={formTurno.idCiclo}
+                      disabled={!formTurno.universidad}
+                      onChange={(e) => cambiarCicloTurnoModal(e.target.value)}
+                      className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 cursor-pointer disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {formTurno.universidad ? 'Selecciona un ciclo de esa universidad...' : 'Primero selecciona la universidad...'}
+                      </option>
+                      {ciclosModalTurnos.map((c) => <option key={c.idCiclo} value={c.idCiclo}>{c.nombre}{c.turno ? ` · ${c.turno}` : ''}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Curso (oferta del ciclo)</label>
+                    {/* Solo cursos de CicloCurso para el ciclo elegido; el
+                        backend revalida la pertenencia y la universidad. Si el
+                        horario guardado usa un curso fuera de la oferta
+                        actual, se muestra marcado para normalizarlo. */}
+                    <select
+                      required
+                      value={formTurno.idCurso}
+                      disabled={!formTurno.idCiclo || cargandoCursosCicloTurnos}
+                      onChange={(e) => setFormTurno({ ...formTurno, idCurso: e.target.value })}
+                      className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 cursor-pointer disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
+                    >
+                      {!formTurno.idCiclo && <option value="">Selecciona primero el ciclo...</option>}
+                      {formTurno.idCiclo && cargandoCursosCicloTurnos && <option value="">Cargando la oferta del ciclo...</option>}
+                      {formTurno.idCiclo && !cargandoCursosCicloTurnos && <option value="">Selecciona un curso de la oferta...</option>}
+                      {formTurno.idCiclo && !cargandoCursosCicloTurnos && cursoTurnoFueraDeOferta && (
+                        <option value={formTurno.idCurso}>{nombreCursoTurnoGuardado} (fuera de la oferta actual)</option>
+                      )}
+                      {cursosCicloTurnos.map((c) => (
+                        <option key={c.idCurso} value={c.idCurso}>
+                          {c.nombre}{c.codigo ? ` (${c.codigo})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {errorCursosCicloTurnos && (
+                      <p className="text-[11px] font-semibold text-amber-800 mt-1">{errorCursosCicloTurnos} Cambia de ciclo o vuelve a abrir el horario para reintentar.</p>
+                    )}
+                    {formTurno.idCiclo && !errorCursosCicloTurnos && (
+                      <p className="text-[11px] text-slate-500 mt-1">Solo los cursos de la oferta del ciclo (CicloCurso), coherentes con su universidad objetivo.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Día</label>
@@ -1278,6 +1803,38 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del Curso</label>
                     <input type="text" required placeholder="Ej: Trigonometría Analítica" value={formCurso.nombre} minLength={NOMBRE_MINIMO} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Universidad Objetivo</label>
+                    {/* Mismo catálogo canónico del wizard (UNIVERSIDADES +
+                        Preuniversitario). La fuente de verdad de la relación
+                        es el campo estructurado UniversidadObjetivo, nunca el
+                        prefijo del código. Al editar un curso que ya tiene
+                        universidad el cambio queda BLOQUEADO: el backend
+                        (PUT /api/cursos/:id) no valida sus vínculos
+                        CicloCurso y un cambio silencioso rompería la oferta. */}
+                    <select
+                      required
+                      value={formCurso.universidadObjetivo}
+                      disabled={bloquearUniversidadCurso}
+                      onChange={(e) => setFormCurso({ ...formCurso, universidadObjetivo: e.target.value })}
+                      className="w-full text-sm text-slate-900 border border-slate-300 rounded-lg px-3 py-2.5 bg-white outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 cursor-pointer disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
+                    >
+                      {!editandoId && <option value="" disabled>Selecciona la universidad objetivo...</option>}
+                      {universidadFueraDeCatalogo && <option value={formCurso.universidadObjetivo}>{formCurso.universidadObjetivo}</option>}
+                      {OPCIONES_UNIVERSIDAD_CURSO.map((u) => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {bloquearUniversidadCurso
+                        ? 'La universidad objetivo de un curso existente no se cambia aquí: protege la oferta de los ciclos que ya lo incluyen. Si ya no corresponde, crea el curso correcto y desactiva este.'
+                        : universidadFueraDeCatalogo
+                          ? 'La universidad registrada no pertenece al catálogo del sistema: selecciónala para normalizarla.'
+                          : universidadOriginalCurso === ''
+                            ? editandoId
+                              ? 'Este curso no tiene universidad asignada; selecciónala para completarla.'
+                              : 'El curso quedará disponible solo para los ciclos de esta universidad.'
+                            : null}
+                    </p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Código Único</label>
