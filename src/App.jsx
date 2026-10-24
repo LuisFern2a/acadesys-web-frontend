@@ -58,6 +58,12 @@ export default function App() {
   // La seguridad efectiva reside en el backend; esto solo decide qué se muestra.
 
   useEffect(() => {
+    const esEnlaceRecuperacion = (window.location.hash || '').startsWith('#restablecer-password?');
+    if (esEnlaceRecuperacion) {
+      setLoadingSession(false);
+      return;
+    }
+
     const savedUser = leerSesionGuardada();
 
     if (!savedUser) {
@@ -282,4 +288,3 @@ export default function App() {
     </OfflineFallback>
   );
 }
-

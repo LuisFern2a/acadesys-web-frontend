@@ -15,7 +15,8 @@ import {
   Smartphone,
   CalendarCheck
 } from 'lucide-react';
-import { actualizarMiUsuario, obtenerMiUsuario } from '../services/api';
+import { API_URL, actualizarMiUsuario, eliminarMiFoto, obtenerMiUsuario } from '../services/api';
+import { resolverUrlFoto } from '../utils/perfil';
 import useModalDialog from '../hooks/useModalDialog';
 
 export default function ModalMiPerfil({ isOpen, onClose, user, onGuardarUsuario }) {
@@ -33,6 +34,9 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
   const [dni, setDni] = useState(user?.dni ?? user?.DNI ?? '');
   const [telefono, setTelefono] = useState(user?.celular ?? user?.Celular ?? user?.telefono ?? '');
   const [fotoPerfil, setFotoPerfil] = useState(user?.foto || null);
+  const [fotoGuardada, setFotoGuardada] = useState(user?.foto || null);
+  const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
+  const fotoInputRef = useRef(null);
 
   // Seguridad
   const [passwordActual, setPasswordActual] = useState('');
@@ -44,7 +48,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
   const [notifInasistencias, setNotifInasistencias] = useState(true);
   const [modoCompacto, setModoCompacto] = useState(false);
 
-  const [mensajeExito, setMensajeExito] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [registroActual, setRegistroActual] = useState(null);
@@ -84,6 +88,20 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
         setCorreo(registro.CorreoElectronico ?? registro.correo ?? registro.Correo ?? '');
         setDni(registro.DNI ?? registro.dni ?? '');
         setTelefono(registro.Celular ?? registro.celular ?? '');
+        const fotoUrlRaw = registro.FotoUrl ?? registro.fotoUrl ?? null;
+        const fotoUrl = resolverUrlFoto(fotoUrlRaw, API_URL);
+        setFotoGuardada(fotoUrl);
+        setFotoPerfil(fotoUrl);
+        setFotoSeleccionada(null);
+        // Mantener sincronizado el avatar del encabezado al abrir el perfil,
+        // incluso después de iniciar una nueva sesión o recargar la página.
+        onGuardarUsuario?.({
+          ...user,
+          idUsuario: Number(idUsuario),
+          foto: fotoUrl,
+          fotoUrl: fotoUrlRaw,
+          FotoUrl: fotoUrlRaw,
+        });
       } catch (err) {
         if (activo) setError(err.message || 'No se pudo cargar tu perfil.');
       } finally {
@@ -107,12 +125,102 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
     : (user?.nombre || user?.NombreCompleto || user?.Nombre || 'Usuario');
 
   const handleSubirFoto = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const tiposPermitidos = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!tiposPermitidos.includes(String(file.type || '').toLowerCase())) {
+      setError('Formato de imagen no válido. Selecciona JPG, PNG o WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size <= 0 || file.size > 2 * 1024 * 1024) {
+      setError('La imagen debe pesar más de 0 bytes y como máximo 2 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    if (fotoTemporalRef.current) URL.revokeObjectURL(fotoTemporalRef.current);
+    const urlTemp = URL.createObjectURL(file);
+    fotoTemporalRef.current = urlTemp;
+    setFotoSeleccionada(file);
+    setFotoPerfil(urlTemp);
+    setError('');
+    setMensajeExito('');
+  };
+
+  const convertirArchivoABase64 = (archivo) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const separador = dataUrl.indexOf(',');
+      if (separador < 0 || !dataUrl.slice(separador + 1)) {
+        reject(new Error('No se pudo leer el contenido de la imagen.'));
+        return;
+      }
+      resolve(dataUrl.slice(separador + 1));
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo de imagen.'));
+    reader.readAsDataURL(archivo);
+  });
+
+  const notificarUsuarioActualizado = (datosApi, fotoUrlFinal) => {
+    const usuarioApi = datosApi?.usuario || {};
+    onGuardarUsuario({
+      ...user,
+      idUsuario: Number(idUsuario),
+      nombre: nombreCompleto.trim(),
+      nombres: nombre.trim(),
+      NombreCompleto: nombreCompleto.trim(),
+      Nombre: nombreCompleto.trim(),
+      apellido: registroActual?.ApellidoPaterno ?? '',
+      apellidoMaterno: registroActual?.ApellidoMaterno ?? '',
+      correo,
+      Correo: correo,
+      email: correo,
+      dni,
+      DNI: dni,
+      celular: telefono,
+      telefono,
+      foto: fotoUrlFinal,
+      fotoUrl: usuarioApi.FotoUrl ?? usuarioApi.fotoUrl ?? null,
+      FotoUrl: usuarioApi.FotoUrl ?? usuarioApi.fotoUrl ?? null,
+    });
+  };
+
+  const handleEliminarFoto = async () => {
+    if (guardandoRef.current || guardando || cargandoPerfil) return;
+    if (fotoSeleccionada) {
       if (fotoTemporalRef.current) URL.revokeObjectURL(fotoTemporalRef.current);
-      const urlTemp = URL.createObjectURL(file);
-      fotoTemporalRef.current = urlTemp;
-      setFotoPerfil(urlTemp);
+      fotoTemporalRef.current = null;
+      setFotoSeleccionada(null);
+      setFotoPerfil(fotoGuardada);
+      if (fotoInputRef.current) fotoInputRef.current.value = '';
+      setError('');
+      return;
+    }
+    if (!fotoGuardada) return;
+    if (!window.confirm('¿Eliminar tu foto de perfil guardada? Se mostrarán tus iniciales.')) return;
+
+    guardandoRef.current = true;
+    setGuardando(true);
+    setError('');
+    setMensajeExito('');
+    try {
+      await eliminarMiFoto();
+      if (fotoTemporalRef.current) URL.revokeObjectURL(fotoTemporalRef.current);
+      fotoTemporalRef.current = null;
+      setFotoGuardada(null);
+      setFotoPerfil(null);
+      setFotoSeleccionada(null);
+      if (fotoInputRef.current) fotoInputRef.current.value = '';
+      onGuardarUsuario({ ...user, foto: null, fotoUrl: null, FotoUrl: null });
+      setMensajeExito('Foto de perfil eliminada correctamente.');
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar la foto de perfil.');
+    } finally {
+      guardandoRef.current = false;
+      setGuardando(false);
     }
   };
 
@@ -120,7 +228,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
     e.preventDefault();
     if (guardandoRef.current) return;
     setError('');
-    setMensajeExito(false);
+    setMensajeExito('');
     if (tabActiva === 'seguridad' || passwordActual || nuevoPassword || confirmPassword) {
       setError('El backend actual no ofrece un cambio de contraseña propia con validación de la clave actual. Solicita el cambio a un administrador.');
       return;
@@ -149,35 +257,37 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
     guardandoRef.current = true;
     setGuardando(true);
     try {
-      // Autoservicio: el backend identifica al usuario por su sesión y solo
-      // acepta campos personales (Nombres, DNI, Correo, Celular). Nunca se
-      // envían perfil, rol, estado, academia ni código.
-      await actualizarMiUsuario({
+      // El backend identifica al usuario mediante la sesión. No enviamos rol,
+      // estado, academia, código ni un IdUsuario objetivo.
+      const payload = {
         nombre: nombre.trim(),
-        correo,
+        correo: correo.trim(),
         dni,
-        celular: telefono
-      });
-
-      // Solo datos confirmados por PUT; nunca contraseñas, fotos temporales ni preferencias.
-      onGuardarUsuario({
-        ...user,
-        idUsuario: Number(idUsuario),
-        nombre: nombreCompleto.trim(),
-        nombres: nombre.trim(),
-        NombreCompleto: nombreCompleto.trim(),
-        Nombre: nombreCompleto.trim(),
-        apellido: registroActual.ApellidoPaterno ?? '',
-        apellidoMaterno: registroActual.ApellidoMaterno ?? '',
-        correo,
-        Correo: correo,
-        email: correo,
-        dni,
-        DNI: dni,
         celular: telefono,
-        telefono
-      });
-      setMensajeExito(true);
+      };
+
+      if (fotoSeleccionada) {
+        payload.fotoBase64 = await convertirArchivoABase64(fotoSeleccionada);
+        payload.tipoMime = fotoSeleccionada.type;
+        payload.tamanoBytes = fotoSeleccionada.size;
+      }
+
+      const respuesta = await actualizarMiUsuario(payload);
+      const usuarioApi = respuesta?.usuario || {};
+      const fotoUrlRaw = usuarioApi.FotoUrl ?? usuarioApi.fotoUrl ?? (fotoSeleccionada ? null : fotoGuardada);
+      const fotoUrlFinal = resolverUrlFoto(fotoUrlRaw, API_URL);
+
+      if (fotoTemporalRef.current) URL.revokeObjectURL(fotoTemporalRef.current);
+      fotoTemporalRef.current = null;
+      setFotoSeleccionada(null);
+      setFotoGuardada(fotoUrlFinal);
+      setFotoPerfil(fotoUrlFinal);
+      if (fotoInputRef.current) fotoInputRef.current.value = '';
+      setRegistroActual((actual) => ({ ...(actual || {}), ...usuarioApi, FotoUrl: fotoUrlRaw }));
+      notificarUsuarioActualizado(respuesta, fotoUrlFinal);
+      setMensajeExito(fotoSeleccionada
+        ? 'Datos personales y foto guardados correctamente.'
+        : 'Datos personales guardados correctamente.');
       cierreRef.current = setTimeout(onClose, 1200);
     } catch (err) {
       setError(err.message || 'No se pudo guardar el perfil.');
@@ -208,15 +318,28 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
             <div className="relative group shrink-0">
               <div className="w-20 h-20 rounded-full bg-teal-600 border border-slate-200 text-white font-bold text-2xl flex items-center justify-center overflow-hidden">
                 {fotoPerfil ? (
-                  <img src={fotoPerfil} alt="Vista previa del avatar" className="w-full h-full object-cover" />
+                  <img src={fotoPerfil} alt="Foto de perfil" className="w-full h-full object-cover" />
                 ) : (
                   <span>{iniciales}</span>
                 )}
               </div>
               <label className="absolute -bottom-2 -right-2 p-2 bg-white text-slate-600 hover:text-teal-700 rounded-lg shadow-sm cursor-pointer border border-slate-300 transition-colors">
                 <Camera className="w-4 h-4" aria-hidden="true" />
-                <input type="file" accept="image/*" onChange={handleSubirFoto} className="hidden" />
+                <input ref={fotoInputRef} type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" onChange={handleSubirFoto} disabled={guardando || cargandoPerfil} className="hidden" />
               </label>
+              {(fotoGuardada || fotoSeleccionada) && (
+                <button
+                  type="button"
+                  onClick={handleEliminarFoto}
+                  disabled={guardando || cargandoPerfil}
+                  className="mt-3 block text-[11px] font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-50"
+                >
+                  {fotoSeleccionada ? 'Cancelar selección' : 'Eliminar foto guardada'}
+                </button>
+              )}
+              {fotoSeleccionada && (
+                <p className="mt-1 max-w-28 text-[10px] text-slate-500">La nueva foto se guardará al pulsar Guardar datos personales.</p>
+              )}
             </div>
 
             {/* INFO PRINCIPAL */}
@@ -277,7 +400,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
           {mensajeExito && (
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-emerald-700">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
-              <span>Datos personales guardados con éxito. La foto y las preferencias no se guardan.</span>
+              <span>{mensajeExito}</span>
             </div>
           )}
 
@@ -287,7 +410,7 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
           {/* VISTA: GENERAL */}
           {tabActiva === 'general' && (
             <div className="space-y-4">
-              <p className="text-xs text-slate-500">La foto es solo una vista previa y no se guarda. Los apellidos se conservan tal como están registrados. Puedes actualizar tus nombres, DNI, correo y teléfono.</p>
+              <p className="text-xs text-slate-500">Puedes actualizar nombres, DNI, correo, teléfono y foto de perfil. La nueva foto se enviará junto con los datos al guardar. Los apellidos se conservan tal como están registrados.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -537,3 +660,5 @@ function FormularioMiPerfil({ onClose, user, onGuardarUsuario }) {
     </div>
   );
 }
+
+

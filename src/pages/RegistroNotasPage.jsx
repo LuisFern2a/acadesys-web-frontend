@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -1123,39 +1122,19 @@ export default function RegistroNotasPage() {
 
                       <td className="py-4 px-6 text-center">
 
-                        <input
-
-                          type="text"
-
-                          aria-label={`Calificación de ${estudiante.nombre}`}
-
-                          inputMode="decimal"
-
-                          disabled={!escalaLista || guardando}
-
-                          value={estudiante.calificacion}
-
-                          onChange={(event) =>
-
-                            handleNotaChange(
-
-                              estudiante.idMatricula,
-
-                              event.target.value
-
-                            )
-
-                          }
-
-                          onKeyDown={handleNotaKeyDown}
-
-                          maxLength={maxLength}
-
-                          placeholder={escalaLista ? `0-${escalaMaxima}` : '...'}
-
-                          className="w-24 text-center py-2 px-2 border rounded-lg text-sm font-bold font-mono outline-none transition bg-white border-slate-300 text-slate-900 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 disabled:opacity-60 disabled:bg-slate-50 disabled:cursor-not-allowed"
-
-                        />
+                        
+{/* Reemplaza 'estudiante' por el nombre real de la variable de tu map, por ejemplo 'item', 'alumno', o 'row' */}
+<input
+  type="number"
+  min={NOTA_MINIMA}
+  max={Number(escalaMaxima) || 20}
+  step="0.01"
+  value={estudiante.calificacion}
+  onKeyDown={handleNotaKeyDown}
+  onChange={(e) => handleNotaChange(estudiante.idMatricula, e.target.value)}
+  disabled={guardando}
+  className="w-24 text-center text-sm text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+/>
 
                       </td>
 
@@ -1218,3 +1197,5 @@ export default function RegistroNotasPage() {
   );
 
 }
+
+

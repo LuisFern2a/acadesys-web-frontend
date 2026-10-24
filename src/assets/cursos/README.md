@@ -45,3 +45,5 @@ en las pestañas **Cursos Académicos** y **Horarios**.
 
 Los archivos se guardan **tal cual se publican** (sin editar); el ajuste de tamaño
 a la caja del icono se hace en runtime, no en el asset.
+
+

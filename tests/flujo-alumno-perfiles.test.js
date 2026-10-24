@@ -35,3 +35,5 @@ test('el código del alumno no se concatena dos veces', () => {
   assert.ok(!codigo.includes('ACAD-ACAD'));
   assert.ok(!/ACAD-\s*\{/.test(codigo), 'El JSX no debe anteponer ACAD- a una variable ya normalizada');
 });
+
+

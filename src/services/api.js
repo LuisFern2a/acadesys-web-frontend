@@ -1,4 +1,3 @@
-
 // URL única de la API. No se hardcodean endpoints en las páginas.
 export const API_URL = import.meta.env?.VITE_API_URL || "https://acadesys-api.onrender.com";
 
@@ -47,6 +46,7 @@ export function normalizarCiclo(ciclo = {}) {
   return {
     ...ciclo,
     idCiclo: numeroSeguro(ciclo.idCiclo ?? ciclo.IdCiclo ?? ciclo.id, null),
+    idAcademia: numeroSeguro(ciclo.idAcademia ?? ciclo.IdAcademia, null),
     nombre: String(ciclo.nombre ?? ciclo.Nombre ?? '').trim(),
     turno: ciclo.turno ?? ciclo.Turno ?? '',
     horario: ciclo.horario ?? ciclo.Horario ?? '',
@@ -54,7 +54,7 @@ export function normalizarCiclo(ciclo = {}) {
     universidadObjetivo: ciclo.universidadObjetivo ?? ciclo.UniversidadObjetivo ?? '',
     fechaInicio: ciclo.fechaInicio ?? ciclo.FechaInicio ?? null,
     fechaFin: ciclo.fechaFin ?? ciclo.FechaFin ?? null,
-    precio: numeroSeguro(ciclo.precio ?? ciclo.Precio, 0),
+    precio: numeroSeguro(ciclo.precio ?? ciclo.Precio, null),
     capacidad,
     totalAlumnos,
     totalCursos: numeroSeguro(ciclo.totalCursos ?? ciclo.TotalCursos, 0),
@@ -1361,51 +1361,36 @@ export async function obtenerCursosCiclo(idCiclo) {
   }));
 }
 
-export async function verificarMatriculaExistente(correo, idCiclo) {
+/**
+ * Preflight público de disponibilidad de ciclo. NO verifica titularidad del
+ * correo ni revela si una cuenta existe; la autorización de reinscripción la
+ * decide el backend en POST /api/matriculas/checkout.
+ */
+export async function verificarDisponibilidadMatricula(correo, idCiclo) {
   const correoNormalizado = String(correo || '').trim().toLowerCase();
   const cicloNormalizado = Number(idCiclo);
 
   const response = await solicitarApi('/api/matriculas/verificar', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      correo: correoNormalizado,
-      idCiclo: cicloNormalizado
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ correo: correoNormalizado, idCiclo: cicloNormalizado }),
   });
 
   const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
     const error = new Error(
-      data.message ||
-      data.error ||
-      data.mensaje ||
-      'No se pudo verificar el correo del alumno'
+      data.message || data.error || data.mensaje || 'No se pudo comprobar la disponibilidad del ciclo.',
     );
-
     error.status = response.status;
     error.data = data;
-
     throw error;
   }
 
-  // Normalizar al contrato reducido: el backend puede devolver varios
-  // subconjuntos de campos; conservamos solo los permitidos y unificamos
-  // `mensaje`/`message` y el objeto `cicloSeleccionado`/`ciclos`.
-  const resultado = {
-    existe: data.existe,
-    esAlumno: data.esAlumno,
-    puedeReinscribirse: data.puedeReinscribirse,
-    yaInscritoEnCiclo: data.yaInscritoEnCiclo,
+  return {
+    disponible: data.disponible === true,
+    idCiclo: numeroSeguro(data.idCiclo ?? data.IdCiclo ?? cicloNormalizado, null),
     mensaje: data.mensaje || data.message || undefined,
-    cicloSeleccionado: data.cicloSeleccionado || (data.ciclos && data.ciclos.length > 0 ? { nombre: data.ciclos[0].nombre } : null),
-    ciclos: Array.isArray(data.ciclos) ? data.ciclos.map((c) => ({ nombre: c.nombre || String(c) })) : undefined
   };
-
-  return resultado;
 }
 
 export async function procesarCheckoutMatricula(payload) {
@@ -1422,9 +1407,15 @@ export async function procesarCheckoutMatricula(payload) {
     monto: payload.monto
   };
 
+  const token = obtenerToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+
   const response = await solicitarApi('/api/matriculas/checkout', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(cuerpo)
   });
 
@@ -1727,6 +1718,73 @@ export async function eliminarCicloAdmin(idCiclo) {
       response.status,
       'No se pudo desactivar el ciclo'
     );
+  }
+
+  return data;
+}
+
+/**
+ * Envía la solicitud de recuperación de contraseña al backend.
+ * @param {string} usuarioOCorreo - Nombre de usuario, código o correo del estudiante.
+ */
+export async function solicitarRecuperacionPassword(usuarioOCorreo) {
+  const usuarioLimpio = String(usuarioOCorreo || '').trim();
+
+  if (!usuarioLimpio) {
+    throw new Error('Por favor, ingresa tu usuario o correo.');
+  }
+
+  const response = await solicitarApi('/api/auth/recuperar-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario: usuarioLimpio })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.mensaje || data.message || data.error || 'No se pudo procesar la solicitud de recuperación.'
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
+
+/**
+ * Confirma una nueva contraseña usando el token temporal enviado por correo.
+ * Este endpoint es público y no debe usar fetchWithAuth ni un JWT de sesión.
+ */
+export async function restablecerPassword(token, nuevaClave) {
+  const tokenLimpio = String(token || '').trim();
+
+  if (!tokenLimpio) {
+    throw new Error('El enlace de recuperación no es válido.');
+  }
+
+  if (typeof nuevaClave !== 'string' || !nuevaClave) {
+    throw new Error('Ingresa una nueva contraseña.');
+  }
+
+  const response = await solicitarApi('/api/auth/restablecer-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: tokenLimpio, nuevaClave })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(
+      data.error || data.mensaje || data.message || 'No se pudo cambiar la contraseña.'
+    );
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return data;

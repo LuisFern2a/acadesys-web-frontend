@@ -87,6 +87,7 @@ test('normalizador de ciclos conserva precio cero, estado y capacidad', () => {
   assert.equal(ciclo.publicar, true);
   assert.equal(ciclo.totalAlumnos, 3);
   assert.equal(api.normalizarCiclo({ EstadoRegistro: 0 }).publicar, false);
+  assert.equal(api.normalizarCiclo({ EstadoRegistro: 1 }).precio, null, 'Un precio ausente no debe mostrarse como S/ 0.00');
 });
 
 test('materiales PascalCase y camelCase quedan disponibles para la UI', async () => {
@@ -389,26 +390,21 @@ test('planificarGuardadoNotas separa nuevas, existentes y omitidas', () => {
   assert.equal(plan.vaciasPersistidas.length, 1);
 });
 
-test('verificarMatriculaExistente devuelve solo campos del contrato reducido', async () => {
+test('preflight de matrícula solo devuelve disponibilidad del ciclo; no consulta cuentas', async () => {
   simular([200, {
-    existe: true,
-    esAlumno: true,
-    puedeReinscribirse: true,
-    yaInscritoEnCiclo: false,
-    mensaje: 'Matrícula verificada',
-    cicloSeleccionado: { nombre: 'Ciclo UNI 2026' },
-    ciclos: [{ nombre: 'Ciclo UNI 2026' }, { nombre: 'Ciclo UNI 2025' }]
+    disponible: true,
+    idCiclo: 1,
+    mensaje: 'El ciclo está disponible para continuar.'
   }]);
-  const resultado = await api.verificarMatriculaExistente('prueba@test.com', 1);
-  assert.equal(resultado.existe, true);
-  assert.equal(resultado.esAlumno, true);
-  assert.equal(resultado.mensaje, 'Matrícula verificada');
-  assert.equal(resultado.cicloSeleccionado?.nombre, 'Ciclo UNI 2026');
-  assert.equal(Array.isArray(resultado.ciclos), true);
-  assert.equal(resultado.ciclos?.length, 2);
-  const camposContrato = ['existe', 'esAlumno', 'puedeReinscribirse', 'yaInscritoEnCiclo', 'mensaje', 'cicloSeleccionado', 'ciclos'];
-  const camposExtra = Object.keys(resultado).filter(k => !camposContrato.includes(k));
-  assert.equal(camposExtra.length, 0, 'No deben haber campos ajenos al contrato reducido');
+  const resultado = await api.verificarDisponibilidadMatricula('prueba@test.com', 1);
+  assert.equal(resultado.disponible, true);
+  assert.equal(resultado.idCiclo, 1);
+  assert.equal(resultado.mensaje, 'El ciclo está disponible para continuar.');
+  assert.deepEqual(Object.keys(resultado).sort(), ['disponible', 'idCiclo', 'mensaje']);
+  const body = JSON.parse(llamadas[0].options.body);
+  assert.deepEqual(body, { correo: 'prueba@test.com', idCiclo: 1 });
 });
 
 // === FIN NUEVAS PRUEBAS ===
+
+

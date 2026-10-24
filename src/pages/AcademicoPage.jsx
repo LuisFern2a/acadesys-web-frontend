@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import useModalDialog from '../hooks/useModalDialog';
 import {
@@ -376,6 +375,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     });
     setPasoCiclo(1);
     setErrorCiclo('');
+    // No arrastrar el mensaje de una operación anterior al abrir el modal.
+    setErrorDatos('');
     setAvisoHorario('');
     setAvisoOferta('');
     setPublicadoOriginal(null);
@@ -661,7 +662,15 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       setModalAbierto(false);
       setEditandoId(null);
     } catch (err) {
-      window.alert(err?.message || 'No se pudo guardar. No se modificó la lista local.');
+      // El mensaje se muestra en el propio modal (banner) en lugar de alertas
+      // nativas: cubre validaciones locales y respuestas del backend
+      // (p. ej. un horario solapado o un error de universidad del curso).
+      const mensajeError = err?.message || 'No se pudo guardar la información.';
+      setErrorDatos(mensajeError);
+      const modalContenedor = dialogRef.current;
+      if (modalContenedor) {
+        modalContenedor.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       operacionRef.current = false;
       setGuardandoDatos(false);
@@ -1471,6 +1480,11 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
               if (pasoCiclo === 6) guardarCiclo();
               else siguientePasoCiclo();
             } : handleGuardar} className="space-y-4">
+              {tabActiva !== 'ciclos' && errorDatos && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700" role="alert">
+                  {errorDatos}
+                </div>
+              )}
               {tabActiva === 'ciclos' && (
                 <div className="space-y-5">
                   <div className="overflow-x-auto pb-1">
@@ -1863,3 +1877,5 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     </div>
   );
 }
+
+

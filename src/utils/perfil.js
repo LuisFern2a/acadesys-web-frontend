@@ -35,3 +35,5 @@ export const resolverUrlFoto = (fotoUrl, apiUrl = '') => {
   if (!base) return valor.startsWith('/') ? valor : `/${valor}`;
   return `${base}${valor.startsWith('/') ? valor : `/${valor}`}`;
 };
+
+

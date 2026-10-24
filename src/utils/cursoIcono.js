@@ -121,3 +121,5 @@ export function obtenerSvgIconoCurso(nombre) {
   const clave = obtenerClaveIconoCurso(nombre);
   return clave ? SVG_POR_CLAVE[clave] : null;
 }
+
+
