@@ -19,7 +19,8 @@ import {
   ClipboardCheck,
   Megaphone,
   FileUp,
-  BadgeAlert
+  BadgeAlert,
+  CreditCard
 } from 'lucide-react';
 import ModalMiPerfil from './ModalMiPerfil';
 import AcadeSysBrand from './AcadeSysBrand';
@@ -39,7 +40,7 @@ function resolverVistaMenu(ruta, grupoRol) {
     perfiles: 'perfiles', 'menu-options': 'menu-options', 'opciones-menu': 'menu-options',
     'student-home': 'student-home', 'student-ciclo': 'student-ciclo', 'student-horario': 'student-horario',
     'student-cursos': 'student-cursos', 'student-notas': 'student-notas',
-    'student-materiales': 'student-materiales', 'student-perfil': 'student-perfil'
+    'student-materiales': 'student-materiales', 'student-pagos': 'student-pagos', 'student-perfil': 'student-perfil'
   };
   if (!Object.hasOwn(vistas, clave)) return null;
   const alumno = grupoRol === 'alumno';
@@ -252,6 +253,12 @@ export default function DashboardLayout({
       rolesPermitidos: ['alumno', 'estudiante']
     },
     {
+      id: 'student-pagos',
+      label: 'Mis pagos',
+      icon: CreditCard,
+      rolesPermitidos: ['alumno', 'estudiante']
+    },
+    {
       id: 'student-perfil',
       label: 'Mi Perfil',
       icon: Users,
@@ -298,8 +305,7 @@ export default function DashboardLayout({
       icon: BadgeAlert,
       rolesPermitidos: [
         'administrador',
-        'admin',
-        'tutor de aula'
+        'admin'
       ]
     },
 
@@ -405,6 +411,7 @@ export default function DashboardLayout({
     'student-cursos': 'Mis Cursos',
     'student-notas': 'Mis Resultados',
     'student-materiales': 'Materiales de Estudio',
+    'student-pagos': 'Mis pagos',
     'student-perfil': 'Mi Perfil'
   };
 
@@ -696,6 +703,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-
-
-

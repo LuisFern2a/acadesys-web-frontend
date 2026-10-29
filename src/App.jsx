@@ -251,7 +251,7 @@ export default function App() {
                 <RegistroNotasPage />
               )}
 
-              {activeTab === 'morosidad' && (esAdmin || esTutor) && (
+              {activeTab === 'morosidad' && esAdmin && (
                 <MorosidadPage />
               )}
 

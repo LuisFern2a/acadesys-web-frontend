@@ -669,8 +669,10 @@ export async function actualizarEstadoPago(idPago, estado) {
     throw new Error('No se proporcionó el IdPago.');
   }
 
-  if (!['Pagado', 'Moroso'].includes(estado)) {
-    throw new Error('El estado del pago debe ser "Pagado" o "Moroso".');
+  // Por seguridad, el frontend nunca intenta confirmar un pago directamente.
+  // Pagado solo se establece tras revisar el comprobante en el backend.
+  if (estado !== 'Moroso') {
+    throw new Error('Solo se puede marcar una cuota como morosa desde esta acción. Para confirmar un pago, revisa y aprueba su comprobante.');
   }
 
   const response = await fetchWithAuth(`/api/pagos/${idPago}/estado`, {
@@ -1788,4 +1790,82 @@ export async function restablecerPassword(token, nuevaClave) {
   }
 
   return data;
+}
+
+
+// ============================================================
+// MORGAN · CONTRATO DE PAGOS DEL ALUMNO Y REVISIÓN ADMINISTRATIVA
+// ============================================================
+
+async function jsonAuth(endpoint, options = {}, mensajeError = 'No se pudo completar la operación.') {
+  const response = await fetchWithAuth(endpoint, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || data.message || data.mensaje || mensajeError);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
+}
+
+export async function obtenerMisPagos() {
+  const data = await jsonAuth('/api/alumno/pagos', {}, 'No se pudieron consultar tus pagos.');
+  return {
+    cuotas: normalizarListaRespuesta(data, ['cuotas']),
+    resumen: data?.resumen && typeof data.resumen === 'object' ? data.resumen : {},
+  };
+}
+
+export async function iniciarPagoAlumno(idPago) {
+  const id = Number(idPago);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('La cuota seleccionada no es válida.');
+  return jsonAuth(`/api/alumno/pagos/${id}/iniciar`, { method: 'POST', body: JSON.stringify({}) }, 'No se pudo consultar el medio de pago.');
+}
+
+export async function registrarComprobanteAlumno(idPago, datos = {}) {
+  const id = Number(idPago);
+  const referencia = String(datos.referencia || '').trim();
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('La cuota seleccionada no es válida.');
+  if (referencia.length < 4 || referencia.length > 120) throw new Error('La referencia debe contener entre 4 y 120 caracteres.');
+  return jsonAuth(`/api/alumno/pagos/${id}/comprobante`, {
+    method: 'POST',
+    body: JSON.stringify({ referencia }),
+  }, 'No se pudo registrar la referencia del pago.');
+}
+
+export async function generarMensualidadesCiclo(idCiclo, datos = {}) {
+  const id = Number(idCiclo);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Selecciona un ciclo válido.');
+  const periodo = String(datos.periodo || '').trim();
+  const fechaVencimiento = String(datos.fechaVencimiento || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodo)) throw new Error('El periodo debe usar el formato AAAA-MM.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaVencimiento)) throw new Error('Ingresa una fecha de vencimiento válida.');
+  return jsonAuth(`/api/pagos/ciclo/${id}/mensualidades`, {
+    method: 'POST',
+    body: JSON.stringify({ periodo, fechaVencimiento }),
+  }, 'No se pudieron generar las mensualidades.');
+}
+
+export async function obtenerComprobantesPago(estado = 'EN_REVISION') {
+  const estados = ['EN_REVISION', 'APROBADO', 'RECHAZADO'];
+  const normalizado = String(estado || 'EN_REVISION').toUpperCase();
+  if (!estados.includes(normalizado)) throw new Error('El filtro de comprobantes no es válido.');
+  const data = await jsonAuth(`/api/pagos/comprobantes?estado=${encodeURIComponent(normalizado)}`, {}, 'No se pudieron consultar los comprobantes.');
+  return normalizarListaRespuesta(data, ['comprobantes']);
+}
+
+export async function revisarComprobantePago(idComprobante, estado, motivo = '') {
+  const id = Number(idComprobante);
+  const estadoNormalizado = String(estado || '').toUpperCase();
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('El comprobante seleccionado no es válido.');
+  if (!['APROBADO', 'RECHAZADO'].includes(estadoNormalizado)) throw new Error('La revisión debe ser APROBADO o RECHAZADO.');
+  const motivoLimpio = String(motivo || '').trim();
+  if (estadoNormalizado === 'RECHAZADO' && (motivoLimpio.length < 4 || motivoLimpio.length > 500)) {
+    throw new Error('Para rechazar el comprobante, indica un motivo de 4 a 500 caracteres.');
+  }
+  return jsonAuth(`/api/pagos/comprobantes/${id}/estado`, {
+    method: 'PUT',
+    body: JSON.stringify({ estado: estadoNormalizado, motivo: motivoLimpio }),
+  }, 'No se pudo revisar el comprobante.');
 }

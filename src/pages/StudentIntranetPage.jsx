@@ -17,6 +17,7 @@ import { API_URL, actualizarMiUsuario, eliminarMiFoto, obtenerMiIntranetAlumno, 
 import { promedioCalificaciones, escalaPorUniversidad } from '../utils/calificaciones';
 import { normalizarCodigoAlumno, resolverUrlFoto, valorTexto } from '../utils/perfil';
 import PanelReinscripcionAlumno from '../components/PanelReinscripcionAlumno';
+import PanelPagosAlumno from '../components/PanelPagosAlumno';
 
 const VIEWS = {
   home: 'student-home',
@@ -25,6 +26,7 @@ const VIEWS = {
   cursos: 'student-cursos',
   notas: 'student-notas',
   materiales: 'student-materiales',
+  pagos: 'student-pagos',
   perfil: 'student-perfil'
 };
 
@@ -129,8 +131,9 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
   }, []);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    // La vista de pagos usa su propio endpoint y no depende del expediente académico.
+    if (view !== VIEWS.pagos) cargar();
+  }, [cargar, view]);
 
   // Datos complementarios del usuario autenticado: teléfono y foto persistida.
   // /api/alumno/me no devuelve esos campos; /api/usuarios/me sí es el endpoint
@@ -367,8 +370,14 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     [VIEWS.cursos]: 'Mis cursos',
     [VIEWS.notas]: 'Calificaciones',
     [VIEWS.materiales]: 'Materiales de Estudio',
+    [VIEWS.pagos]: 'Mis pagos',
     [VIEWS.perfil]: 'Mi perfil'
   }[view] || 'Inicio'), [view]);
+
+  // Independiente del expediente: un fallo en datos académicos no debe ocultar la vista de pagos.
+  if (view === VIEWS.pagos) {
+    return <PanelPagosAlumno />;
+  }
 
   if (loading) {
     return (
@@ -947,7 +956,3 @@ export default function StudentIntranetPage({ view, setActiveTab, user }) {
     </div>
   );
 }
-
-
-
-
