@@ -32,6 +32,7 @@ export default function MorosidadPage() {
   const [idCiclo, setIdCiclo] = useState('');
   const [pagos, setPagos] = useState([]);
   const [comprobantes, setComprobantes] = useState([]);
+  const [errorComprobantes, setErrorComprobantes] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState('todos');
   const [periodo, setPeriodo] = useState(periodoActual);
@@ -105,10 +106,20 @@ export default function MorosidadPage() {
   const cargarComprobantes = useCallback(async () => {
     try {
       const lista = await obtenerComprobantesPago('EN_REVISION');
-      setComprobantes((Array.isArray(lista) ? lista : []).filter((p) => String(p.IdCiclo ?? p.idCiclo) === String(idCiclo)));
+      setComprobantes((Array.isArray(lista) ? lista : []).filter((p) => {
+        // El backend ya acota los comprobantes a la academia del administrador.
+        // Si el registro no informa el ciclo, no se descarta: ocultarlo haría
+        // que un comprobante pendiente quedara sin revisar.
+        const idCicloComprobante = p.IdCiclo ?? p.idCiclo;
+        return idCicloComprobante === null || idCicloComprobante === undefined
+          || String(idCicloComprobante) === String(idCiclo);
+      }));
+      setErrorComprobantes('');
     } catch (error) {
       setComprobantes([]);
-      setMensaje({ tipo: 'error', texto: mensajeErrorApi(error, 'No se pudieron consultar los comprobantes pendientes.') });
+      // Error propio de esta sección: no debe pisar el mensaje del resultado
+      // de una aprobación o rechazo.
+      setErrorComprobantes(mensajeErrorApi(error, 'No se pudieron consultar los comprobantes pendientes.'));
     }
   }, [idCiclo]);
 
@@ -238,6 +249,7 @@ export default function MorosidadPage() {
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between"><div><h2 className="font-bold text-slate-900">Comprobantes por revisar</h2><p className="mt-1 text-xs text-slate-500">Solo aprobar después de verificar la operación por el canal oficial.</p></div><span className="self-start rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800">{comprobantes.length} pendientes</span></div>
+        {errorComprobantes && <div role="alert" className="flex items-start gap-2 border-b border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true"/><span>{errorComprobantes}</span></div>}
         {revisando !== null ? <div className="p-8 text-center text-sm text-slate-500"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin"/>Actualizando revisión…</div> : comprobantes.length === 0 ? <div className="p-8 text-center"><ClipboardCheck className="mx-auto h-8 w-8 text-slate-300"/><p className="mt-2 text-sm font-bold">No hay comprobantes pendientes para este ciclo.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-3">Alumno</th><th className="px-5 py-3">Periodo</th><th className="px-5 py-3">Monto</th><th className="px-5 py-3">Referencia</th><th className="px-5 py-3">Fecha</th><th className="px-5 py-3">Revisión</th></tr></thead><tbody>{comprobantes.map((item) => <tr key={item.IdComprobante} className="border-t border-slate-100"><td className="px-5 py-4"><p className="font-semibold">{item.Alumno}</p><p className="mt-1 text-xs text-slate-500">{item.CodigoUsuario || 'Sin código'}</p></td><td className="px-5 py-4">{item.Mes || '—'}</td><td className="px-5 py-4 font-bold">{formatoDinero(item.Monto)}</td><td className="px-5 py-4"><p>{item.Referencia || '—'}</p>{item.UrlComprobante && <a className="mt-1 inline-block text-xs font-semibold text-teal-700 underline" href={item.UrlComprobante} target="_blank" rel="noreferrer">Abrir comprobante</a>}</td><td className="px-5 py-4 text-slate-500">{fechaLocal(item.FechaCreacion)}</td><td className="px-5 py-4"><div className="flex flex-wrap gap-2"><button type="button" onClick={() => revisarComprobante(item, 'APROBADO')} disabled={revisando !== null || generando} className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5"/> Aprobar</button><button type="button" onClick={() => revisarComprobante(item, 'RECHAZADO')} disabled={revisando !== null || generando} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"><XCircle className="h-3.5 w-3.5"/> Rechazar</button></div></td></tr>)}</tbody></table></div>}
       </section>
 

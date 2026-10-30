@@ -1809,11 +1809,142 @@ async function jsonAuth(endpoint, options = {}, mensajeError = 'No se pudo compl
   return data;
 }
 
+// --- Normalización defensiva del portal del alumno -------------------------
+// El backend entrega el mismo dominio de pagos con camelCase en unos módulos y
+// PascalCase en otros (ver MorosidadPage). Aquí se unifica UNA sola vez para
+// que la UI nunca muestre S/ 0.00 por un nombre de campo distinto.
+// No se inventan datos: los campos ausentes quedan en `null`/''.
+
+const textoPago = (valor) => (valor === null || valor === undefined ? '' : String(valor).trim());
+
+// “En revisión”, “EN_REVISION” y “en-revision” deben compararse igual.
+const claveEstadoPago = (valor) =>
+  textoPago(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
+
+const primerValor = (...valores) => valores.find((valor) => valor !== null && valor !== undefined && textoPago(valor) !== '');
+
+const primerNumeroPago = (...valores) => {
+  for (const valor of valores) {
+    const numero = numeroSeguro(valor, null);
+    if (numero !== null) return numero;
+  }
+  return null;
+};
+
+export function normalizarCuotaAlumno(cuota = {}) {
+  const origen = cuota && typeof cuota === 'object' ? cuota : {};
+  const comprobanteCrudo = origen.comprobante ?? origen.Comprobante ?? null;
+  const referencia = primerValor(
+    origen.referencia,
+    origen.Referencia,
+    origen.referenciaComprobante,
+    origen.ReferenciaComprobante,
+    comprobanteCrudo?.referencia,
+    comprobanteCrudo?.Referencia
+  );
+  const estadoComprobanteCrudo = primerValor(
+    origen.estadoComprobante,
+    origen.EstadoComprobante,
+    origen.estadoRevisionComprobante,
+    origen.EstadoRevisionComprobante,
+    origen.estadoComprobantePago,
+    comprobanteCrudo?.estado,
+    comprobanteCrudo?.Estado
+  );
+  const motivoRevision = primerValor(
+    origen.motivoRevision,
+    origen.MotivoRevision,
+    origen.observacion,
+    origen.Observacion,
+    comprobanteCrudo?.motivoRevision,
+    comprobanteCrudo?.MotivoRevision
+  );
+  const urlComprobante = primerValor(
+    origen.urlComprobante,
+    origen.UrlComprobante,
+    comprobanteCrudo?.url,
+    comprobanteCrudo?.Url
+  );
+  const idComprobante = primerNumeroPago(
+    origen.idComprobante,
+    origen.IdComprobante,
+    comprobanteCrudo?.id,
+    comprobanteCrudo?.Id
+  );
+
+  const estado = textoPago(origen.estado ?? origen.Estado ?? origen.estadoPago ?? origen.EstadoPago);
+  const estadoComprobante = claveEstadoPago(estadoComprobanteCrudo);
+  const pagado = claveEstadoPago(estado) === 'PAGADO';
+  const enRevision = !pagado && estadoComprobante === 'EN_REVISION';
+
+  const tieneComprobante = Boolean(referencia || estadoComprobanteCrudo || idComprobante || urlComprobante);
+
+  return {
+    ...origen,
+    idPago: primerNumeroPago(origen.idPago, origen.IdPago, origen.id),
+    idCiclo: primerNumeroPago(origen.idCiclo, origen.IdCiclo),
+    concepto: textoPago(primerValor(origen.concepto, origen.Concepto, origen.tipoCuota, origen.TipoCuota, origen.mes, origen.Mes)),
+    periodo: textoPago(primerValor(origen.periodo, origen.Periodo, origen.mes, origen.Mes)),
+    ciclo: textoPago(primerValor(origen.ciclo, origen.Ciclo, origen.nombreCiclo, origen.NombreCiclo)),
+    monto: primerNumeroPago(origen.monto, origen.Monto),
+    estado,
+    estadoClave: claveEstadoPago(estado),
+    fechaVencimiento: primerValor(origen.fechaVencimiento, origen.FechaVencimiento) ?? null,
+    fechaPago: primerValor(origen.fechaPago, origen.FechaPago) ?? null,
+    comprobante: tieneComprobante
+      ? {
+          idComprobante,
+          referencia,
+          estado: textoPago(estadoComprobanteCrudo),
+          estadoClave: estadoComprobante,
+          motivoRevision,
+          urlComprobante: urlComprobante || null,
+        }
+      : null,
+    pagado,
+    enRevision,
+    // Solo se permite registrar una nueva referencia si no hay pago confirmado
+    // ni un comprobante pendiente de revisión: evita duplicados por doble clic.
+    puedeRegistrarComprobante: !pagado && !enRevision,
+  };
+}
+
+// Resumen SIEMPRE coherente con las cuotas recibidas. Si el backend envía un
+// resumen válido se respeta; si falta, se calcula sumando los montos reales
+// (nunca se inventan importes ni se cuentan cuotas inexistentes).
+export function resumirCuotasAlumno(cuotas = [], resumenBackend = {}) {
+  const lista = Array.isArray(cuotas) ? cuotas : [];
+  const backend = resumenBackend && typeof resumenBackend === 'object' ? resumenBackend : {};
+  const sumaPor = (predicado) =>
+    lista.reduce((total, cuota) => (predicado(cuota) ? total + (numeroSeguro(cuota?.monto, 0) ?? 0) : total), 0);
+
+  const pendientes = lista.filter((cuota) => !cuota?.pagado);
+  const fechasPendientes = pendientes
+    .map((cuota) => textoPago(cuota?.fechaVencimiento).slice(0, 10))
+    .filter(Boolean)
+    .sort();
+
+  return {
+    ...backend,
+    cantidad: primerNumeroPago(backend.cantidad, backend.total, backend.cuotas, lista.length) ?? 0,
+    cantidadPagadas: primerNumeroPago(backend.cantidadPagadas, backend.pagadas, lista.filter((c) => c?.pagado).length) ?? 0,
+    cantidadEnRevision: primerNumeroPago(backend.cantidadEnRevision, backend.enRevision, lista.filter((c) => c?.enRevision).length) ?? 0,
+    montoPagado: primerNumeroPago(backend.montoPagado, backend.totalPagado, sumaPor((c) => c?.pagado)) ?? 0,
+    montoPendiente: primerNumeroPago(backend.montoPendiente, backend.totalPendiente, sumaPor((c) => !c?.pagado)) ?? 0,
+    proximoVencimiento: primerValor(backend.proximoVencimiento, backend.fechaProximoVencimiento, fechasPendientes[0]) ?? null,
+  };
+}
+
 export async function obtenerMisPagos() {
   const data = await jsonAuth('/api/alumno/pagos', {}, 'No se pudieron consultar tus pagos.');
+  const cuotas = normalizarListaRespuesta(data, ['cuotas']).map(normalizarCuotaAlumno);
   return {
-    cuotas: normalizarListaRespuesta(data, ['cuotas']),
-    resumen: data?.resumen && typeof data.resumen === 'object' ? data.resumen : {},
+    cuotas,
+    resumen: resumirCuotasAlumno(cuotas, data?.resumen),
   };
 }
 
