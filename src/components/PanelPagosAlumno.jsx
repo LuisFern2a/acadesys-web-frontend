@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import BotonPagoOnline from './BotonPagoOnline.jsx';
 import {
   AlertCircle,
   BadgeCheck,
@@ -321,7 +322,16 @@ export default function PanelPagosAlumno() {
 
                     {!cuota.pagado && !cuota.enRevision && (
                       <div className="mt-4 border-t border-slate-100 pt-4">
-                        {!idValido ? (
+                        
+                        <BotonPagoOnline
+                          idPago={id}
+                          disabled={bloqueada}
+                          onBusyChange={(ocupadoOnline) => {
+                            envioEnCursoRef.current = ocupadoOnline;
+                            setAccion(ocupadoOnline ? `checkout-${id}` : null);
+                          }}
+                        />
+{!idValido ? (
                           <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Esta cuota no tiene un identificador válido. Comunícate con administración para regularizarla.</p>
                         ) : !instruccion ? (
                           <button type="button" onClick={() => consultarInstrucciones(id)} disabled={bloqueada} className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
