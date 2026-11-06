@@ -57,3 +57,65 @@ export function urlCheckoutValida(valor) {
     || host.endsWith('.mercadopago.com.pe');
 }
 
+// ============================================================================
+// ENDPOINTS ADMINISTRATIVOS (Panel de Transacciones - AdminPagosPage)
+// ============================================================================
+
+// 1. Obtener todas las transacciones para pintar la tabla
+export async function obtenerTransaccionesAdmin() {
+  return jsonPago(
+    `/api/admin/pagos/transacciones`,
+    {},
+    'No se pudieron cargar las transacciones administrativas.'
+  );
+}
+
+// 2. Aprobar un pago manual (voucher/transferencia)
+export async function aprobarComprobanteManual(idPago) {
+  const id = idPagoValido(idPago);
+  return jsonPago(
+    `/api/admin/pagos/${id}/aprobar`,
+    { method: 'PUT', body: JSON.stringify({}) },
+    'No se pudo aprobar el comprobante manual.'
+  );
+}
+
+// 3. Rechazar un pago manual (voucher/transferencia)
+export async function rechazarComprobanteManual(idPago) {
+  const id = idPagoValido(idPago);
+  return jsonPago(
+    `/api/admin/pagos/${id}/rechazar`,
+    { method: 'PUT', body: JSON.stringify({}) },
+    'No se pudo rechazar el comprobante manual.'
+  );
+}
+
+// ============================================================================
+// MOCK TEMPORAL (Solo para maquetar frontend mientras el backend se termina)
+// ============================================================================
+export const obtenerTransaccionesMock = async () => {
+  return [
+    {
+      id: 1,
+      alumno: "Johan Zapana",
+      ciclo: "Verano 2027",
+      periodo: "Mes 1",
+      monto: 150.00,
+      fecha: "2026-11-06",
+      metodo: "Mercado Pago",
+      referencia: "MP-987654321",
+      estado: "Aprobada"
+    },
+    {
+      id: 2,
+      alumno: "Carlos Mendoza",
+      ciclo: "Verano 2027",
+      periodo: "Inscripción",
+      monto: 50.00,
+      fecha: "2026-11-05",
+      metodo: "Manual",
+      referencia: "VOUCHER-BCP-001",
+      estado: "Pendiente"
+    }
+  ];
+};

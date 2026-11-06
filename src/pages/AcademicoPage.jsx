@@ -237,7 +237,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
     fechaInicio: '',
     fechaFin: '',
     capacidad: 250,
-    precio: '',
+    precioInscripcion: '',
+    precioMensualidad: '',
     diasClase: 'Lunes a Viernes',
     prefijoCodigo: '',
     publicar: true,
@@ -367,7 +368,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       fechaInicio: '',
       fechaFin: '',
       capacidad: 250,
-      precio: '',
+      precioInscripcion: '',
+      precioMensualidad: '',
       diasClase: 'Lunes a Viernes',
       prefijoCodigo: '',
       publicar: true,
@@ -538,7 +540,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       fechaInicio: String(ciclo.fechaInicio || '').slice(0, 10),
       fechaFin: String(ciclo.fechaFin || '').slice(0, 10),
       capacidad: Number(ciclo.capacidad || 250),
-      precio: Number(ciclo.precio || 0),
+      precioInscripcion: Number(ciclo.precioInscripcion || 0),
+      precioMensualidad: Number(ciclo.precioMensualidad || 0),
       diasClase: ciclo.diasClase || 'Lunes a Viernes',
       prefijoCodigo: ciclo.prefijoCodigo || '',
       publicar: Boolean(ciclo.publicar),
@@ -716,7 +719,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       if (!formCiclo.fechaInicio || !formCiclo.fechaFin) return 'Completa las fechas del ciclo.';
       if (new Date(formCiclo.fechaFin) <= new Date(formCiclo.fechaInicio)) return 'La fecha final debe ser posterior a la fecha de inicio.';
       if (!Number.isInteger(Number(formCiclo.capacidad)) || Number(formCiclo.capacidad) < 1 || Number(formCiclo.capacidad) > 500) return 'La capacidad del ciclo debe estar entre 1 y 500 alumnos.';
-      if (formCiclo.precio === '' || !Number.isFinite(Number(formCiclo.precio)) || Number(formCiclo.precio) < 0 || Number(formCiclo.precio) > 9999.99) return 'El precio ingresado no es válido.';
+      if (formCiclo.precioInscripcion === '' || !Number.isFinite(Number(formCiclo.precioInscripcion)) || Number(formCiclo.precioInscripcion) < 0) return 'El precio de inscripción no es válido.';
+      if (formCiclo.precioMensualidad === '' || !Number.isFinite(Number(formCiclo.precioMensualidad)) || Number(formCiclo.precioMensualidad) < 0) return 'El precio de mensualidad no es válido.';
     }
     if (paso === 4 && cursosUniversidad.length > 0 && formCiclo.cursosSeleccionados.length === 0) {
       return 'Selecciona al menos un curso para continuar.';
@@ -802,7 +806,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
       fechaFin: formCiclo.fechaFin,
       capacidad: Number(formCiclo.capacidad),
       cursosSeleccionados: formCiclo.cursosSeleccionados.map(Number),
-      precio: Number(formCiclo.precio),
+      precioInscripcion: Number(formCiclo.precioInscripcion),
+      precioMensualidad: Number(formCiclo.precioMensualidad),
       diasClase: formCiclo.diasClase.trim(),
       prefijoCodigo: formCiclo.prefijoCodigo.trim() || formCiclo.universidadObjetivo.slice(0, 4).toUpperCase(),
       publicar: Boolean(formCiclo.publicar)
@@ -1539,7 +1544,12 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                       <CampoCiclo label="Fecha de inicio"><input type="date" value={formCiclo.fechaInicio} onChange={(e) => setFormCiclo({ ...formCiclo, fechaInicio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Fecha de fin"><input type="date" value={formCiclo.fechaFin} onChange={(e) => setFormCiclo({ ...formCiclo, fechaFin: e.target.value })} className="campo-ciclo" /></CampoCiclo>
                       <CampoCiclo label="Capacidad"><input type="number" min="1" max="500" value={formCiclo.capacidad} onChange={(e) => setFormCiclo({ ...formCiclo, capacidad: Number(e.target.value) })} className="campo-ciclo" /></CampoCiclo>
-                      <CampoCiclo label="Precio (S/)"><input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precio} onChange={(e) => setFormCiclo({ ...formCiclo, precio: e.target.value })} className="campo-ciclo" /></CampoCiclo>
+                      <CampoCiclo label="Precio Inscripción (S/)">
+                        <input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precioInscripcion} onChange={(e) => setFormCiclo({ ...formCiclo, precioInscripcion: e.target.value })} className="campo-ciclo" />
+                      </CampoCiclo>
+                      <CampoCiclo label="Precio Mensualidad (S/)">
+                        <input type="number" min="0" max="9999.99" step="0.01" placeholder="0.00" value={formCiclo.precioMensualidad} onChange={(e) => setFormCiclo({ ...formCiclo, precioMensualidad: e.target.value })} className="campo-ciclo" />
+                      </CampoCiclo>
                     </div>
                   )}
                   {pasoCiclo === 4 && (
@@ -1616,7 +1626,8 @@ export default function AcademicoPage({ vistaInicial = 'asignaciones', user }) {
                           <p><b>Fechas:</b> {formCiclo.fechaInicio} → {formCiclo.fechaFin}</p>
                           <p><b>Turno:</b> {formCiclo.turno} · {formCiclo.horaInicio} - {formCiclo.horaFin}</p>
                           <p><b>Capacidad:</b> {formCiclo.capacidad}</p>
-                          <p><b>Precio:</b> S/ {Number(formCiclo.precio || 0).toFixed(2)}</p>
+                          <p><b>Inscripción:</b> S/ {Number(formCiclo.precioInscripcion || 0).toFixed(2)}</p>
+                          <p><b>Mensualidad:</b> S/ {Number(formCiclo.precioMensualidad || 0).toFixed(2)}</p>
                         </div>
                       </div>
                       <div className="rounded-xl border border-slate-200 p-4">
