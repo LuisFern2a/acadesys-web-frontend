@@ -233,9 +233,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
   }
 
   // 5xx: mensaje genérico, sin exponer detalles internos del servidor.
+  // El único código que se traduce a un mensaje de negocio es el 503 de la
+  // pasarela sin configurar: es un estado esperado, no un fallo interno.
   if (response.status >= 500) {
+    const datos = await response.json().catch(() => ({}));
+    const codigo = typeof datos?.code === 'string' ? datos.code : null;
     const error = new Error('Ocurrió un error en el servidor. Inténtalo de nuevo más tarde.');
     error.status = response.status;
+    if (codigo) error.code = codigo;
+    if (response.status === 503 && codigo === 'PASARELA_NO_CONFIGURADA') {
+      error.message = 'El pago online todavía no está disponible. Puedes usar la transferencia manual habilitada por la academia.';
+    }
     throw error;
   }
 
@@ -1405,8 +1413,7 @@ export async function procesarCheckoutMatricula(payload) {
     idCiclo: payload.idCiclo,
     nombres: payload.nombres,
     apellidos: payload.apellidos,
-    correo: payload.correo,
-    monto: payload.monto
+    correo: payload.correo
   };
 
   const token = obtenerToken();

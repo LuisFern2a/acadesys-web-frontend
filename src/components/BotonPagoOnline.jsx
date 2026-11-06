@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { crearCheckoutPagoAlumno, urlCheckoutValida } from '../services/pagosOnline.api.js';
 
-export default function BotonPagoOnline({ idPago, disabled = false, onBusyChange }) {
+export default function BotonPagoOnline({ idPago, disabled = false, onBusyChange, onConflicto }) {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
   const envioEnCursoRef = useRef(false);
@@ -24,7 +24,18 @@ export default function BotonPagoOnline({ idPago, disabled = false, onBusyChange
       }
       window.location.assign(new URL(destino).toString());
     } catch (err) {
-      setError(err?.message || 'No se pudo iniciar el pago online.');
+      // 409: la cuota cambió de estado mientras se abría el checkout (por
+      // ejemplo, otra pestaña ya la pagó). El panel refresca y muestra el
+      // estado real; aquí no se afirma nada sobre el pago.
+      if (Number(err?.status) === 409 && typeof onConflicto === 'function') {
+        try {
+          await onConflicto(err);
+        } catch {
+          setError(err?.message || 'La cuota cambió de estado. Actualiza la pantalla.');
+        }
+      } else {
+        setError(err?.message || 'No se pudo iniciar el pago online.');
+      }
     } finally {
       envioEnCursoRef.current = false;
       setOcupado(false);

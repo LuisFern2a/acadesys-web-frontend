@@ -336,8 +336,10 @@ export default function RegistroNotasPage() {
 
 
 
-    const valor = valorCrudo.replace(',', '.');
-    if (!/^\d+(\.\d{0,2})?$/.test(valor)) return;
+    // Evaluacion.Calificacion es INT en el backend: solo se aceptan dígitos.
+    // Un decimal se rechaza aquí en lugar de fallar recién al guardar.
+    const valor = String(valorCrudo).trim();
+    if (!/^\d+$/.test(valor)) return;
 
 
 
@@ -407,7 +409,7 @@ export default function RegistroNotasPage() {
 
 
 
-    if (!/^[\d.,]$/.test(event.key) && event.key !== 'Enter' && event.key !== 'Escape') {
+    if (!/^\d$/.test(event.key) && event.key !== 'Enter' && event.key !== 'Escape') {
 
       event.preventDefault();
 
@@ -696,11 +698,6 @@ export default function RegistroNotasPage() {
 
 
 
-  const maxLength = escalaLista
-
-    ? String(Math.trunc(Number(escalaMaxima))).length + 3
-
-    : 4;
 
 
 
@@ -1128,7 +1125,8 @@ export default function RegistroNotasPage() {
   type="number"
   min={NOTA_MINIMA}
   max={Number(escalaMaxima) || 20}
-  step="0.01"
+  step="1"
+  inputMode="numeric"
   value={estudiante.calificacion}
   onKeyDown={handleNotaKeyDown}
   onChange={(e) => handleNotaChange(estudiante.idMatricula, e.target.value)}

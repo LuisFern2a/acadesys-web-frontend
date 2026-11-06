@@ -113,7 +113,6 @@ export default function PanelReinscripcionAlumno({ user, estudiante, cicloActual
         apellidos: identidad.apellidos,
         correo: identidad.correo,
         prefijoCiclo: ciclo.prefijo || null,
-        monto: Number(ciclo.precio),
       });
 
       const correoEnviado = resultado?.correo?.estado === 'enviado';

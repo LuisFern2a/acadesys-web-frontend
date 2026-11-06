@@ -14,6 +14,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { iniciarPagoAlumno, mensajeErrorApi, obtenerMisPagos, registrarComprobanteAlumno } from '../services/api';
+import { consultarEstadoPagoAlumno } from '../services/pagosOnline.api.js';
 
 const dinero = (valor) => {
   const numero = Number(valor);
@@ -73,6 +74,39 @@ const normalizarInstruccionesPago = (data = {}) => {
       cci: banco?.cci ?? banco?.CCI ?? '',
       instrucciones: banco?.instrucciones ?? banco?.Instrucciones ?? ''
     }
+  };
+};
+
+// Interpreta la respuesta de estado del backend sin confirmar nada por su
+// cuenta: solo describe lo que el servidor tiene registrado. La cuota sigue
+// siendo la única fuente de verdad y se refresca con la lista.
+const mensajeEstadoPago = (data = {}) => {
+  const estadoCuota = String(data?.estadoPago || '').trim() || 'no disponible';
+  const transaccion = data?.transaccion ? data.transaccion : null;
+  if (!transaccion) {
+    return {
+      tipo: 'aviso',
+      texto: `No hay una transacción de pago online registrada para esta cuota. Estado actual: ${estadoCuota}.`
+    };
+  }
+
+  const estadoTransaccion = String(transaccion?.estado || '').trim() || 'PENDIENTE';
+  const clave = estadoTransaccion.toUpperCase();
+  if (clave === 'APROBADA' || estadoCuota.toLowerCase() === 'pagado') {
+    return {
+      tipo: 'exito',
+      texto: `El servidor reporta la transacción como ${estadoTransaccion} y la cuota como ${estadoCuota}. La lista se actualizó con ese estado.`
+    };
+  }
+  if (['RECHAZADA', 'CANCELADA', 'REEMBOLSADA', 'CONTRACARGO'].includes(clave)) {
+    return {
+      tipo: 'error',
+      texto: `Mercado Pago reportó la transacción como ${estadoTransaccion}. La cuota sigue en estado ${estadoCuota}. Puedes reintentar el pago online o usar la transferencia manual.`
+    };
+  }
+  return {
+    tipo: 'aviso',
+    texto: `La transacción sigue en estado ${estadoTransaccion} y la cuota en ${estadoCuota}. La confirmación depende del backend; vuelve a consultar más tarde.`
   };
 };
 
@@ -169,6 +203,34 @@ export default function PanelPagosAlumno() {
     }
   };
 
+  const consultarEstado = async (idPago) => {
+    if (envioEnCursoRef.current) return;
+    envioEnCursoRef.current = true;
+    setAccion(`estado-${idPago}`);
+    setMensaje(null);
+    try {
+      const data = await consultarEstadoPagoAlumno(idPago);
+      if (!montadoRef.current) return;
+      const aviso = mensajeEstadoPago(data);
+      // Se refresca la lista para que la tarjeta muestre el estado real del
+      // servidor (pagada, en revisión o pendiente), sin tocar el pago.
+      await cargar({ silencioso: true });
+      if (!montadoRef.current) return;
+      setMensaje(aviso);
+    } catch (error) {
+      if (montadoRef.current) setMensaje({ tipo: 'error', texto: mensajeParaAlumno(error, 'No se pudo consultar el estado del pago.') });
+    } finally {
+      envioEnCursoRef.current = false;
+      if (montadoRef.current) setAccion(null);
+    }
+  };
+
+  const refrescarTrasConflicto = async (error) => {
+    await cargar({ silencioso: true });
+    if (!montadoRef.current) return;
+    setMensaje({ tipo: 'aviso', texto: mensajeParaAlumno(error, 'La cuota cambió de estado. Se actualizó la información.') });
+  };
+
   const enviarReferencia = async (idPago, event) => {
     event.preventDefault();
     if (envioEnCursoRef.current) return;
@@ -229,14 +291,14 @@ export default function PanelPagosAlumno() {
         <div>
           <span className="mb-2 inline-flex items-center gap-2 rounded-lg border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal-700"><CreditCard className="h-4 w-4" aria-hidden="true"/> Finanzas del alumno</span>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Mis pagos</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">Consulta tus cuotas, sigue las instrucciones oficiales de transferencia y registra la referencia para revisión de la academia.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500">Consulta tus cuotas, paga online con Mercado Pago cuando la pasarela esté habilitada o registra la referencia de tu transferencia para revisión de la academia.</p>
         </div>
         <button type="button" onClick={() => cargar()} disabled={cargando || ocupado} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"><RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true"/> Actualizar</button>
       </header>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-bold">Importante: esta versión no cobra dentro de AcadeSys.</p>
-        <p className="mt-1 text-xs leading-relaxed">Realiza transferencias únicamente a los datos oficiales confirmados por la academia. Este formulario registra una referencia; no procesa dinero ni sube un archivo de comprobante. El administrador debe revisar la operación antes de marcarla como pagada.</p>
+        <p className="font-bold">Pago online y transferencia manual.</p>
+        <p className="mt-1 text-xs leading-relaxed">Mercado Pago procesa el cobro fuera de AcadeSys. La cuota no se marca como pagada hasta que el backend confirma la transacción; si regresas del checkout, usa «Consultar estado del pago». Si la pasarela aún no está configurada, conserva la transferencia manual: registra la referencia y espera la revisión de la academia. Este formulario no sube el archivo del comprobante.</p>
       </div>
 
       <div aria-live="polite">
@@ -358,6 +420,7 @@ export default function PanelPagosAlumno() {
                             envioEnCursoRef.current = ocupadoOnline;
                             setAccion(ocupadoOnline ? `checkout-${id}` : null);
                           }}
+                          onConflicto={refrescarTrasConflicto}
                         />
 {!idValido ? (
                           <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Esta cuota no tiene un identificador válido. Comunícate con administración para regularizarla.</p>
@@ -408,6 +471,19 @@ export default function PanelPagosAlumno() {
                       </div>
                     )}
 
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => consultarEstado(id)}
+                        disabled={bloqueada}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {accion === `estado-${id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true"/> : <RefreshCw className="h-4 w-4" aria-hidden="true"/>}
+                        Consultar estado del pago
+                      </button>
+                      <span className="text-xs text-slate-500">Solo lee el estado guardado en el servidor; no confirma pagos.</span>
+                    </div>
+
                     {cuota.enRevision && (
                       <p className="mt-4 flex items-center gap-2 rounded-lg border border-sky-100 bg-sky-50 p-3 text-xs text-sky-800">
                         <Clock3 className="h-4 w-4 shrink-0" aria-hidden="true"/>
@@ -422,7 +498,7 @@ export default function PanelPagosAlumno() {
         </>
       )}
 
-      <p className="text-xs text-slate-500">Si el importe o periodo no coincide con lo acordado, no realices la transferencia y consulta a la administración. Los importes mostrados proceden de los registros de cuotas del servidor.</p>
+      <p className="text-xs text-slate-500">Si el importe o periodo no coincide con lo acordado, no realices la transferencia y consulta a la administración. Los importes mostrados proceden de los registros de cuotas del servidor. La consulta de estado solo lee esos registros y no modifica la cuota.</p>
     </div>
   );
 }
