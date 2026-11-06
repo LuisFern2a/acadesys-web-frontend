@@ -107,7 +107,7 @@ export default function PanelPagosAlumno() {
       if (!montadoRef.current || secuencia !== secuenciaRef.current) return;
       setCuotas(Array.isArray(data.cuotas) ? data.cuotas : []);
       setResumen(data.resumen || {});
-      setMensaje(null);
+      setMensaje((actual) => (actual?.origen === 'redirect' ? actual : null));
     } catch (error) {
       if (!montadoRef.current || secuencia !== secuenciaRef.current) return;
       setMensaje({ tipo: 'error', texto: mensajeParaAlumno(error, 'No se pudieron consultar tus cuotas. Vuelve a intentarlo en unos segundos.') });
@@ -117,6 +117,34 @@ export default function PanelPagosAlumno() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status') || params.get('collection_status');
+
+    if (status) {
+      if (status === 'approved') {
+        setMensaje({ 
+          tipo: 'exito', 
+          texto: 'Mercado Pago ha procesado tu pago. La confirmación oficial puede tardar unos minutos en reflejarse en el sistema.',
+          origen: 'redirect'
+        });
+      } else if (status === 'pending' || status === 'in_process') {
+        setMensaje({ 
+          tipo: 'aviso', 
+          texto: 'Tu pago está en proceso de validación por Mercado Pago. Revisa más tarde.',
+          origen: 'redirect'
+        });
+      } else if (status === 'rejected' || status === 'null') {
+        setMensaje({ 
+          tipo: 'error', 
+          texto: 'El pago no se pudo completar o fue rechazado por la pasarela.',
+          origen: 'redirect'
+        });
+      }
+      
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const consultarInstrucciones = async (idPago) => {
     if (envioEnCursoRef.current) return;
