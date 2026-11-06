@@ -196,7 +196,7 @@ Antes, `fetchWithAuth` convertía cualquier 5xx en un mensaje genérico y descar
 
 - La pasarela real sigue pendiente de configuración (Torito). El backend devuelve 503 hasta que existan credenciales y webhook verificados.
 - No se ejecutó un pago real ni una prueba E2E contra Mercado Pago, por indicación expresa y por falta de credenciales.
-- La URL de retorno la define el backend (`PAYMENT_RETURN_URL`). Al volver, `App.jsx` fuerza `student-home` para alumnos, por lo que el usuario debe abrir “Mis pagos”. El nuevo botón “Consultar estado del pago” cubre la verificación sin confirmar nada automáticamente.
+- La URL de retorno la define el backend (`PAYMENT_RETURN_URL`). El commit `ba36373` de Luis añade lectura de `status`/`collection_status` para mostrar un mensaje informativo al regresar y limpia los parámetros con `history.replaceState`; **no confirma pagos**. Como `App.jsx` fuerza `student-home` para alumnos, el mensaje se muestra cuando el usuario abre "Mis pagos". El nuevo botón "Consultar estado del pago" cubre la verificación real sin confirmar nada automáticamente.
 - El archivo `src/components/PanelPagosAlumno.jsx.morgan.bak` sigue en el repositorio. No se importa, pero conviene retirarlo cuando la integración esté consolidada.
 
 ---
@@ -258,7 +258,7 @@ El código actual **no coincide** con algunos lineamientos del enunciado:
 
 ### 5.3 Calidad de código y limpieza
 
-- `npm run lint` reporta **0 errores** y **20 advertencias** (`react(set-state-in-effect)` y una de `exhaustive-deps`). La línea base tenía 21; se eliminó la advertencia de `maxLength` no usado en `RegistroNotasPage`. No se introdujeron advertencias nuevas.
+- `npm run lint` reporta **0 errores** y **21 advertencias** (`react(set-state-in-effect)` y una de `exhaustive-deps`). Se eliminó la advertencia de `maxLength` no usado en `RegistroNotasPage`, pero el flujo de retorno de Mercado Pago integrado en `ba36373` añade una advertencia equivalente en `PanelPagosAlumno`. No hay errores ni pruebas ocultas.
 - El build advierte que el chunk principal supera 500 kB (708 kB, 179 kB gzip). Es una advertencia de tamaño, no un fallo; conviene code-splitting en una tarea aparte.
 - Hay archivos auxiliares en la raíz (`replace_profile.cjs`, `replace_student.cjs`, `diff.txt`, `lint.txt`, `lint_output.txt`) y un backup `PanelPagosAlumno.jsx.morgan.bak`. No afectan el runtime, pero conviene limpiarlos.
 - El service worker es cache-first en producción. Ya existe `CACHE_NAME = 'acadesys-cache-v5'`; recordar incrementarlo en cada despliegue para no servir JS antiguo.
@@ -277,7 +277,7 @@ El código actual **no coincide** con algunos lineamientos del enunciado:
 | E6 | Baja | Cuatro servicios apuntan a endpoints inexistentes y no se usan | Documentado; no eliminado |
 | E7 | Baja | Al volver de Mercado Pago se abre `student-home`, no “Mis pagos” | Documentado; mitigado con “Consultar estado” |
 | E8 | Baja | Tokens visuales no coinciden con el lineamiento (`#178477`, Poppins, sidebar blanco) | Documentado; no rediseñado |
-| E9 | Baja | Chunk principal > 500 kB y 20 advertencias de lint | Documentado; no bloqueante |
+| E9 | Baja | Chunk principal > 500 kB y 21 advertencias de lint | Documentado; no bloqueante |
 | E10 | Baja | Archivos de backup y scripts auxiliares en la raíz | Documentado |
 
 ---
@@ -370,13 +370,17 @@ Se creó `tests/contrato-checkout-pagos.test.js` con 8 pruebas:
 |---|---|
 | `tests/contrato-checkout-pagos.test.js` | 8 pruebas del contrato de checkout/estado/matrícula |
 
+### Integración posterior
+
+- Se integró el commit `ba36373` de Luis (`feat(frontend): integrar flujo de retorno de Mercado Pago...`) mediante rebase. `PanelPagosAlumno.jsx` contiene tanto las correcciones de esta auditoría como ese flujo de retorno informativo.
+
 ### No modificados
 
 - No se modificó el backend.
 - No se modificaron `App.jsx`, `DashboardLayout.jsx` ni los tokens visuales.
 - No se eliminó el flujo manual ni componentes existentes.
 - No se instalaron dependencias.
-- No se hicieron commits ni push.
+- El commit y push a `origin/main` se realizaron después de generar este informe, a pedido del usuario.
 
 ---
 
@@ -412,7 +416,7 @@ Las pruebas cubren: contrato de API, pagos, matrícula, notas, roles, navegació
 ```text
 npm run lint
 → 0 errores
-→ 20 advertencias
+→ 21 advertencias
 ```
 
 Advertencias preexistentes:
@@ -444,7 +448,7 @@ Salida relevante:
 ```text
 dist/index.html                     1.82 kB │ gzip:   0.83 kB
 dist/assets/index-*.css            46.19 kB │ gzip:   8.99 kB
-dist/assets/index-*.js            708.62 kB │ gzip: 179.05 kB
+dist/assets/index-*.js            709.31 kB │ gzip: 179.32 kB
 ```
 
 Advertencia: el chunk principal supera los 500 kB. No es un error y no impide desplegar. Recomendación: code-splitting por rutas/páginas en una tarea posterior, sin cambiar la arquitectura actual en esta auditoría.
@@ -505,7 +509,7 @@ Advertencia: el chunk principal supera los 500 kB. No es un error y no impide de
 - Coordinar con Morgan/Torito la prueba del checkout real cuando la pasarela esté configurada.
 - Decidir si se alinean los tokens visuales con el lineamiento institucional o si se actualiza el lineamiento para reflejar la identidad actual (Archivo / teal / sidebar oscuro).
 - Limpiar, con autorización de sus autores, los servicios obsoletos y los archivos de backup/auxiliares.
-- Evaluar code-splitting para reducir el chunk principal y revisar las 20 advertencias de lint en una tarea separada.
+- Evaluar code-splitting para reducir el chunk principal y revisar las 21 advertencias de lint en una tarea separada.
 - Mantener el incremento de `CACHE_NAME` del service worker en cada despliegue para evitar JS antiguo en producción.
 
 ---
@@ -525,7 +529,7 @@ Advertencia: el chunk principal supera los 500 kB. No es un error y no impide de
 
 - **Pruebas:** 137/137 aprobadas, 0 fallos.
 - **Build:** exitoso, 1872 módulos; advertencia de chunk > 500 kB (no bloqueante).
-- **Lint:** 0 errores, 20 advertencias (una menos que la línea base por limpieza de una variable no usada).
+- **Lint:** 0 errores, 21 advertencias (incluye una del nuevo efecto de retorno de Mercado Pago integrado en `ba36373`).
 - **Backend:** contratos principales verificados contra `acadesys-api-backend` HEAD `7e0401b`; no se modificó.
 - **Seguridad:** el frontend no envía importes ni confirma pagos; el backend sigue siendo la autoridad. La sesión y los permisos se validan en el backend; el frontend solo complementa la autorización visual.
 
