@@ -20,7 +20,7 @@ import {
   obtenerMiUsuario,
   guardarSesion,
   obtenerSesion,
-  limpiarSesion
+  limpiarSesion,
 } from './services/api';
 import {
   esAlumno as esAlumnoRol,
@@ -28,17 +28,17 @@ import {
   esDocente as esDocenteRol,
   esTutor as esTutorRol,
   claveRol,
-  grupoDeRol
+  grupoDeRol,
 } from './utils/roles';
 
 const leerSesionGuardada = () => {
-  // Lectura defensiva: la sesión vive en `acadesys_session` como objeto JSON.
-  // La clave legada `usuario` se admite únicamente como respaldo de migración.
+  // La sesión vive en `acadesys_session`; `usuario` solo se admite como formato legado.
   const sesion = obtenerSesion();
   if (sesion) return sesion;
 
   const legado = localStorage.getItem('usuario');
   if (!legado) return null;
+
   try {
     const parsed = JSON.parse(legado);
     return parsed && typeof parsed === 'object' ? parsed : null;
@@ -47,79 +47,153 @@ const leerSesionGuardada = () => {
   }
 };
 
+/**
+ * Sincroniza los datos básicos del expediente con la sesión visual.
+ * El expediente completo se conserva por separado en `studentData`; no se
+ * introduce información académica dentro del token ni se cambia el contrato API.
+ */
+function crearSesionDesdeExpediente(sesion, expediente) {
+  if (!sesion || !expediente || typeof expediente !== 'object') return sesion;
+
+  const usuario = expediente.usuario || {};
+  return {
+    ...sesion,
+    idUsuario: usuario.idUsuario ?? sesion.idUsuario,
+    nombre: usuario.nombreCompleto ?? sesion.nombre,
+    correo: usuario.correo ?? sesion.correo,
+    dni: usuario.dni ?? sesion.dni,
+    codigoUsuario: usuario.codigoUsuario ?? sesion.codigoUsuario,
+    ciclo: expediente.ciclo ?? null,
+  };
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('acadesys_tab') || 'dashboard');
+  const [activeTab, setActiveTab] = useState(
+    () => localStorage.getItem('acadesys_tab') || 'dashboard',
+  );
   const [session, setSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
+
+  // Expediente completo del alumno devuelto por GET /api/alumno/me.
+  const [studentData, setStudentData] = useState(null);
   const [studentBootstrapped, setStudentBootstrapped] = useState(false);
+  const [studentDataLoading, setStudentDataLoading] = useState(false);
+  const [studentDataError, setStudentDataError] = useState('');
+
   const revalidandoSesionRef = useRef(0);
 
-  // Autorización visual por perfil REAL, con comparación exacta (nunca `includes`).
-  // La seguridad efectiva reside en el backend; esto solo decide qué se muestra.
-
+  // Recuperar la sesión y forzar el inicio del portal del alumno en su página principal.
   useEffect(() => {
-    const esEnlaceRecuperacion = (window.location.hash || '').startsWith('#restablecer-password?');
+    const esEnlaceRecuperacion = (window.location.hash || '').startsWith(
+      '#restablecer-password?',
+    );
+
     if (esEnlaceRecuperacion) {
       setLoadingSession(false);
       return;
     }
 
     const savedUser = leerSesionGuardada();
-
     if (!savedUser) {
       setLoadingSession(false);
       return;
     }
 
     setSession(savedUser);
+    setStudentData(null);
+    setStudentDataError('');
 
     if (esAlumnoRol(savedUser)) {
       setActiveTab('student-home');
       setStudentBootstrapped(false);
     } else {
       setActiveTab('dashboard');
+      setStudentBootstrapped(true);
     }
 
     setLoadingSession(false);
   }, []);
 
+  // Cargar una sola vez el expediente completo para alimentar todas las vistas del alumno.
   useEffect(() => {
-    if (session && esAlumnoRol(session) && !studentBootstrapped) {
-      obtenerMiIntranetAlumno()
-        .then((data) => {
-          if (data?.ciclo?.idCiclo) {
-            const sessionActualizada = {
-              ...session,
-              idUsuario: data.usuario?.idUsuario ?? session.idUsuario,
-              nombre: data.usuario?.nombreCompleto ?? session.nombre,
-              correo: data.usuario?.correo ?? session.correo,
-              dni: data.usuario?.dni ?? session.dni,
-              codigoUsuario: data.usuario?.codigoUsuario ?? session.codigoUsuario,
-              ciclo: data.ciclo,
-            };
-            setSession(sessionActualizada);
-            guardarSesion(sessionActualizada);
-          }
-        })
-        .catch((error) => {
-          console.warn('[Alumno] No fue posible precargar el expediente:', error.message);
-        })
-        .finally(() => setStudentBootstrapped(true));
-    }
+    if (!session || !esAlumnoRol(session) || studentBootstrapped) return undefined;
+
+    let activo = true;
+    setStudentDataLoading(true);
+    setStudentDataError('');
+
+    obtenerMiIntranetAlumno()
+      .then((data) => {
+        if (!activo) return;
+
+        const expediente = data && typeof data === 'object' ? data : null;
+        setStudentData(expediente);
+
+        if (expediente?.usuario) {
+          const sessionActualizada = crearSesionDesdeExpediente(session, expediente);
+          setSession(sessionActualizada);
+          guardarSesion(sessionActualizada);
+        }
+      })
+      .catch((error) => {
+        if (!activo) return;
+        setStudentDataError(
+          error?.message || 'No fue posible cargar tu expediente académico.',
+        );
+        console.warn(
+          '[Alumno] No fue posible cargar el expediente:',
+          error?.message || 'Error desconocido',
+        );
+      })
+      .finally(() => {
+        if (!activo) return;
+        setStudentDataLoading(false);
+        setStudentBootstrapped(true);
+      });
+
+    return () => {
+      activo = false;
+    };
   }, [session, studentBootstrapped]);
 
-  // Punto 18: si el perfil operativo cambió durante la sesión, no conservar
-  // indefinidamente permisos visuales obsoletos. Se revalida contra el backend
-  // SOLO al recuperar el foco de la ventana (no es polling constante) y se
-  // reutiliza el mecanismo de sesión existente. La seguridad real está en el
-  // backend (auth.middleware); esto solo sincroniza la apariencia del sidebar.
+  // Volver a consultar el endpoint con force=true al pulsar «Actualizar» en el portal.
+  const refrescarExpedienteAlumno = async () => {
+    if (!session || !esAlumnoRol(session)) return null;
+
+    setStudentDataLoading(true);
+    setStudentDataError('');
+
+    try {
+      const data = await obtenerMiIntranetAlumno({ force: true });
+      const expediente = data && typeof data === 'object' ? data : null;
+      setStudentData(expediente);
+
+      if (expediente?.usuario) {
+        const sessionActualizada = crearSesionDesdeExpediente(session, expediente);
+        setSession(sessionActualizada);
+        guardarSesion(sessionActualizada);
+      }
+
+      return expediente;
+    } catch (error) {
+      setStudentDataError(
+        error?.message || 'No fue posible actualizar tu expediente académico.',
+      );
+      return null;
+    } finally {
+      setStudentDataLoading(false);
+    }
+  };
+
+  // Revalidar el perfil al recuperar el foco, sin consultas periódicas constantes.
   useEffect(() => {
     if (!session) return undefined;
 
     const revalidarSesion = async () => {
       const ahora = Date.now();
-      if (ahora - revalidandoSesionRef.current < 5000) return; // evita ráfagas de foco
+      if (ahora - revalidandoSesionRef.current < 5000) return;
       revalidandoSesionRef.current = ahora;
+
       try {
         const me = await obtenerMiUsuario();
         if (!me) return;
@@ -140,17 +214,22 @@ export default function App() {
           Perfil: rolNuevo || session.Perfil,
           idPerfil: idNuevo ?? session.idPerfil,
         };
+
         setSession(actualizada);
         guardarSesion(actualizada);
-        setStudentBootstrapped(false);
+        setStudentData(null);
+        setStudentDataError('');
 
-        // La pestaña actual pudo dejar de ser válida para el nuevo perfil.
         const esAlumnoNuevo = grupoDeRol(rolNuevo) === 'alumno';
+        setStudentBootstrapped(!esAlumnoNuevo);
+        setStudentDataLoading(false);
         setActiveTab(esAlumnoNuevo ? 'student-home' : 'dashboard');
-        localStorage.setItem('acadesys_tab', esAlumnoNuevo ? 'student-home' : 'dashboard');
+        localStorage.setItem(
+          'acadesys_tab',
+          esAlumnoNuevo ? 'student-home' : 'dashboard',
+        );
       } catch {
-        // 401 (sesión inválida) ya lo maneja fetchWithAuth cerrando sesión.
-        // Otros errores no deben forzar un logout.
+        // Un 401 ya lo gestiona fetchWithAuth. Otros errores no cierran la sesión.
       }
     };
 
@@ -160,27 +239,35 @@ export default function App() {
 
   const handleLogin = (user) => {
     setSession(user);
-    setStudentBootstrapped(false);
+    setStudentData(null);
+    setStudentDataError('');
+    setStudentDataLoading(false);
+    setStudentBootstrapped(!esAlumnoRol(user));
 
-    if (esAlumnoRol(user)) {
-      setActiveTab('student-home');
-    } else {
-      setActiveTab('dashboard');
-    }
-    localStorage.setItem('acadesys_tab', esAlumnoRol(user) ? 'student-home' : 'dashboard');
+    const destino = esAlumnoRol(user) ? 'student-home' : 'dashboard';
+    setActiveTab(destino);
+    localStorage.setItem('acadesys_tab', destino);
   };
 
   const handleLogout = () => {
     limpiarSesion();
     localStorage.removeItem('acadesys_tab');
     setSession(null);
-    setActiveTab('dashboard');
+    setStudentData(null);
+    setStudentDataError('');
+    setStudentDataLoading(false);
     setStudentBootstrapped(false);
+    setActiveTab('dashboard');
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     localStorage.setItem('acadesys_tab', tab);
+  };
+
+  const handleUpdateUser = (nuevoUsuario) => {
+    setSession(nuevoUsuario);
+    guardarSesion(nuevoUsuario);
   };
 
   if (loadingSession) return null;
@@ -201,10 +288,7 @@ export default function App() {
           setActiveTab={handleTabChange}
           user={session}
           onLogout={handleLogout}
-          onUpdateUser={(nuevoUsuario) => {
-            setSession(nuevoUsuario);
-            guardarSesion(nuevoUsuario);
-          }}
+          onUpdateUser={handleUpdateUser}
         >
           {esAlumno ? (
             activeTab === 'tutor-ia' ? (
@@ -215,7 +299,7 @@ export default function App() {
                   nombre: session?.nombre,
                   ciclo: session?.ciclo?.nombre,
                   universidadObjetivo: session?.ciclo?.universidadObjetivo,
-                  totalAlumnos: session?.ciclo?.totalAlumnos
+                  totalAlumnos: session?.ciclo?.totalAlumnos,
                 }}
               />
             ) : activeTab === 'comunicados' ? (
@@ -231,6 +315,11 @@ export default function App() {
                 }
                 setActiveTab={handleTabChange}
                 user={session}
+                expediente={studentData}
+                loading={studentDataLoading || (!studentBootstrapped && !studentDataError)}
+                error={studentDataError}
+                onRefresh={refrescarExpedienteAlumno}
+                onUpdateUser={handleUpdateUser}
               />
             )
           ) : (
@@ -243,41 +332,28 @@ export default function App() {
                 <ComunicadosPage user={session} />
               )}
 
-              {activeTab === 'asistencia' && esStaff && (
-                <AsistenciaPage />
-              )}
-
-              {activeTab === 'registro-notas' && esStaff && (
-                <RegistroNotasPage />
-              )}
-
-              {activeTab === 'morosidad' && esAdmin && (
-                <MorosidadPage />
-              )}
-
-              {activeTab === 'calificaciones' && esStaff && (
-                <CalificacionesPage />
-              )}
+              {activeTab === 'asistencia' && esStaff && <AsistenciaPage />}
+              {activeTab === 'registro-notas' && esStaff && <RegistroNotasPage />}
+              {activeTab === 'morosidad' && esAdmin && <MorosidadPage />}
+              {activeTab === 'calificaciones' && esStaff && <CalificacionesPage />}
 
               {(activeTab === 'academico' ||
                 activeTab === 'academico-ciclos' ||
-                activeTab === 'academico-turnos') && esStaff && (
-                <AcademicoPage
-                  user={session}
-                  vistaInicial={
-                    activeTab === 'academico-ciclos'
-                      ? 'ciclos'
-                      : activeTab === 'academico-turnos'
-                        ? 'turnos'
-                        : 'asignaciones'
-                  }
-                />
-              )}
+                activeTab === 'academico-turnos') &&
+                esStaff && (
+                  <AcademicoPage
+                    user={session}
+                    vistaInicial={
+                      activeTab === 'academico-ciclos'
+                        ? 'ciclos'
+                        : activeTab === 'academico-turnos'
+                          ? 'turnos'
+                          : 'asignaciones'
+                    }
+                  />
+                )}
 
-              {activeTab === 'materiales-admin' && esAdmin && (
-                <AdminMaterialesPage />
-              )}
-
+              {activeTab === 'materiales-admin' && esAdmin && <AdminMaterialesPage />}
               {activeTab === 'usuarios' && esAdmin && <UsuariosPage />}
               {activeTab === 'perfiles' && esAdmin && <PerfilesPage />}
               {activeTab === 'menu-options' && esAdmin && <OpcionesMenuPage />}
