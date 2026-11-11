@@ -1375,34 +1375,6 @@ export async function consultarTutorIA(pregunta, opciones = {}) {
   };
 }
 
-
-  const response = await fetchWithAuth(`/api/tutor-ia`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || errData.message || errData.mensaje || `Error HTTP: ${response.status}`);
-  }
-
-  const data = await response.json();
-  let textoFinal = data.respuesta || data.mensaje || data.result || data.analisis || '';
-
-  if (typeof textoFinal === 'object') {
-    textoFinal = textoFinal.analisis || JSON.stringify(textoFinal);
-  }
-
-  if (data.consejoAdmision) {
-    textoFinal += `\n\nConsejo de admisión: ${data.consejoAdmision}`;
-  }
-
-  return {
-    ...data,
-    respuesta: textoFinal
-  };
-}
-
 // ==========================================
 // HU-05: PANEL DEL ALUMNO Y MATERIALES
 // ==========================================
