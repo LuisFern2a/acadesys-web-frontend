@@ -22,6 +22,7 @@ import {
 
 } from 'lucide-react';
 
+import { descargarMaterial } from '../services/materiales.api.js';
 import {
 
   obtenerCiclosGestionActivos,
@@ -69,6 +70,30 @@ export default function AdminMaterialesPage() {
 
   const guardandoRef = useRef(false);
   const eliminandoRef = useRef(new Set());
+
+  const [descargandoId, setDescargandoId] = useState(null);
+
+  const verMaterial = async (material) => {
+
+    setError('');
+
+    setDescargandoId(material.idMaterial);
+
+    try {
+
+      await descargarMaterial(material);
+
+    } catch (err) {
+
+      setError(err.message || 'No se pudo descargar el material.');
+
+    } finally {
+
+      setDescargandoId(null);
+
+    }
+
+  };
 
   const cargar = useCallback(async (cicloPreferido = '') => {
 
@@ -603,21 +628,21 @@ export default function AdminMaterialesPage() {
 
                       {material.urlArchivo && (
 
-                        <a
+                        <button
 
-                          href={material.urlArchivo}
+                          type="button"
 
-                          target="_blank"
+                          onClick={() => verMaterial(material)}
 
-                          rel="noopener noreferrer"
+                          disabled={descargandoId === material.idMaterial}
 
-                          className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100"
+                          className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
 
                         >
 
-                          Ver
+                          {descargandoId === material.idMaterial ? 'Descargando…' : 'Descargar'}
 
-                        </a>
+                        </button>
 
                       )}
 

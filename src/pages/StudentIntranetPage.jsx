@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Clock3,
   CreditCard,
-  ExternalLink,
+  Download,
   FileText,
   GraduationCap,
   Loader2,
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import PanelPagosAlumno from '../components/PanelPagosAlumno.jsx';
 import ModalMiPerfil from '../components/ModalMiPerfil.jsx';
-import { API_URL } from '../services/api.js';
+import { descargarMaterial } from '../services/materiales.api.js';
 
 const VIEWS = Object.freeze({
   home: 'student-home',
@@ -82,17 +82,25 @@ function formatearNota(valor) {
   return Number.isFinite(nota) ? String(nota) : '—';
 }
 
-function resolverUrlMaterial(valor) {
-  const ruta = String(valor || '').trim();
-  if (!ruta) return '';
-
-  try {
-    const url = new URL(ruta, `${API_URL.replace(/\/$/, '')}/`);
-    if (!['http:', 'https:'].includes(url.protocol)) return '';
-    return url.toString();
-  } catch {
-    return '';
-  }
+function BotonDescargarMaterial({ material }) {
+  const [estado, setEstado] = useState({ cargando: false, error: '' });
+  const descargar = async () => {
+    setEstado({ cargando: true, error: '' });
+    try {
+      await descargarMaterial(material);
+      setEstado({ cargando: false, error: '' });
+    } catch (error) {
+      setEstado({ cargando: false, error: error.message || 'No se pudo descargar el material.' });
+    }
+  };
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button type="button" onClick={descargar} disabled={estado.cargando} className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-60">
+        {estado.cargando ? 'Descargando…' : 'Descargar material'} <Download className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+      {estado.error && <span role="alert" className="text-xs text-red-700">{estado.error}</span>}
+    </div>
+  );
 }
 
 function obtenerNombre(usuario, user) {
@@ -509,7 +517,7 @@ export default function StudentIntranetPage({
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {materiales.map((material, indice) => {
-            const url = resolverUrlMaterial(material.urlArchivo ?? material.UrlArchivo);
+            const disponible = Boolean((material.urlArchivo ?? material.UrlArchivo) && (material.idMaterial ?? material.IdMaterial));
             return (
               <article key={material.idMaterial ?? `${material.titulo}-${indice}`} className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-start gap-3">
@@ -522,10 +530,8 @@ export default function StudentIntranetPage({
                 <p className="mt-4 flex-1 text-sm text-slate-600">{primerTexto(material.descripcion, 'Sin descripción adicional.')}</p>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
                   <span className="text-xs text-slate-500">Publicado: {formatearFecha(material.fechaPublicacion)}</span>
-                  {url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800">
-                      Abrir material <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                    </a>
+                  {disponible ? (
+                    <BotonDescargarMaterial material={material} />
                   ) : (
                     <span className="text-xs text-amber-700">Archivo no disponible</span>
                   )}

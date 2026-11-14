@@ -228,7 +228,7 @@ export default function MorosidadPage() {
         <button type="button" onClick={actualizarTodo} disabled={loading || cargandoCiclos || !idCiclo || generando || revisando !== null} className="inline-flex items-center gap-2 self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true"/> Actualizar</button>
       </header>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900"><strong>No marcar pagos sin verificar.</strong> La aprobación confirma que la transferencia fue verificada por el responsable. Esta integración no es una pasarela automática ni consulta el banco.</div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900"><strong>No marcar pagos sin verificar.</strong> Esta sección es solo para transferencias y depósitos: aprobar confirma que el responsable revisó el abono en la cuenta de la academia. Los pagos con tarjeta o Yape por Culqi se confirman solos y aparecen en «Pagos online»; no los apruebes aquí.</div>
       {mensaje && <div role={mensaje.tipo === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-lg border p-4 text-sm ${mensaje.tipo === 'error' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{mensaje.tipo === 'error' ? <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true"/> : <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true"/>}<span>{mensaje.texto}</span></div>}
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
