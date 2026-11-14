@@ -5,17 +5,13 @@ import * as api from "../src/services/api.js";
 import {
   crearCheckoutPagoAlumno,
   consultarEstadoPagoAlumno,
-<<<<<<< HEAD
-  urlCheckoutValida,
   conciliarPagoAlumno,
   esRetornoMercadoPago,
   idPagoDesdeReferencia,
   obtenerTransaccionesAdmin,
   obtenerAuditoriaPagoAdmin,
   conciliarTransaccionAdmin,
-=======
   idOrdenCulqiValido,
->>>>>>> 3b0557a (feat(payments): integrate Culqi payment gateway and webhook)
 } from "../src/services/pagosOnline.api.js";
 import * as pagosOnline from "../src/services/pagosOnline.api.js";
 

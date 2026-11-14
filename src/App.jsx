@@ -105,7 +105,7 @@ export default function App() {
     setStudentDataError('');
 
     if (esAlumnoRol(savedUser)) {
-      // Al volver de Mercado Pago se abre directamente «Mis pagos».
+      // Al volver del checkout de Culqi se abre directamente «Mis pagos».
       setActiveTab(esRetornoMercadoPago() ? 'student-pagos' : 'student-home');
       setStudentBootstrapped(false);
     } else {

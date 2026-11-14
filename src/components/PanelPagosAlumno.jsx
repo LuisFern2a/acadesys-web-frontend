@@ -15,11 +15,8 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { iniciarPagoAlumno, mensajeErrorApi, obtenerMisPagos, registrarComprobanteAlumno } from '../services/api';
-import { conciliarPagoAlumno, consultarEstadoPagoAlumno, idPagoDesdeReferencia } from '../services/pagosOnline.api.js';
+import { conciliarPagoAlumno, consultarEstadoPagoAlumno } from '../services/pagosOnline.api.js';
 
-// Tras volver de Mercado Pago se verifica la cuota con el backend durante ~1 min.
-const INTENTOS_VERIFICACION_RETORNO = 6;
-const ESPERA_VERIFICACION_RETORNO_MS = 10000;
 
 // Si la conciliación no está disponible (pasarela apagada, consulta reciente o
 // proveedor caído) se lee el estado guardado: nunca se inventa un resultado.
@@ -178,83 +175,6 @@ export default function PanelPagosAlumno() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
-<<<<<<< HEAD
-
-  // Verificación tras el regreso de Mercado Pago. El parámetro `status` solo
-  // decide el aviso inicial; el resultado final siempre viene del backend.
-  const verificarRetorno = useCallback((idPago) => {
-    const paso = async (intento) => {
-      if (!montadoRef.current) return;
-      try {
-        // Conciliación activa al inicio y a los 30 s; entre medio, lectura simple.
-        const data = intento % 3 === 0
-          ? await consultarConConciliacion(idPago)
-          : await consultarEstadoPagoAlumno(idPago);
-        if (!montadoRef.current) return;
-        const estadoCuota = String(data?.estadoPago || '').toLowerCase();
-        const estadoTx = String(data?.transaccion?.estado || '').toUpperCase();
-        if (estadoCuota === 'pagado') {
-          await cargar({ silencioso: true });
-          if (montadoRef.current) setMensaje({ tipo: 'exito', texto: 'Pago confirmado. Tu cuota figura como pagada.' });
-          return;
-        }
-        if (['RECHAZADA', 'CANCELADA'].includes(estadoTx)) {
-          await cargar({ silencioso: true });
-          if (montadoRef.current) setMensaje(mensajeEstadoPago(data));
-          return;
-        }
-      } catch {
-        // Un error puntual no interrumpe los reintentos; el último aviso lo explica.
-      }
-      if (!montadoRef.current) return;
-      if (intento + 1 >= INTENTOS_VERIFICACION_RETORNO) {
-        setMensaje({
-          tipo: 'aviso',
-          texto: 'Todavía no recibimos la confirmación de Mercado Pago. Si ya pagaste, usa «Consultar estado del pago» en unos minutos; no vuelvas a pagar la misma cuota.'
-        });
-        return;
-      }
-      temporizadorRetornoRef.current = setTimeout(
-        () => paso(intento + 1),
-        ESPERA_VERIFICACION_RETORNO_MS
-      );
-    };
-    return paso(0);
-  }, [cargar]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get('status') || params.get('collection_status');
-    const idPagoRetorno = idPagoDesdeReferencia(params.get('external_reference'));
-
-    if (status || idPagoRetorno) {
-      if (status === 'approved') {
-        setMensaje({
-          tipo: 'aviso',
-          texto: 'Mercado Pago informó que recibió tu pago. Estamos confirmándolo con la academia; la cuota se marcará como pagada solo cuando el servidor lo verifique.',
-          origen: 'redirect'
-        });
-      } else if (status === 'pending' || status === 'in_process') {
-        setMensaje({
-          tipo: 'aviso',
-          texto: 'Tu pago está en proceso de validación por Mercado Pago. Te mostraremos el resultado cuando se confirme.',
-          origen: 'redirect'
-        });
-      } else if (status === 'rejected' || status === 'null') {
-        setMensaje({
-          tipo: 'error',
-          texto: 'El pago no se pudo completar o fue rechazado por la pasarela. Puedes intentarlo nuevamente.',
-          origen: 'redirect'
-        });
-      }
-
-      window.history.replaceState({}, document.title, window.location.pathname);
-      if (idPagoRetorno && status !== 'rejected' && status !== 'null') verificarRetorno(idPagoRetorno);
-    }
-  }, [verificarRetorno]);
-
-=======
->>>>>>> 3b0557a (feat(payments): integrate Culqi payment gateway and webhook)
   const consultarInstrucciones = async (idPago) => {
     if (envioEnCursoRef.current) return;
     envioEnCursoRef.current = true;

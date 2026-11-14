@@ -46,16 +46,15 @@ export async function consultarEstadoPagoAlumno(idPago) {
 export function idOrdenCulqiValido(valor) {
   return typeof valor === 'string' && /^ord_(?:test|live)_[A-Za-z0-9]{8,40}$/.test(valor.trim());
 }
-<<<<<<< HEAD
 
-// «Consultar estado del pago»: el backend busca la operación en Mercado Pago y
+// «Consultar estado del pago»: el backend consulta la orden en Culqi y
 // la aplica con la misma verificación que el webhook. React no envía estados.
 export async function conciliarPagoAlumno(idPago) {
   const id = idPagoValido(idPago);
   return jsonPago(
     `/api/alumno/pagos/${id}/conciliar`,
     { method: 'POST', body: JSON.stringify({}) },
-    'No se pudo consultar el estado del pago en Mercado Pago.',
+    'No se pudo consultar el estado del pago en Culqi.',
   );
 }
 
@@ -104,8 +103,6 @@ export async function conciliarTransaccionAdmin(idTransaccion) {
   return jsonPago(
     `/api/admin/pagos/transacciones/${id}/conciliar`,
     { method: 'POST', body: JSON.stringify({}) },
-    'No se pudo consultar la transacción en Mercado Pago.',
+    'No se pudo consultar la transacción en Culqi.',
   );
 }
-=======
->>>>>>> 3b0557a (feat(payments): integrate Culqi payment gateway and webhook)

@@ -7,7 +7,7 @@ import {
 } from '../services/pagosOnline.api.js';
 import { mensajeErrorApi } from '../services/api';
 
-// Panel de pagos online (Mercado Pago) para administración. Solo lectura: las
+// Panel de pagos online (Culqi) para administración. Solo lectura: las
 // transacciones las confirma el backend a partir del webhook o la conciliación.
 // Los comprobantes manuales siguen en su propia sección de MorosidadPage.
 
@@ -94,11 +94,11 @@ export default function PanelTransaccionesAdmin({ idCiclo = '', periodoSugerido 
     try {
       const r = await conciliarTransaccionAdmin(tx.idTransaccion);
       setAviso(r?.confirmada
-        ? { tipo: 'exito', texto: `Transacción ${tx.idTransaccion}: Mercado Pago confirmó el pago y la cuota quedó pagada.` }
-        : { tipo: 'aviso', texto: `Transacción ${tx.idTransaccion}: Mercado Pago tiene ${r?.pagosEncontrados ?? 0} operación(es); no hay un pago nuevo por confirmar.${r?.requiereRevision ? ' Hay eventos que requieren revisión: abre el historial.' : ''}` });
+        ? { tipo: 'exito', texto: `Transacción ${tx.idTransaccion}: Culqi confirmó el pago y la cuota quedó pagada.` }
+        : { tipo: 'aviso', texto: `Transacción ${tx.idTransaccion}: Culqi no informa un pago nuevo por confirmar.${r?.requiereRevision ? ' Hay eventos que requieren revisión: abre el historial.' : ''}` });
       await cargar();
     } catch (err) {
-      setAviso({ tipo: 'error', texto: mensajeErrorApi(err, 'No se pudo consultar la transacción en Mercado Pago.') });
+      setAviso({ tipo: 'error', texto: mensajeErrorApi(err, 'No se pudo consultar la transacción en Culqi.') });
     } finally {
       setConciliando(null);
     }
@@ -123,8 +123,8 @@ export default function PanelTransaccionesAdmin({ idCiclo = '', periodoSugerido 
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-teal-700" aria-hidden="true"/><h2 className="font-bold text-slate-900">Pagos online (Mercado Pago)</h2></div>
-          <p className="mt-1 text-xs text-slate-500">Solo lectura: el backend confirma cada pago con Mercado Pago. No requieren aprobación manual.</p>
+          <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-teal-700" aria-hidden="true"/><h2 className="font-bold text-slate-900">Pagos online (Culqi)</h2></div>
+          <p className="mt-1 text-xs text-slate-500">Solo lectura: el backend confirma cada pago con Culqi. No requieren aprobación manual.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <select aria-label="Estado de la transacción" value={estado} onChange={cambiarFiltro(setEstado)} className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs outline-none focus:border-teal-500">
