@@ -1,10 +1,11 @@
 import { fetchWithAuth } from './api.js';
 
-// HU-19: los PDF ya no son públicos. Se descargan con el token de la sesión
+// Los PDF no son públicos. Se descargan con el token de la sesión
 // desde GET /api/materiales/:id/descargar y se entregan al navegador como blob.
 export function nombreDescargaMaterial(material = {}) {
-  const base = String(material.nombreArchivo || material.titulo || 'material')
-    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 120) || 'material';
+  const base = Array.from(String(material.nombreArchivo || material.titulo || 'material'))
+    .map((c) => (c.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(c) ? ' ' : c))
+    .join('').trim().slice(0, 120) || 'material';
   return /\.pdf$/i.test(base) ? base : `${base}.pdf`;
 }
 

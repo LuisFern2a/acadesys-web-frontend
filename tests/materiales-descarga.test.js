@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as api from "../src/services/api.js";
 import { descargarMaterial, nombreDescargaMaterial } from "../src/services/materiales.api.js";
 
-// HU-19: el PDF se pide con el token de la sesión, nunca por la URL pública.
+// El PDF se pide con el token de la sesión, nunca por la URL pública.
 const originales = { fetch: globalThis.fetch, document: globalThis.document,
   storage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
   crear: URL.createObjectURL, revocar: URL.revokeObjectURL };

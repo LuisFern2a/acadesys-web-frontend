@@ -130,7 +130,7 @@ test("las funciones de pago del alumno no aceptan idUsuario ni monto como parám
   assert.match(api, /export async function iniciarPagoAlumno\(idPago\)/);
   assert.match(api, /export async function registrarComprobanteAlumno\(idPago, datos = \{\}\)/);
 
-  const seccion = api.slice(api.indexOf("MORGAN · CONTRATO DE PAGOS"));
+  const seccion = api.slice(api.indexOf("CONTRATO DE PAGOS DEL ALUMNO"));
   for (const ruta of [
     "/api/alumno/pagos",
     "/api/alumno/pagos/${id}/iniciar",

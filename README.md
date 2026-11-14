@@ -20,7 +20,8 @@ AcadeSys integra diferentes módulos para alumnos y personal administrativo:
 
 - Vitrina pública de ciclos académicos (consulta sin necesidad de iniciar sesión).
 - Autenticación y gestión de usuarios.
-- Matrícula autónoma mediante checkout con pago simulado.
+- Matrícula en línea desde el catálogo público.
+- Pago de mensualidades con Culqi (tarjeta y Yape) y registro de transferencias.
 - Gestión académica.
 - Simulacros y calificaciones.
 - Ranking de estudiantes.
@@ -70,7 +71,6 @@ El sistema incorpora un flujo de inscripción y pago que permite:
 - Registrar los datos del estudiante (nombre, apellido y correo electrónico).
 - Validar la información ingresada.
 - Seleccionar el ciclo correspondiente.
-- Simular la validación del método de pago.
 - Mostrar estados de carga durante la operación.
 - Procesar la matrícula mediante la API.
 - Informar visualmente sobre operaciones exitosas o errores.
@@ -88,9 +88,8 @@ Incluye:
 - Filtros por estado: Todos, Al Día y Morosos.
 - Búsqueda de estudiantes.
 - Indicadores de deuda y estados de pago.
-- Cambio rápido entre los estados Pagado y Moroso.
-- Actualización optimista de la interfaz.
-- Sincronización posterior con el backend.
+- Revisión de comprobantes de transferencia.
+- Panel de pagos online con historial y conciliación con Culqi.
 
 ---
 
@@ -184,13 +183,27 @@ cd acadesys-web-frontend
 npm install
 ```
 
-### 4. Ejecutar el entorno de desarrollo
+### 4. Configurar la URL del backend
+
+```bash
+cp .env.example .env
+```
+
+### 5. Ejecutar el entorno de desarrollo
 
 ```bash
 npm run dev
 ```
 
 Vite mostrará en la terminal la dirección local desde la cual puede abrirse la aplicación.
+
+---
+
+## Pruebas
+
+```bash
+npm test
+```
 
 ---
 

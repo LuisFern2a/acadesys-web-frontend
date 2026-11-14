@@ -2,7 +2,7 @@ import { after, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import * as api from "../src/services/api.js";
 
-// Pruebas del contrato de pagos del alumno (Morgan) + normalización del portal.
+// Pruebas del contrato de pagos del alumno y normalización del portal.
 // Todo se simula: nunca se llama a la API publicada ni se escribe en la BD.
 
 const fetchOriginal = globalThis.fetch;

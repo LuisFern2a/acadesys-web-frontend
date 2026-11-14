@@ -323,7 +323,7 @@ export async function iniciarSesion(codigoOUsuario, password) {
 }
 
 // ==========================================
-// MÃ“DULO DE PERFILES (RBAC)
+// MÓDULO DE PERFILES (RBAC)
 // ==========================================
 
 export async function obtenerPerfiles() {
@@ -400,7 +400,7 @@ export async function eliminarPerfil(idPerfil) {
 }
 
 // ==========================================
-// MÃ“DULO DE USUARIOS (ADMIN, DOCENTES, TUTORES)
+// MÓDULO DE USUARIOS (ADMIN, DOCENTES, TUTORES)
 // ==========================================
 
 export async function obtenerUsuarios() {
@@ -639,7 +639,7 @@ export async function eliminarUsuario(idUsuario) {
 }
 
 // ==========================================
-// HU-01: MATRÃCULA ÃGIL Y GENERACIÃ“N DE CÃ“DIGOS
+// MATRÍCULA ÁGIL Y GENERACIÓN DE CÓDIGOS
 // ==========================================
 
 export async function crearMatricula(datosMatricula) {
@@ -659,7 +659,7 @@ export async function crearMatricula(datosMatricula) {
 export const registrarMatriculaAgil = crearMatricula;
 
 // ==========================================
-// HU-04: MÃ“DULO DE FINANZAS, PAGOS Y MOROSIDAD
+// MÓDULO DE FINANZAS, PAGOS Y MOROSIDAD
 // ==========================================
 
 export async function obtenerPagosPorCiclo(idCiclo) {
@@ -719,7 +719,7 @@ export async function obtenerMonitoreoTutores(idCiclo = 1) {
 }
 
 // ==========================================
-// HU-03: MÃ“DULO DE MENÃšS Y PERMISOS
+// MÓDULO DE MENÚS Y PERMISOS
 // ==========================================
 
 export async function obtenerOpcionesMenu() {
@@ -829,7 +829,7 @@ export async function asignarMenuAPerfil(idOpcionMenu, idPerfil, orden = 1) {
 }
 
 // ==========================================
-// MÃ“DULO ACADÃ‰MICO (AULAS, CURSOS, CARGA)
+// MÓDULO ACADÉMICO (AULAS, CURSOS, CARGA)
 // ==========================================
 
 export async function obtenerAulas() {
@@ -996,7 +996,7 @@ export async function eliminarHorario(idHorario) {
 }
 
 // ==========================================
-// MÃ“DULO DE ASISTENCIA
+// MÓDULO DE ASISTENCIA
 // ==========================================
 
 export async function obtenerAsistenciaPorAulaYFecha(idAula, fecha) {
@@ -1087,7 +1087,7 @@ export async function guardarAsistencia(idAula, fecha, listaAlumnos) {
 }
 
 // ==========================================
-// MÃ“DULO DE CALIFICACIONES Y SIMULACROS (HU-07 / P1-09)
+// MÓDULO DE CALIFICACIONES Y SIMULACROS
 // ==========================================
 
 export async function obtenerNotas() {
@@ -1228,7 +1228,7 @@ export async function actualizarNotaDocente(idEvaluacion, calificacion) {
 }
 
 // ==========================================
-// MÃ“DULO DE COMUNICADOS
+// MÓDULO DE COMUNICADOS
 // ==========================================
 
 export async function obtenerComunicados() {
@@ -1273,7 +1273,7 @@ export async function confirmarLecturaComunicado(id) {
 }
 
 // ==========================================
-// HU-06: TUTOR PEDAGÃ“GICO IA (GEMINI PREU)
+// TUTOR PEDAGÓGICO IA (GEMINI PREU)
 // ==========================================
 
 
@@ -1376,7 +1376,7 @@ export async function consultarTutorIA(pregunta, opciones = {}) {
 }
 
 // ==========================================
-// HU-05: PANEL DEL ALUMNO Y MATERIALES
+// PANEL DEL ALUMNO Y MATERIALES
 // ==========================================
 
 export async function obtenerMaterialesAlumno(idCiclo = 1) {
@@ -1589,7 +1589,7 @@ export async function eliminarMaterial(idMaterial) {
   return data;
 }
 // ==========================================
-// P1-04: ADMINISTRACIÃ“N Y APERTURA DE CICLOS
+// ADMINISTRACIÓN Y APERTURA DE CICLOS
 // ==========================================
 
 function crearErrorApiCiclo(data, status, mensajeDefecto) {
@@ -1866,7 +1866,7 @@ export async function restablecerPassword(token, nuevaClave) {
 
 
 // ============================================================
-// MORGAN · CONTRATO DE PAGOS DEL ALUMNO Y REVISIÓN ADMINISTRATIVA
+// CONTRATO DE PAGOS DEL ALUMNO Y REVISIÓN ADMINISTRATIVA
 // ============================================================
 
 async function jsonAuth(endpoint, options = {}, mensajeError = 'No se pudo completar la operación.') {

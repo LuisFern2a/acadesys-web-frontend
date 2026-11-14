@@ -180,7 +180,7 @@ test("solo acepta identificadores de orden Culqi del formato esperado", () => {
   assert.equal(idOrdenCulqiValido(""), false);
 });
 
-// --- Correcciones del informe de verificación (14 nov 2026) ---
+// --- Conciliación y panel administrativo ---
 
 test("conciliar envía solo el ID de la cuota y nunca un estado del navegador", async () => {
   simular([200, { idPago: 7, estadoPago: "Pagado", conciliacion: { consultado: true } }]);
