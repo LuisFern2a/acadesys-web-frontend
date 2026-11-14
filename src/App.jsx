@@ -15,6 +15,7 @@ import MorosidadPage from './pages/MorosidadPage';
 import OfflineFallback from './components/OfflineFallback';
 import StudentIntranetPage from './pages/StudentIntranetPage';
 import AdminMaterialesPage from './pages/AdminMaterialesPage';
+import { esRetornoMercadoPago } from './services/pagosOnline.api.js';
 import {
   obtenerMiIntranetAlumno,
   obtenerMiUsuario,
@@ -104,7 +105,8 @@ export default function App() {
     setStudentDataError('');
 
     if (esAlumnoRol(savedUser)) {
-      setActiveTab('student-home');
+      // Al volver de Mercado Pago se abre directamente «Mis pagos».
+      setActiveTab(esRetornoMercadoPago() ? 'student-pagos' : 'student-home');
       setStudentBootstrapped(false);
     } else {
       setActiveTab('dashboard');
@@ -244,7 +246,9 @@ export default function App() {
     setStudentDataLoading(false);
     setStudentBootstrapped(!esAlumnoRol(user));
 
-    const destino = esAlumnoRol(user) ? 'student-home' : 'dashboard';
+    const destino = esAlumnoRol(user)
+      ? (esRetornoMercadoPago() ? 'student-pagos' : 'student-home')
+      : 'dashboard';
     setActiveTab(destino);
     localStorage.setItem('acadesys_tab', destino);
   };

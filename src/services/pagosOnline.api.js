@@ -57,65 +57,62 @@ export function urlCheckoutValida(valor) {
     || host.endsWith('.mercadopago.com.pe');
 }
 
+// «Consultar estado del pago»: el backend busca la operación en Mercado Pago y
+// la aplica con la misma verificación que el webhook. React no envía estados.
+export async function conciliarPagoAlumno(idPago) {
+  const id = idPagoValido(idPago);
+  return jsonPago(
+    `/api/alumno/pagos/${id}/conciliar`,
+    { method: 'POST', body: JSON.stringify({}) },
+    'No se pudo consultar el estado del pago en Mercado Pago.',
+  );
+}
+
+const PARAMETROS_RETORNO = ['status', 'collection_status', 'external_reference', 'payment_id', 'preference_id'];
+
+// ¿La URL actual es un regreso desde Checkout Pro? Solo decide qué pestaña
+// abrir; nunca se usa para afirmar que un pago se realizó.
+export function esRetornoMercadoPago(search = typeof window !== 'undefined' ? window.location.search : '') {
+  const params = new URLSearchParams(search || '');
+  return PARAMETROS_RETORNO.some((clave) => params.has(clave));
+}
+
+// external_reference = ACS-<IdPago>-<uuid>, generada por el backend.
+export function idPagoDesdeReferencia(referencia) {
+  const match = /^ACS-([1-9]\d{0,14})-[-a-f0-9]{36}$/.exec(String(referencia || '').trim());
+  return match ? Number(match[1]) : null;
+}
+
 // ============================================================================
-// ENDPOINTS ADMINISTRATIVOS (Panel de Transacciones - AdminPagosPage)
+// ENDPOINTS ADMINISTRATIVOS (panel de transacciones en MorosidadPage)
+// Backend: routes/admin-pagos.routes.js. Los comprobantes manuales siguen en
+// api.js (/api/pagos/comprobantes/:idComprobante/estado).
 // ============================================================================
 
-// 1. Obtener todas las transacciones para pintar la tabla
-export async function obtenerTransaccionesAdmin() {
+export async function obtenerTransaccionesAdmin(filtros = {}) {
+  const params = new URLSearchParams();
+  for (const clave of ['idCiclo', 'periodo', 'estado', 'limite', 'desde']) {
+    const valor = filtros[clave];
+    if (valor !== undefined && valor !== null && String(valor).trim() !== '') params.set(clave, String(valor).trim());
+  }
+  const query = params.toString();
   return jsonPago(
-    `/api/admin/pagos/transacciones`,
+    `/api/admin/pagos/transacciones${query ? `?${query}` : ''}`,
     {},
-    'No se pudieron cargar las transacciones administrativas.'
+    'No se pudieron cargar las transacciones online.',
   );
 }
 
-// 2. Aprobar un pago manual (voucher/transferencia)
-export async function aprobarComprobanteManual(idPago) {
+export async function obtenerAuditoriaPagoAdmin(idPago) {
   const id = idPagoValido(idPago);
-  return jsonPago(
-    `/api/admin/pagos/${id}/aprobar`,
-    { method: 'PUT', body: JSON.stringify({}) },
-    'No se pudo aprobar el comprobante manual.'
-  );
+  return jsonPago(`/api/admin/pagos/${id}/auditoria`, {}, 'No se pudo cargar el historial de la cuota.');
 }
 
-// 3. Rechazar un pago manual (voucher/transferencia)
-export async function rechazarComprobanteManual(idPago) {
-  const id = idPagoValido(idPago);
+export async function conciliarTransaccionAdmin(idTransaccion) {
+  const id = idPagoValido(idTransaccion);
   return jsonPago(
-    `/api/admin/pagos/${id}/rechazar`,
-    { method: 'PUT', body: JSON.stringify({}) },
-    'No se pudo rechazar el comprobante manual.'
+    `/api/admin/pagos/transacciones/${id}/conciliar`,
+    { method: 'POST', body: JSON.stringify({}) },
+    'No se pudo consultar la transacción en Mercado Pago.',
   );
 }
-
-// ============================================================================
-// MOCK TEMPORAL (Solo para maquetar frontend mientras el backend se termina)
-// ============================================================================
-export const obtenerTransaccionesMock = async () => {
-  return [
-    {
-      id: 1,
-      alumno: "Johan Zapana",
-      ciclo: "Verano 2027",
-      periodo: "Mes 1",
-      monto: 150.00,
-      fecha: "2026-11-06",
-      metodo: "Mercado Pago",
-      referencia: "MP-987654321",
-      estado: "Aprobada"
-    },
-    {
-      id: 2,
-      alumno: "Carlos Mendoza",
-      ciclo: "Verano 2027",
-      periodo: "Inscripción",
-      monto: 50.00,
-      fecha: "2026-11-05",
-      metodo: "Manual",
-      referencia: "VOUCHER-BCP-001",
-      estado: "Pendiente"
-    }
-  ];
-};

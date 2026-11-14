@@ -445,9 +445,18 @@ test("contexto de notas acepta escala numérica y mantiene ausencias como null",
 test("Tutor IA envía solo la pregunta y no fabrica un expediente", async () => {
   simular([200, { respuesta: "Respuesta simulada" }]);
   await api.consultarTutorIA("  ¿Cómo estudiar álgebra?  ");
-  assert.deepEqual(JSON.parse(llamadas[0].options.body), {
+  // Contrato del Tutor IA (main, 10 nov): pregunta, modo, curso e historial
+  // de chat. Nunca identidad ni calificaciones fabricadas por el navegador.
+  const cuerpo = JSON.parse(llamadas[0].options.body);
+  assert.deepEqual(cuerpo, {
     pregunta: "¿Cómo estudiar álgebra?",
+    modo: "chat",
+    cursoId: null,
+    historial: [],
   });
+  for (const campo of ["idUsuario", "calificaciones", "expediente", "promedio"]) {
+    assert.equal(Object.hasOwn(cuerpo, campo), false);
+  }
   await assert.rejects(api.consultarTutorIA(""), /2000/);
 });
 

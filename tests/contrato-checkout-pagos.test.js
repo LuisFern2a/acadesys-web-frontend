@@ -5,7 +5,14 @@ import {
   crearCheckoutPagoAlumno,
   consultarEstadoPagoAlumno,
   urlCheckoutValida,
+  conciliarPagoAlumno,
+  esRetornoMercadoPago,
+  idPagoDesdeReferencia,
+  obtenerTransaccionesAdmin,
+  obtenerAuditoriaPagoAdmin,
+  conciliarTransaccionAdmin,
 } from "../src/services/pagosOnline.api.js";
+import * as pagosOnline from "../src/services/pagosOnline.api.js";
 
 // Contrato del checkout online del alumno. Todo se simula: nunca se llama a
 // Mercado Pago, al backend publicado ni se escribe en la base de datos.
@@ -178,4 +185,54 @@ test("solo acepta URLs https del dominio de Mercado Pago", () => {  assert.equal
   assert.equal(urlCheckoutValida("https://evilmercadopago.com/checkout"), false);
   assert.equal(urlCheckoutValida("javascript:alert(1)"), false);
   assert.equal(urlCheckoutValida(""), false);
+});
+
+// --- Correcciones del informe de verificación (14 nov 2026) ---
+
+test("conciliar envía solo el ID de la cuota y nunca un estado del navegador", async () => {
+  simular([200, { idPago: 7, estadoPago: "Pagado", conciliacion: { consultado: true } }]);
+  const r = await conciliarPagoAlumno(7);
+  assert.equal(llamadas[0].url.endsWith("/api/alumno/pagos/7/conciliar"), true);
+  assert.equal(llamadas[0].options.method, "POST");
+  assert.deepEqual(JSON.parse(llamadas[0].options.body), {});
+  assert.equal(r.estadoPago, "Pagado");
+  await assert.rejects(conciliarPagoAlumno("7; DROP"), /no es válida/);
+});
+
+test("el retorno de Mercado Pago se detecta sin usarse como confirmación", () => {
+  assert.equal(esRetornoMercadoPago("?status=approved&external_reference=x"), true);
+  assert.equal(esRetornoMercadoPago("?collection_status=pending"), true);
+  assert.equal(esRetornoMercadoPago(""), false);
+  assert.equal(esRetornoMercadoPago("?tab=pagos"), false);
+});
+
+test("la cuota del retorno solo se acepta con el formato de referencia del backend", () => {
+  assert.equal(idPagoDesdeReferencia("ACS-7-11111111-1111-4111-8111-111111111111"), 7);
+  for (const valor of [null, "", "ACS-0-11111111-1111-4111-8111-111111111111", "ACS-7", "7", "ACS-7-<script>"]) {
+    assert.equal(idPagoDesdeReferencia(valor), null, String(valor));
+  }
+});
+
+test("el panel admin consulta transacciones con filtros en la URL y sin cuerpo", async () => {
+  simular([200, { transacciones: [], paginacion: { total: 0, limite: 20, desde: 0 } }]);
+  await obtenerTransaccionesAdmin({ idCiclo: "3", periodo: "Inscripcion", estado: "", limite: 20, desde: 40 });
+  const url = new URL(llamadas[0].url, "http://local");
+  assert.equal(url.pathname, "/api/admin/pagos/transacciones");
+  assert.deepEqual(Object.fromEntries(url.searchParams), { idCiclo: "3", periodo: "Inscripcion", limite: "20", desde: "40" });
+  assert.equal(llamadas[0].options.body, undefined);
+});
+
+test("historial y conciliación administrativa usan las rutas del backend", async () => {
+  simular([200, { idPago: 7, eventos: [] }], [200, { confirmada: false }]);
+  await obtenerAuditoriaPagoAdmin(7);
+  await conciliarTransaccionAdmin(31);
+  assert.equal(new URL(llamadas[0].url, "http://local").pathname, "/api/admin/pagos/7/auditoria");
+  assert.equal(new URL(llamadas[1].url, "http://local").pathname, "/api/admin/pagos/transacciones/31/conciliar");
+  assert.equal(llamadas[1].options.method, "POST");
+});
+
+test("no quedan stubs de aprobación manual ni datos ficticios en el servicio de pagos online", () => {
+  for (const nombre of ["aprobarComprobanteManual", "rechazarComprobanteManual", "obtenerTransaccionesMock"]) {
+    assert.equal(nombre in pagosOnline, false, nombre);
+  }
 });
