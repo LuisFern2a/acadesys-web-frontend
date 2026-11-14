@@ -1,9 +1,11 @@
+
 import { after, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import * as api from "../src/services/api.js";
 import {
   crearCheckoutPagoAlumno,
   consultarEstadoPagoAlumno,
+<<<<<<< HEAD
   urlCheckoutValida,
   conciliarPagoAlumno,
   esRetornoMercadoPago,
@@ -11,11 +13,14 @@ import {
   obtenerTransaccionesAdmin,
   obtenerAuditoriaPagoAdmin,
   conciliarTransaccionAdmin,
+=======
+  idOrdenCulqiValido,
+>>>>>>> 3b0557a (feat(payments): integrate Culqi payment gateway and webhook)
 } from "../src/services/pagosOnline.api.js";
 import * as pagosOnline from "../src/services/pagosOnline.api.js";
 
 // Contrato del checkout online del alumno. Todo se simula: nunca se llama a
-// Mercado Pago, al backend publicado ni se escribe en la base de datos.
+// Culqi, al backend publicado ni se escribe en la base de datos.
 
 const fetchOriginal = globalThis.fetch;
 const storageOriginal = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -170,21 +175,13 @@ test("el checkout de matrícula no envía un monto determinado por el navegador"
   assert.equal(cuerpo.IdCiclo, 1);
 });
 
-test("solo acepta URLs https del dominio de Mercado Pago", () => {  assert.equal(
-    urlCheckoutValida(
-      "https://www.mercadopago.com.pe/checkout/v1/redirect?pref_id=pref-1",
-    ),
-    true,
-  );
-  assert.equal(
-    urlCheckoutValida("https://mercadopago.com/checkout/v1/redirect"),
-    true,
-  );
-  assert.equal(urlCheckoutValida("http://www.mercadopago.com.pe/checkout"), false);
-  assert.equal(urlCheckoutValida("https://mercadopago.com.evil.test/checkout"), false);
-  assert.equal(urlCheckoutValida("https://evilmercadopago.com/checkout"), false);
-  assert.equal(urlCheckoutValida("javascript:alert(1)"), false);
-  assert.equal(urlCheckoutValida(""), false);
+test("solo acepta identificadores de orden Culqi del formato esperado", () => {
+  assert.equal(idOrdenCulqiValido("ord_test_ABCDEF1234567890"), true);
+  assert.equal(idOrdenCulqiValido("ord_live_ABCDEF1234567890"), true);
+  assert.equal(idOrdenCulqiValido("pref-123"), false);
+  assert.equal(idOrdenCulqiValido("ord_test_short"), false);
+  assert.equal(idOrdenCulqiValido("ord_test_ABCDEF1234567890.evil"), false);
+  assert.equal(idOrdenCulqiValido(""), false);
 });
 
 // --- Correcciones del informe de verificación (14 nov 2026) ---

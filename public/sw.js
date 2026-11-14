@@ -1,4 +1,5 @@
-const CACHE_NAME = 'acadesys-cache-v5';
+
+const CACHE_NAME = 'acadesys-cache-v6';
 
 // En desarrollo (Vite) el service worker no debe interceptar NADA: la
 // estrategia cache-first servía módulos antiguos y ocultaba los cambios.
@@ -92,4 +93,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

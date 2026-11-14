@@ -1,3 +1,4 @@
+
 import { fetchWithAuth } from './api.js';
 
 async function jsonPago(endpoint, options = {}, mensajePorDefecto = 'No se pudo completar la operación.') {
@@ -6,6 +7,7 @@ async function jsonPago(endpoint, options = {}, mensajePorDefecto = 'No se pudo 
   if (!response.ok) {
     const error = new Error(data.error || data.message || data.mensaje || mensajePorDefecto);
     error.status = response.status;
+    error.code = data.code || null;
     error.data = data;
     throw error;
   }
@@ -41,21 +43,10 @@ export async function consultarEstadoPagoAlumno(idPago) {
   );
 }
 
-export function urlCheckoutValida(valor) {
-  let url;
-  try {
-    url = new URL(String(valor || '').trim());
-  } catch {
-    return false;
-  }
-
-  if (url.protocol !== 'https:') return false;
-  const host = url.hostname.toLowerCase();
-  return host === 'mercadopago.com'
-    || host.endsWith('.mercadopago.com')
-    || host === 'mercadopago.com.pe'
-    || host.endsWith('.mercadopago.com.pe');
+export function idOrdenCulqiValido(valor) {
+  return typeof valor === 'string' && /^ord_(?:test|live)_[A-Za-z0-9]{8,40}$/.test(valor.trim());
 }
+<<<<<<< HEAD
 
 // «Consultar estado del pago»: el backend busca la operación en Mercado Pago y
 // la aplica con la misma verificación que el webhook. React no envía estados.
@@ -116,3 +107,5 @@ export async function conciliarTransaccionAdmin(idTransaccion) {
     'No se pudo consultar la transacción en Mercado Pago.',
   );
 }
+=======
+>>>>>>> 3b0557a (feat(payments): integrate Culqi payment gateway and webhook)

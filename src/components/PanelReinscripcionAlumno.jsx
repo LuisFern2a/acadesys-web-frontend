@@ -96,7 +96,7 @@ export default function PanelReinscripcionAlumno({ user, estudiante, cicloActual
     const confirmacion = await Swal.fire({
       icon: 'question',
       title: 'Confirmar reinscripción',
-      html: `<p>¿Deseas matricularte en <strong>${String(ciclo.nombre || 'el ciclo seleccionado').replace(/[&<>"']/g, '')}</strong>?</p><p style="margin-top:10px">Precio registrado: <strong>S/ ${Number(ciclo.precio).toFixed(2)}</strong></p><p style="margin-top:10px;color:#64748b;font-size:13px">Modo demostración: no se realizará un cobro real. El pago quedará pendiente.</p>`,
+      html: `<p>¿Deseas matricularte en <strong>${String(ciclo.nombre || 'el ciclo seleccionado').replace(/[&<>"']/g, '')}</strong>?</p><p style="margin-top:10px">Costo de inscripción: <strong>S/ ${Number(ciclo.precio).toFixed(2)}</strong></p><p style="margin-top:10px;color:#64748b;font-size:13px">La reinscripción no realiza un cobro en este paso. Si el ciclo tiene costo de inscripción, aparecerá pendiente en Mis pagos; si es gratuito, no se generará esa cuota.</p>`,
       showCancelButton: true,
       confirmButtonText: 'Confirmar reinscripción',
       cancelButtonText: 'Cancelar',
@@ -120,8 +120,8 @@ export default function PanelReinscripcionAlumno({ user, estudiante, cicloActual
         icon: correoEnviado ? 'success' : 'warning',
         title: correoEnviado ? 'Reinscripción registrada' : 'Reinscripción registrada; correo pendiente',
         text: correoEnviado
-          ? 'La reinscripción quedó registrada. El pago sigue pendiente y es simulado; no se hizo ningún cobro. Se confirmó el envío de las instrucciones por correo.'
-          : 'La reinscripción quedó registrada, pero no se pudo confirmar el envío del correo. El pago sigue pendiente y no se hizo ningún cobro. No vuelvas a enviar el formulario; contacta a la academia.',
+          ? 'La reinscripción quedó registrada. Revisa Mis pagos para consultar la inscripción, si corresponde, y las mensualidades. Se confirmó el envío de las instrucciones por correo.'
+          : 'La reinscripción quedó registrada, pero no se pudo confirmar el envío del correo. No vuelvas a enviar el formulario; contacta a la academia.',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#0D9488',
       });
@@ -209,7 +209,7 @@ export default function PanelReinscripcionAlumno({ user, estudiante, cicloActual
               ))}
             </div>
           )}
-          <p className="mt-4 text-xs leading-relaxed text-slate-500">Importante: el pago se mantiene pendiente en modo demostración. No hay una pasarela de pago real conectada y esta acción no confirma un cobro.</p>
+          <p className="mt-4 text-xs leading-relaxed text-slate-500">La reinscripción no realiza un cobro en este paso. Si existe un costo de inscripción, aparecerá en Mis pagos; las mensualidades se gestionan por separado.</p>
         </div>
       )}
     </section>

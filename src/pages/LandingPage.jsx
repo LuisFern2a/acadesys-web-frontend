@@ -611,7 +611,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
     Swal.fire({
       title: 'Procesando matrícula...',
-      text: 'Modo demostración: no se realizará ningún cobro real. Espera mientras registramos la matrícula de prueba.',
+      text: 'Registrando tu matrícula. Este paso no realiza cobros; cualquier costo de inscripción aparecerá por separado en Mis pagos.',
       allowOutsideClick: false,
       allowEscapeKey: false,
       showConfirmButton: false,
@@ -651,10 +651,8 @@ export default function LandingPage({ onLoginSuccess }) {
           ? (resultado.esReinscripcion ? 'Reinscripción registrada' : 'Matrícula registrada')
           : 'Matrícula registrada; correo pendiente',
         text: correoEnviado
-          ? (resultado.esReinscripcion
-            ? 'La matrícula quedó registrada y el pago figura pendiente. Es una demostración: no se realizó un cobro real. Se envió un correo para recuperar el acceso.'
-            : 'La matrícula quedó registrada y el pago figura pendiente. Es una demostración: no se realizó un cobro real. Se envió un correo con las instrucciones de acceso.')
-          : 'La matrícula quedó registrada y el pago sigue pendiente, pero no se pudo confirmar el envío del correo. No vuelvas a enviar el formulario; contacta a la academia para recuperar el acceso.',
+          ? `${resultado.mensaje || 'La matrícula quedó registrada.'} ${resultado.esReinscripcion ? 'Se envió un correo para recuperar el acceso.' : 'Se envió un correo con las instrucciones de acceso.'}`
+          : `${resultado.mensaje || 'La matrícula quedó registrada.'} No se pudo confirmar el envío del correo. Contacta a la academia para recuperar el acceso.`,
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#0D9488',
         background: '#ffffff',
@@ -1527,7 +1525,7 @@ export default function LandingPage({ onLoginSuccess }) {
               )}
               {precioValido(cicloDetalle.precio) && (
                 <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Precio</dt>
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Costo de inscripción</dt>
                   <dd className="mt-1 text-sm font-semibold text-slate-900">S/ {Number(cicloDetalle.precio).toFixed(2)}</dd>
                 </div>
               )}
@@ -1598,7 +1596,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <X className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-2xl text-slate-900 mb-1">Inscripción</h2>
-            <p className="text-xs text-slate-500 mb-3">Modo demostración: esta pantalla no procesa pagos reales. La matrícula de prueba se registra con pago pendiente.</p>
+            <p className="text-xs text-slate-500 mb-3">Este formulario registra tu matrícula; no realiza un cobro aquí. Si el ciclo tiene costo de inscripción, aparecerá pendiente en Mis pagos. Si cuesta S/ 0.00, no se generará esa cuota.</p>
             <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Resumen de inscripción</p>
               <p className="text-sm font-bold text-slate-900 mt-1.5">{cicloSeleccionado.nombre}</p>
@@ -1634,7 +1632,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 )}
                 {precioValido(cicloSeleccionado.precio) && (
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Precio</dt>
+                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Costo de inscripción</dt>
                     <dd className="text-xs font-semibold text-slate-900">S/ {Number(cicloSeleccionado.precio).toFixed(2)}</dd>
                   </div>
                 )}
