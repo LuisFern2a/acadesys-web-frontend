@@ -1,4 +1,5 @@
 
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BotonPagoOnline from './BotonPagoOnline.jsx';
 import {
@@ -104,9 +105,9 @@ const mensajeEstadoPago = (data = {}) => {
   }
 
   const estadoTransaccion = String(transaccion?.estado || '').trim() || 'PENDIENTE';
-  const proveedorTexto = String(transaccion?.proveedor || '').trim().toUpperCase() === 'CULQI'
-    ? 'Culqi'
-    : 'el intento histórico con la pasarela anterior';
+  const proveedorTexto = String(transaccion?.proveedor || '').trim().toUpperCase() === 'MERCADOPAGO'
+    ? 'Mercado Pago'
+    : 'el proveedor del intento histórico';
   const clave = estadoTransaccion.toUpperCase();
   if (clave === 'APROBADA' || estadoCuota.toLowerCase() === 'pagado') {
     return {
@@ -147,13 +148,11 @@ export default function PanelPagosAlumno() {
   const montadoRef = useRef(true);
   // Bloqueo síncrono: `accion` (estado) no alcanza para dos clics en el mismo tick.
   const envioEnCursoRef = useRef(false);
-  const temporizadorRetornoRef = useRef(null);
 
   useEffect(() => {
     montadoRef.current = true;
     return () => {
       montadoRef.current = false;
-      clearTimeout(temporizadorRetornoRef.current);
     };
   }, []);
 
@@ -226,50 +225,6 @@ export default function PanelPagosAlumno() {
     setMensaje({ tipo: 'aviso', texto: mensajeParaAlumno(error, 'La cuota cambió de estado. Se actualizó la información.') });
   };
 
-  // Tras cerrar Culqi, consultar el estado desde el backend durante un periodo
-  // breve. Nunca se toma el callback del navegador como confirmación de pago.
-  const reconciliarTrasCheckout = async ({ idPago } = {}) => {
-    const id = Number(idPago);
-    if (!Number.isSafeInteger(id) || id <= 0 || envioEnCursoRef.current) return;
-    envioEnCursoRef.current = true;
-    setAccion(`conciliar-${id}`);
-    try {
-      let ultimoEstado = null;
-      for (let intento = 0; intento < 4; intento += 1) {
-        if (intento > 0) {
-          await new Promise((resolve) => window.setTimeout(resolve, 2500));
-        }
-        const data = await consultarEstadoPagoAlumno(id);
-        ultimoEstado = data;
-        await cargar({ silencioso: true });
-        if (!montadoRef.current) return;
-
-        if (String(data?.estadoPago || '').trim().toLowerCase() === 'pagado') {
-          setMensaje({ tipo: 'exito', texto: 'Culqi confirmó el pago y AcadeSys actualizó esta cuota.' });
-          return;
-        }
-        const estadoTx = String(data?.transaccion?.estado || '').trim().toUpperCase();
-        if (['EXPIRADA', 'CANCELADA'].includes(estadoTx)) {
-          setMensaje({ tipo: 'error', texto: `La orden Culqi quedó ${estadoTx.toLowerCase()}. Puedes volver a iniciar el pago o usar la transferencia manual.` });
-          return;
-        }
-      }
-
-      const estadoTx = String(ultimoEstado?.transaccion?.estado || 'PENDIENTE').trim();
-      setMensaje({
-        tipo: 'aviso',
-        texto: `Culqi aún no ha confirmado el pago. La transacción continúa como ${estadoTx} y la cuota no se marcará como pagada hasta verificarla. Usa «Consultar estado del pago» más tarde; no repitas el pago si ya completaste el QR.`,
-      });
-    } catch (error) {
-      if (montadoRef.current) {
-        setMensaje({ tipo: 'aviso', texto: mensajeParaAlumno(error, 'No se pudo conciliar automáticamente el pago. Usa «Consultar estado del pago» para volver a intentarlo.') });
-      }
-    } finally {
-      envioEnCursoRef.current = false;
-      if (montadoRef.current) setAccion(null);
-    }
-  };
-
   const enviarReferencia = async (idPago, event) => {
     event.preventDefault();
     if (envioEnCursoRef.current) return;
@@ -330,14 +285,14 @@ export default function PanelPagosAlumno() {
         <div>
           <span className="mb-2 inline-flex items-center gap-2 rounded-lg border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal-700"><CreditCard className="h-4 w-4" aria-hidden="true"/> Finanzas del alumno</span>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Mis pagos</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">Consulta tus cuotas, paga online con Culqi cuando el importe admite QR o registra la referencia de tu transferencia para revisión de la academia.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500">Consulta tus cuotas, paga online con Mercado Pago o registra la referencia de tu transferencia para revisión de la academia.</p>
         </div>
         <button type="button" onClick={() => cargar()} disabled={cargando || ocupado} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"><RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true"/> Actualizar</button>
       </header>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-bold">Pago online con Culqi y transferencia manual.</p>
-        <p className="mt-1 text-xs leading-relaxed">El QR de billeteras móviles permite pagos de S/ 6.00 a S/ 500.00 en soles. Después de pagar, AcadeSys consulta y verifica el estado con Culqi; el retorno del checkout por sí solo nunca confirma una cuota. Para importes fuera del rango QR, utiliza el medio manual habilitado por la academia mientras se habilita otro medio online compatible. Este formulario no sube el archivo del comprobante.</p>
+        <p className="font-bold">Pago online con Mercado Pago y transferencia manual.</p>
+        <p className="mt-1 text-xs leading-relaxed">Mercado Pago administra el checkout y sus medios habilitados para la cuenta de prueba. Después de pagar, AcadeSys consulta y verifica la Order mediante la API y el webhook; el retorno del checkout por sí solo nunca confirma una cuota. Este formulario no sube el archivo del comprobante.</p>
       </div>
 
       <div aria-live="polite">
@@ -419,12 +374,8 @@ export default function PanelPagosAlumno() {
                 const montoNumero = cuota.monto === null || cuota.monto === undefined || cuota.monto === ''
                   ? NaN
                   : Number(cuota.monto);
-                const montoCentimosQR = Number.isFinite(montoNumero)
-                  ? Math.round((montoNumero + Number.EPSILON) * 100)
-                  : null;
-                const qrDisponible = Number.isSafeInteger(montoCentimosQR)
-                  && montoCentimosQR >= 600 && montoCentimosQR <= 50000;
                 const bloqueada = ocupado || !idValido;
+                const checkoutDisponible = idValido && Number.isFinite(montoNumero) && montoNumero > 0;
                 return (
                   <article key={`${cuota.idPago ?? 'sin-id'}-${indice}`} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -460,7 +411,7 @@ export default function PanelPagosAlumno() {
                     {!cuota.pagado && !cuota.enRevision && (
                       <div className="mt-4 border-t border-slate-100 pt-4">
                         
-                        {qrDisponible ? (
+                        {checkoutDisponible ? (
                           <BotonPagoOnline
                             idPago={id}
                             disabled={bloqueada}
@@ -469,11 +420,10 @@ export default function PanelPagosAlumno() {
                               setAccion(ocupadoOnline ? `checkout-${id}` : null);
                             }}
                             onConflicto={refrescarTrasConflicto}
-                            onCheckoutOrder={reconciliarTrasCheckout}
                           />
                         ) : (
                           <p className="max-w-xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                            El pago QR con billeteras Culqi admite importes de S/ 6.00 a S/ 500.00. Para esta cuota, utiliza la transferencia manual habilitada por la academia mientras se implementa otro medio online compatible.
+                            El importe de esta cuota no es válido para iniciar el checkout. Contacta con la administración para revisar el registro.
                           </p>
                         )}
 {!idValido ? (

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import DashboardLayout from './components/DashboardLayout';
@@ -105,7 +106,7 @@ export default function App() {
     setStudentDataError('');
 
     if (esAlumnoRol(savedUser)) {
-      // Al volver del checkout de Culqi se abre directamente «Mis pagos».
+      // Al volver del checkout de Mercado Pago se abre directamente «Mis pagos».
       setActiveTab(esRetornoMercadoPago() ? 'student-pagos' : 'student-home');
       setStudentBootstrapped(false);
     } else {
