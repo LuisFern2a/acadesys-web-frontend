@@ -243,6 +243,11 @@ export async function fetchWithAuth(endpoint, options = {}) {
     if (codigo) error.code = codigo;
     if (response.status === 503 && codigo === 'PASARELA_NO_CONFIGURADA') {
       error.message = 'El pago online todavía no está disponible. Puedes usar la transferencia manual habilitada por la academia.';
+    } else if (response.status === 503 && codigo && /^(CONFIG_|MERCADOPAGO_|PROVEEDOR_PAGO|ENTORNO_PAGO|MONEDA_PAGO|REFERENCIA_PAGO|TITULO_PAGO)/.test(codigo)) {
+      // Configuración incompleta de la pasarela: no es un fallo del alumno.
+      error.message = `El pago online no está disponible por un problema de configuración (${codigo}). Avisa a la administración; no se realizó ningún cobro.`;
+    } else if (response.status === 503 && codigo === 'FACTURACION_NO_DISPONIBLE') {
+      error.message = 'La boleta electrónica todavía no está disponible. Inténtalo más tarde.';
     }
     throw error;
   }

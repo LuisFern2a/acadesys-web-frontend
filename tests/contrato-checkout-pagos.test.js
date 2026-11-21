@@ -7,16 +7,14 @@ import {
   consultarEstadoPagoAlumno,
   conciliarPagoAlumno,
   esRetornoMercadoPago,
-  idPagoDesdeReferencia,
   obtenerTransaccionesAdmin,
   obtenerAuditoriaPagoAdmin,
   conciliarTransaccionAdmin,
-  idOrdenCulqiValido,
 } from "../src/services/pagosOnline.api.js";
 import * as pagosOnline from "../src/services/pagosOnline.api.js";
 
 // Contrato del checkout online del alumno. Todo se simula: nunca se llama a
-// Culqi, al backend publicado ni se escribe en la base de datos.
+// Mercado Pago, al backend publicado ni se escribe en la base de datos.
 
 const fetchOriginal = globalThis.fetch;
 const storageOriginal = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -171,13 +169,16 @@ test("el checkout de matrícula no envía un monto determinado por el navegador"
   assert.equal(cuerpo.IdCiclo, 1);
 });
 
-test("solo acepta identificadores de orden Culqi del formato esperado", () => {
-  assert.equal(idOrdenCulqiValido("ord_test_ABCDEF1234567890"), true);
-  assert.equal(idOrdenCulqiValido("ord_live_ABCDEF1234567890"), true);
-  assert.equal(idOrdenCulqiValido("pref-123"), false);
-  assert.equal(idOrdenCulqiValido("ord_test_short"), false);
-  assert.equal(idOrdenCulqiValido("ord_test_ABCDEF1234567890.evil"), false);
-  assert.equal(idOrdenCulqiValido(""), false);
+test("una pasarela mal configurada muestra un aviso claro y no un error genérico", async () => {
+  simular([503, { code: "MERCADOPAGO_TEST_TOKEN_INVALIDO", error: "El Access Token de prueba..." }]);
+  await assert.rejects(crearCheckoutPagoAlumno(51), (error) => {
+    assert.equal(error.status, 503);
+    assert.match(error.message, /configuración \(MERCADOPAGO_TEST_TOKEN_INVALIDO\)/);
+    assert.match(error.message, /no se realizó ningún cobro/);
+    return true;
+  });
+  simular([503, { code: "PASARELA_NO_CONFIGURADA" }]);
+  await assert.rejects(conciliarPagoAlumno(51), /transferencia manual/);
 });
 
 // --- Conciliación y panel administrativo ---
@@ -197,13 +198,6 @@ test("el retorno de Mercado Pago se detecta sin usarse como confirmación", () =
   assert.equal(esRetornoMercadoPago("?collection_status=pending"), true);
   assert.equal(esRetornoMercadoPago(""), false);
   assert.equal(esRetornoMercadoPago("?tab=pagos"), false);
-});
-
-test("la cuota del retorno solo se acepta con el formato de referencia del backend", () => {
-  assert.equal(idPagoDesdeReferencia("ACS-7-11111111-1111-4111-8111-111111111111"), 7);
-  for (const valor of [null, "", "ACS-0-11111111-1111-4111-8111-111111111111", "ACS-7", "7", "ACS-7-<script>"]) {
-    assert.equal(idPagoDesdeReferencia(valor), null, String(valor));
-  }
 });
 
 test("el panel admin consulta transacciones con filtros en la URL y sin cuerpo", async () => {

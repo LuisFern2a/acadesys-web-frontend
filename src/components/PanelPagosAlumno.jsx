@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BotonPagoOnline from './BotonPagoOnline.jsx';
+import { descargarBoleta, obtenerMisBoletas } from '../services/boletas.api.js';
 import {
   AlertCircle,
   BadgeCheck,
@@ -10,6 +11,7 @@ import {
   CheckCircle2,
   Clock3,
   CreditCard,
+  FileText,
   Loader2,
   RefreshCw,
   Send,
@@ -142,6 +144,8 @@ export default function PanelPagosAlumno() {
   const [accion, setAccion] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [filtro, setFiltro] = useState('todas');
+  const [boletas, setBoletas] = useState({});
+  const [descargando, setDescargando] = useState(null);
 
   // Evita respuestas obsoletas si se recarga mientras hay una petición en vuelo.
   const secuenciaRef = useRef(0);
@@ -164,6 +168,10 @@ export default function PanelPagosAlumno() {
       if (!montadoRef.current || secuencia !== secuenciaRef.current) return;
       setCuotas(Array.isArray(data.cuotas) ? data.cuotas : []);
       setResumen(data.resumen || {});
+      obtenerMisBoletas().then((lista) => {
+        if (!montadoRef.current || secuencia !== secuenciaRef.current) return;
+        setBoletas(Object.fromEntries(lista.map((b) => [Number(b.idPago), b])));
+      });
       setMensaje((actual) => (actual?.origen === 'redirect' ? actual : null));
     } catch (error) {
       if (!montadoRef.current || secuencia !== secuenciaRef.current) return;
@@ -174,6 +182,18 @@ export default function PanelPagosAlumno() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  const bajarBoleta = async (boleta) => {
+    if (!boleta?.idPago) return;
+    setDescargando(boleta.idPago);
+    try {
+      await descargarBoleta(boleta.idPago, boleta.numero);
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error.message || 'No se pudo descargar la boleta.' });
+    } finally {
+      if (montadoRef.current) setDescargando(null);
+    }
+  };
   const consultarInstrucciones = async (idPago) => {
     if (envioEnCursoRef.current) return;
     envioEnCursoRef.current = true;
@@ -398,6 +418,20 @@ export default function PanelPagosAlumno() {
                         <p className="mt-1 text-2xl font-bold text-slate-900">{dinero(cuota.monto)}</p>
                         {cuota.monto === null && <p className="mt-1 text-xs text-rose-700">El monto no está disponible. No transfieras sin confirmarlo con administración.</p>}
                         {cuota.pagado && <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><BadgeCheck className="h-4 w-4" aria-hidden="true"/> Confirmado {fecha(cuota.fechaPago)}</p>}
+                        {cuota.pagado && boletas[Number(cuota.idPago)]?.disponible && (
+                          <button
+                            type="button"
+                            onClick={() => bajarBoleta(boletas[Number(cuota.idPago)])}
+                            disabled={descargando === cuota.idPago}
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+                          >
+                            {descargando === cuota.idPago ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true"/> : <FileText className="h-4 w-4" aria-hidden="true"/>}
+                            Boleta {boletas[Number(cuota.idPago)].numero || 'electrónica'}
+                          </button>
+                        )}
+                        {cuota.pagado && boletas[Number(cuota.idPago)] && !boletas[Number(cuota.idPago)].disponible && (
+                          <p className="mt-2 text-xs text-slate-500">Boleta electrónica en emisión…</p>
+                        )}
                       </div>
                     </div>
 
