@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BotonPagoOnline from './BotonPagoOnline.jsx';
-import { descargarBoleta, obtenerMisBoletas } from '../services/boletas.api.js';
+import { descargarBoleta, guardarDatosBoleta, obtenerDatosBoleta, obtenerMisBoletas, validarDatosBoleta } from '../services/boletas.api.js';
 import {
   AlertCircle,
   BadgeCheck,
@@ -146,6 +146,7 @@ export default function PanelPagosAlumno() {
   const [filtro, setFiltro] = useState('todas');
   const [boletas, setBoletas] = useState({});
   const [descargando, setDescargando] = useState(null);
+  const [datosBoleta, setDatosBoleta] = useState({ dni: '', nombre: '' });
 
   // Evita respuestas obsoletas si se recarga mientras hay una petición en vuelo.
   const secuenciaRef = useRef(0);
@@ -182,6 +183,18 @@ export default function PanelPagosAlumno() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  useEffect(() => {
+    obtenerDatosBoleta().then((datos) => {
+      if (montadoRef.current) setDatosBoleta((actual) => (actual.dni || actual.nombre ? actual : datos));
+    });
+  }, []);
+
+  const prepararBoleta = async (idPago) => {
+    const error = validarDatosBoleta(datosBoleta);
+    if (error) throw new Error(error);
+    await guardarDatosBoleta(idPago, datosBoleta);
+  };
 
   const bajarBoleta = async (boleta) => {
     if (!boleta?.idPago) return;
@@ -253,12 +266,18 @@ export default function PanelPagosAlumno() {
       setMensaje({ tipo: 'error', texto: 'La referencia debe contener entre 4 y 120 caracteres.' });
       return;
     }
+    const errorBoleta = validarDatosBoleta(datosBoleta);
+    if (errorBoleta) {
+      setMensaje({ tipo: 'error', texto: errorBoleta });
+      return;
+    }
     if (!window.confirm('Confirma que ya realizaste la transferencia y que esta referencia corresponde al pago.')) return;
 
     envioEnCursoRef.current = true;
     setAccion(`referencia-${idPago}`);
     setMensaje(null);
     try {
+      await guardarDatosBoleta(idPago, datosBoleta);
       const resultado = await registrarComprobanteAlumno(idPago, { referencia });
       if (!montadoRef.current) return;
       setReferencias((actual) => ({ ...actual, [idPago]: '' }));
@@ -309,11 +328,6 @@ export default function PanelPagosAlumno() {
         </div>
         <button type="button" onClick={() => cargar()} disabled={cargando || ocupado} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"><RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true"/> Actualizar</button>
       </header>
-
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-bold">Pago online con Mercado Pago y transferencia manual.</p>
-        <p className="mt-1 text-xs leading-relaxed">Mercado Pago administra el checkout y sus medios habilitados para la cuenta de prueba. Después de pagar, AcadeSys consulta y verifica la Order mediante la API y el webhook; el retorno del checkout por sí solo nunca confirma una cuota. Este formulario no sube el archivo del comprobante.</p>
-      </div>
 
       <div aria-live="polite">
         {mensaje && !errorSinDatos && (
@@ -444,7 +458,39 @@ export default function PanelPagosAlumno() {
 
                     {!cuota.pagado && !cuota.enRevision && (
                       <div className="mt-4 border-t border-slate-100 pt-4">
-                        
+                        <fieldset className="mb-4 max-w-xl rounded-lg border border-slate-200 p-3">
+                          <legend className="px-1 text-xs font-bold text-slate-700">Boleta a nombre de</legend>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_1fr]">
+                            <label className="text-xs font-semibold text-slate-600">
+                              DNI
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                maxLength={8}
+                                value={datosBoleta.dni}
+                                onChange={(e) => setDatosBoleta((d) => ({ ...d, dni: e.target.value.replace(/\D/g, '').slice(0, 8) }))}
+                                disabled={bloqueada}
+                                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-600 focus:outline-none"
+                                placeholder="8 dígitos"
+                              />
+                            </label>
+                            <label className="text-xs font-semibold text-slate-600">
+                              Nombre completo de quien paga
+                              <input
+                                type="text"
+                                autoComplete="name"
+                                maxLength={200}
+                                value={datosBoleta.nombre}
+                                onChange={(e) => setDatosBoleta((d) => ({ ...d, nombre: e.target.value }))}
+                                disabled={bloqueada}
+                                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-600 focus:outline-none"
+                                placeholder="Nombres y apellidos"
+                              />
+                            </label>
+                          </div>
+                        </fieldset>
+
                         {checkoutDisponible ? (
                           <BotonPagoOnline
                             idPago={id}
@@ -454,6 +500,7 @@ export default function PanelPagosAlumno() {
                               setAccion(ocupadoOnline ? `checkout-${id}` : null);
                             }}
                             onConflicto={refrescarTrasConflicto}
+                            antesDePagar={prepararBoleta}
                           />
                         ) : (
                           <p className="max-w-xl rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -519,7 +566,6 @@ export default function PanelPagosAlumno() {
                         {accion === `estado-${id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true"/> : <RefreshCw className="h-4 w-4" aria-hidden="true"/>}
                         Consultar estado del pago
                       </button>
-                      <span className="text-xs text-slate-500">Solo lee el estado guardado en el servidor; no confirma pagos.</span>
                     </div>
 
                     {cuota.enRevision && (
@@ -536,7 +582,7 @@ export default function PanelPagosAlumno() {
         </>
       )}
 
-      <p className="text-xs text-slate-500">Si el importe o periodo no coincide con lo acordado, no realices la transferencia y consulta a la administración. Los importes mostrados proceden de los registros de cuotas del servidor. La consulta de estado solo lee esos registros y no modifica la cuota.</p>
+      <p className="text-xs text-slate-500">Si el importe o periodo no coincide con lo acordado, consulta a la administración antes de pagar.</p>
     </div>
   );
 }

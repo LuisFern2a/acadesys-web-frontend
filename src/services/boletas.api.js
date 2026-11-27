@@ -35,3 +35,39 @@ export async function descargarBoleta(idPago, numero, formato = 'pdf') {
   enlace.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+// DNI y nombre sugeridos para la boleta (los últimos usados o los del alumno).
+export async function obtenerDatosBoleta() {
+  try {
+    const respuesta = await fetchWithAuth('/api/alumno/datos-boleta', { method: 'GET' });
+    const datos = await respuesta.json().catch(() => ({}));
+    return { dni: String(datos.dni || ''), nombre: String(datos.nombre || '') };
+  } catch {
+    return { dni: '', nombre: '' };
+  }
+}
+
+export function validarDatosBoleta({ dni, nombre }) {
+  const d = String(dni || '').trim();
+  const n = String(nombre || '').replace(/\s+/g, ' ').trim();
+  if (!/^\d{8}$/.test(d)) return 'El DNI para la boleta debe tener 8 dígitos.';
+  if (n.length < 3 || !/^[\p{L}][\p{L} .'-]*$/u.test(n)) return 'Escribe el nombre completo de quien paga (solo letras).';
+  return '';
+}
+
+// Guarda a nombre de quién sale la boleta de esta cuota.
+export async function guardarDatosBoleta(idPago, { dni, nombre }) {
+  const id = Number(idPago);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('La cuota seleccionada no es válida.');
+  const error = validarDatosBoleta({ dni, nombre });
+  if (error) throw new Error(error);
+  try {
+    const respuesta = await fetchWithAuth(`/api/alumno/pagos/${id}/datos-boleta`, {
+      method: 'PUT',
+      body: JSON.stringify({ dni: String(dni).trim(), nombre: String(nombre).replace(/\s+/g, ' ').trim() }),
+    });
+    return await respuesta.json().catch(() => ({}));
+  } catch (err) {
+    throw new Error(err?.message || 'No se pudieron guardar los datos de la boleta.');
+  }
+}

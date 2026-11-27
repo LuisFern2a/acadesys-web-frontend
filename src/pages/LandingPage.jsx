@@ -611,7 +611,7 @@ export default function LandingPage({ onLoginSuccess }) {
 
     Swal.fire({
       title: 'Procesando matrícula...',
-      text: 'Registrando tu matrícula. Este paso no realiza cobros; cualquier costo de inscripción aparecerá por separado en Mis pagos.',
+      text: 'Registrando tu inscripción...',
       allowOutsideClick: false,
       allowEscapeKey: false,
       showConfirmButton: false,
@@ -632,7 +632,7 @@ export default function LandingPage({ onLoginSuccess }) {
         await Swal.fire({
           icon: resultado.correo?.estado === 'enviado' ? 'success' : 'warning',
           title: 'Confirma tu correo',
-          text: resultado.mensaje || 'Te enviamos un enlace de confirmación. Todavía no se ha creado una matrícula ni se ha realizado un cobro.',
+          text: resultado.mensaje || 'Te enviamos un enlace de confirmación a tu correo para completar la inscripción.',
           confirmButtonText: 'Entendido',
           confirmButtonColor: '#0D9488',
           background: '#ffffff',
@@ -1596,7 +1596,7 @@ export default function LandingPage({ onLoginSuccess }) {
               <X className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-2xl text-slate-900 mb-1">Inscripción</h2>
-            <p className="text-xs text-slate-500 mb-3">Este formulario registra tu matrícula; no realiza un cobro aquí. Si el ciclo tiene costo de inscripción, aparecerá pendiente en Mis pagos. Si cuesta S/ 0.00, no se generará esa cuota.</p>
+            <p className="text-xs text-slate-500 mb-3">Completa tus datos para inscribirte. Si el ciclo tiene costo de inscripción, podrás pagarlo desde Mis pagos.</p>
             <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Resumen de inscripción</p>
               <p className="text-sm font-bold text-slate-900 mt-1.5">{cicloSeleccionado.nombre}</p>
@@ -1714,7 +1714,7 @@ export default function LandingPage({ onLoginSuccess }) {
                 className="w-full mt-2 py-3.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {(procesandoPago || verificandoCorreo) && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{verificandoCorreo ? 'Verificando correo...' : 'Simular matrícula (sin cobro)'}</span>
+                <span>{verificandoCorreo ? 'Verificando correo...' : 'Inscribirse'}</span>
               </button>
             </form>
           </div>

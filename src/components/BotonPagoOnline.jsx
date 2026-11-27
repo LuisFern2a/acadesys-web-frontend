@@ -16,6 +16,7 @@ export default function BotonPagoOnline({
   disabled = false,
   onBusyChange,
   onConflicto,
+  antesDePagar,
 }) {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +34,8 @@ export default function BotonPagoOnline({
     onBusyChange?.(true);
 
     try {
+      // Guarda primero a nombre de quién sale la boleta.
+      if (typeof antesDePagar === 'function') await antesDePagar(id);
       const data = await crearCheckoutPagoAlumno(id);
       if (data?.proveedor !== 'MERCADOPAGO') {
         throw new Error('El backend no devolvió Mercado Pago como proveedor activo.');
@@ -40,7 +43,7 @@ export default function BotonPagoOnline({
       if (!esCheckoutHttps(data?.checkoutUrl)) {
         throw new Error('Mercado Pago no devolvió una URL segura de checkout.');
       }
-      setAviso('Redirigiendo al checkout de Mercado Pago. La cuota seguirá pendiente hasta verificar la acreditación.');
+      setAviso('Redirigiendo a Mercado Pago…');
       window.location.assign(data.checkoutUrl);
     } catch (err) {
       if (Number(err?.status) === 409 && typeof onConflicto === 'function') {
